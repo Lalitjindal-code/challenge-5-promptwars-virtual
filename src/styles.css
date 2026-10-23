@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Inter", sans-serif;
+  color: #111b2e;
+  background: #f7f8fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+::selection { background: #ffdeae; color: #281800; }
+
+@layer components {
+  .page-container {
+    @apply mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-10 xl:px-12;
+  }
+  .section-heading {
+    @apply mx-auto mb-9 max-w-2xl text-center sm:mb-12;
+  }
+  .section-heading h2 {
+    @apply font-heading text-2xl font-bold tracking-tight text-planora-ink sm:text-3xl;
+  }
+  .section-heading p {
+    @apply mt-2 text-sm leading-6 text-planora-muted sm:text-base;
+  }
+  .eyebrow {
+    @apply mb-2 inline-block text-[11px] font-bold uppercase tracking-[0.16em] text-planora-gold;
+  }
+  .nav-link {
+    @apply text-sm font-semibold text-planora-muted transition hover:text-planora-ink;
+  }
+  .footer-heading {
+    @apply mb-3 text-xs font-bold uppercase tracking-wider text-planora-ink;
+  }
+  .footer-link {
+    @apply mb-2 block text-sm text-planora-muted transition hover:text-planora-ink;
+  }
+  .field-label {
+    @apply flex flex-col gap-2 text-sm font-semibold text-planora-ink;
+  }
+  .field-input {
+    @apply w-full rounded-xl border border-planora-border bg-white px-3.5 py-3 text-sm font-normal text-planora-ink outline-none transition placeholder:text-slate-400 focus:border-planora-violet focus:ring-4 focus:ring-planora-violet/10;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

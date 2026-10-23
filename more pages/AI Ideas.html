@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Plus+Jakarta+Sans:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {"darkMode":"class","theme":{"extend":{"colors":{"outline":"#75777e","tertiary":"#0f003b","on-tertiary-fixed":"#1e0061","inverse-primary":"#bac6e6","secondary":"#7c5816","surface-container":"#e8edff","primary":"#020d24","on-secondary":"#ffffff","on-tertiary-fixed-variant":"#4b29b1","secondary-container":"#fecc80","on-primary":"#ffffff","on-primary-fixed-variant":"#3b4760","on-secondary-fixed":"#281800","secondary-fixed":"#ffdeae","surface-container-high":"#e0e8ff","surface-bright":"#f9f9ff","tertiary-fixed":"#e7deff","on-background":"#111b2e","surface-container-low":"#f1f3ff","secondary-fixed-dim":"#efbf73","tertiary-container":"#260075","surface-variant":"#d8e2fc","background":"#f9f9ff","inverse-surface":"#273044","inverse-on-surface":"#edf0ff","on-tertiary-container":"#9075fa","on-secondary-container":"#795513","on-primary-container":"#7f8aa7","error-container":"#ffdad6","surface-container-highest":"#d8e2fc","primary-fixed":"#d8e2ff","on-surface-variant":"#45474d","on-error":"#ffffff","outline-variant":"#c5c6ce","on-primary-fixed":"#0f1b33","on-surface":"#111b2e","surface":"#f9f9ff","on-error-container":"#93000a","tertiary-fixed-dim":"#cbbeff","on-tertiary":"#ffffff","error":"#ba1a1a","primary-fixed-dim":"#bac6e6","surface-tint":"#535e79","primary-container":"#17233b","on-secondary-fixed-variant":"#604100","surface-container-lowest":"#ffffff","surface-dim":"#d0daf4"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-xs":"0.25rem","space-lg":"1.5rem","space-xl":"2rem","gutter":"1.5rem","margin":"2.5rem","gutter-mobile":"1rem","margin-tablet":"1.5rem","margin-mobile":"1rem","space-md":"1rem","space-sm":"0.5rem"},"fontFamily":{"title-md":["Inter"],"headline-xl-mobile":["Plus Jakarta Sans"],"body-lg":["Inter"],"label-md":["Inter"],"headline-md":["Plus Jakarta Sans"],"display-hero-mobile":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"label-sm":["Inter"],"display-hero":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"body-md-medium":["Inter"],"caption":["Inter"],"headline-lg-mobile":["Plus Jakarta Sans"],"body-md":["Inter"]},"fontSize":{"title-md":["18px",{"lineHeight":"26px","fontWeight":"600"}],"headline-xl-mobile":["28px",{"lineHeight":"36px","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"label-md":["13px",{"lineHeight":"18px","fontWeight":"600"}],"headline-md":["24px",{"lineHeight":"32px","fontWeight":"600"}],"display-hero-mobile":["36px",{"lineHeight":"44px","fontWeight":"700"}],"headline-lg":["32px",{"lineHeight":"40px","fontWeight":"600"}],"headline-xl":["40px",{"lineHeight":"48px","fontWeight":"700"}],"label-sm":["12px",{"lineHeight":"16px","fontWeight":"500"}],"display-hero":["56px",{"lineHeight":"64px","fontWeight":"700"}],"headline-sm":["20px",{"lineHeight":"28px","fontWeight":"600"}],"body-md-medium":["14px",{"lineHeight":"20px","fontWeight":"500"}],"caption":["11px",{"lineHeight":"14px","fontWeight":"600"}],"headline-lg-mobile":["24px",{"lineHeight":"32px","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="h-20 px-space-lg flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center text-secondary-fixed shadow-[0_2px_0_0_#020d24]"><span class="material-symbols-outlined text-[20px]">auto_awesome</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm tracking-tight text-primary leading-none">Planora<span class="text-secondary font-headline-sm">AI</span></span><span class="font-caption text-caption text-on-surface-variant uppercase tracking-wider mt-0.5">Event Studio</span></div></div></div><div class="px-space-md py-space-xs"><nav class="flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary font-body-md-medium"><a class="flex items-center justify-between px-space-md py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-md text-body-md" data-path="dashboard" href="#"><span>Dashboard</span></a><a class="flex items-center justify-between px-space-md py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-md text-body-md" data-path="my-events" href="#"><span>My Events</span></a><a class="flex items-center justify-between px-space-md py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-md text-body-md" data-path="budget" href="#"><span>Budget</span></a><a class="flex items-center justify-between px-space-md py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-md text-body-md" data-path="timeline-and-tasks" href="#"><span>Timeline &amp; Tasks</span></a><a class="flex items-center justify-between px-space-md py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-md text-body-md" data-path="vendors" href="#"><span>Vendors</span></a><a class="flex items-center justify-between px-space-md py-2.5 rounded-lg bg-tertiary text-on-tertiary font-body-md-medium shadow-[0_2px_0_0_#020d24] transition-colors font-body-md text-body-md" data-path="ai-ideas-studio" href="#"><span class="flex items-center gap-2"><span>AI Ideas Studio</span><span class="w-1.5 h-1.5 rounded-full bg-on-tertiary-container animate-pulse"></span></span><span class="px-1.5 py-0.5 rounded-full bg-tertiary-container text-on-tertiary-container font-caption text-caption uppercase tracking-wider">AI</span></a><a class="flex items-center justify-between px-space-md py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-md text-body-md" data-path="guests-and-rsvps" href="#"><span>Guests &amp; RSVPs</span></a><a class="flex items-center justify-between px-space-md py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-md text-body-md" data-path="settings" href="#"><span>Settings</span></a></nav></div></div><div class="p-space-md m-space-md rounded-xl bg-surface-container-low"><div class="flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-title-md text-title-md shadow-[0_1px_4px_rgba(0,0,0,0.08)]"><span class="font-label-md text-label-md text-secondary-fixed">AM</span></div><div class="flex flex-col min-w-0"><span class="font-body-md-medium text-body-md-medium text-on-surface truncate">Alex Morgan</span><span class="font-caption text-caption text-on-surface-variant truncate">alex@planora.ai</span></div></div><div class="flex items-center"><a class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container transition-colors" data-path="login" href="#" title="Settings / Log Out"><span class="material-symbols-outlined text-[18px]">logout</span></a></div></div></div></aside><div class="pl-64 flex flex-col min-h-screen"><header class="fixed top-0 left-64 right-0 h-20 bg-surface/90 backdrop-blur-xl z-40 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 w-full px-space-xl flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-lg"><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-primary tracking-tight">AI Ideas Studio</span><span class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-caption text-caption flex items-center gap-1"><span class="material-symbols-outlined text-[12px] text-tertiary">auto_awesome</span>AI Powered</span></div><span class="font-body-md text-body-md text-on-surface-variant">Turn your event vision into ideas worth remembering.</span></div><div class="h-9 w-[1px] bg-outline-variant/40 hidden xl:block"></div><div class="relative hidden xl:flex items-center"><label class="sr-only" for="shell-event-select">Active Event</label><select class="h-10 pl-3 pr-8 rounded-lg bg-surface-container-lowest text-body-md font-body-md-medium text-on-surface appearance-none focus:outline-none focus:ring-2 focus:ring-tertiary-container shadow-[0_1px_4px_rgba(0,0,0,0.04)] cursor-pointer border-0" id="shell-event-select"><option selected="">The Starlight Gala 2025</option><option>Nordic Minimalist Wedding</option><option>Horizon Founders Retreat</option></select><span class="material-symbols-outlined absolute right-2.5 text-on-surface-variant text-[18px] pointer-events-none">unfold_more</span></div></div><div class="flex items-center gap-space-md"><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[18px]">search</span><input class="w-64 h-11 pl-10 pr-4 rounded-lg bg-surface-container-lowest text-body-md font-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary-container transition-all shadow-[0_1px_4px_rgba(0,0,0,0.03)]" placeholder="Search prompt or concept..." type="text"/></div><button class="relative w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Notifications" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-secondary-fixed-dim ring-2 ring-surface-container-lowest"></span></button><button class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Help and Concierge" type="button"><span class="material-symbols-outlined text-[20px]">help_outline</span></button><div class="h-6 w-[1px] bg-outline-variant/30 mx-1"></div><button class="h-11 px-space-md rounded-lg bg-tertiary-container text-on-tertiary font-label-md text-label-md flex items-center gap-2 hover:bg-tertiary active:translate-y-0.5 transition-all shadow-[0_2px_0_0_#0f003b]" type="button"><span class="material-symbols-outlined text-tertiary-fixed text-[18px]">auto_awesome</span><span>New Generation</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-20 bg-surface flex-1 px-space-xl py-space-lg"><div class="flex flex-col w-full pb-16">
+<!-- Sub-header & Breadcrumb Navigation -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md mb-space-lg">
+<div class="flex items-center gap-space-sm text-body-md font-body-md text-on-surface-variant">
+<span class="font-label-md text-label-md tracking-wider uppercase text-on-surface-variant">AI IDEAS STUDIO</span>
+<span class="text-outline-variant font-label-md">/</span>
+<span class="font-body-md-medium text-body-md-medium text-primary">Concept Studio</span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="font-caption text-caption text-secondary uppercase font-semibold">Active Session</span>
+</div>
+<!-- Active Event Context Pill -->
+<div class="flex items-center gap-space-sm bg-surface-container-lowest px- space-md py-2 rounded-xl shadow-sm">
+<div class="w-2.5 h-2.5 rounded-full bg-secondary-fixed-dim ring-4 ring-secondary-fixed/30"></div>
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-primary text-[15px] leading-tight">Aarav &amp; Priya Wedding</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-[13px]">• 180 Guests • ₹1,50,000 Budget • Udaipur</span>
+</div>
+<button class="ml-2 px-2.5 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm transition-colors flex items-center gap-1" type="button">
+<span class="material-symbols-outlined text-[15px]">tune</span>
+<span>Edit Context</span>
+</button>
+</div>
+</div>
+<!-- Hero Prompt Composer Area & Event Context Bento -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg mb-space-xl">
+<!-- Prompt Composer Module -->
+<div class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between relative overflow-hidden">
+<!-- AI Glow Accent -->
+<div class="absolute -top-24 -right-24 w-60 h-60 bg-tertiary-fixed/40 rounded-full blur-3xl pointer-events-none"></div>
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-caption text-caption uppercase tracking-wider">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+<span>Your Creative Event Copilot</span>
+</div>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-caption text-caption">
+<span class="material-symbols-outlined text-[15px] text-tertiary">bolt</span>
+<span>Planora Studio Engine v4.2</span>
+</div>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight mb-2">Let’s imagine something extraordinary.</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl mb-space-md">
+          Brainstorm bespoke themes, decor schematics, culinary menus, entertainment, and budget-saving design synergies tailored to your venue and guest profile.
+        </p>
+<!-- Prompt Textarea -->
+<div class="relative rounded-xl bg-surface-container-low p-space-sm transition-all focus-within:bg-surface-container-lowest focus-within:shadow-md">
+<textarea class="w-full bg-transparent border-0 resize-none font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none p-space-xs" id="ai-prompt-input" placeholder="Describe the event you have in mind... (e.g., A sunset rooftop wedding sangeet with warm fairy lights, marigold garlands, antique brass samovars, and acoustic Sufi fusion)" rows="3"></textarea>
+<div class="flex flex-wrap items-center justify-between gap-space-sm pt-2">
+<div class="flex items-center gap-space-xs">
+<span class="font-caption text-caption text-on-surface-variant uppercase tracking-wider pl-1">Preset Sparks:</span>
+<div class="flex flex-wrap gap-1">
+<button class="px-2 py-1 rounded-lg bg-surface-container-lowest hover:bg-surface-container-high text-on-surface-variant hover:text-primary font-label-sm text-label-sm transition-colors shadow-sm" onclick="document.getElementById('ai-prompt-input').value = 'Royal garden sunset celebration with ivory rajnigandha, warm lanterns, and heritage sitar acoustic'" type="button">
+                  ✨ Royal Garden
+                </button>
+<button class="px-2 py-1 rounded-lg bg-surface-container-lowest hover:bg-surface-container-high text-on-surface-variant hover:text-primary font-label-sm text-label-sm transition-colors shadow-sm" onclick="document.getElementById('ai-prompt-input').value = 'Understated Tuscan courtyard with low olive runners and soft amber candlesticks'" type="button">
+                  ✨ Candlelit Tuscan
+                </button>
+<button class="px-2 py-1 rounded-lg bg-surface-container-lowest hover:bg-surface-container-high text-on-surface-variant hover:text-primary font-label-sm text-label-sm transition-colors shadow-sm" onclick="document.getElementById('ai-prompt-input').value = 'Modern Rajasthani fusion with artisanal kulhad counters and organic floral arches'" type="button">
+                  ✨ Modern Heritage
+                </button>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-container text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[15px] text-tertiary">palette</span>
+<span>Heritage Luxury</span>
+</div>
+<button class="px-space-md py-2.5 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-2 hover:bg-primary active:translate-y-0.5 transition-all shadow-md" type="button">
+<span class="material-symbols-outlined text-[17px] text-secondary-fixed">auto_awesome</span>
+<span>Generate Ideas</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="pt-space-md mt-space-sm flex items-center justify-between text-on-surface-variant font-caption text-caption">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary">verified</span>
+          Calibrated against Aarav &amp; Priya’s ₹1,50,000 decor &amp; ambiance budget.
+        </span>
+<span class="hidden sm:inline">Press <kbd class="px-1.5 py-0.5 rounded bg-surface-container font-mono text-[10px]">Cmd + Enter</kbd> to generate</span>
+</div>
+</div>
+<!-- Active Constraints Card -->
+<div class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-space-md">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">Event Constraints</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption">Locked Context</span>
+</div>
+<div class="space-y-space-md">
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary mt-0.5">
+<span class="material-symbols-outlined text-[18px]">celebration</span>
+</div>
+<div>
+<div class="font-body-md-medium text-body-md-medium text-primary">Heritage Sangeet &amp; Reception</div>
+<div class="font-caption text-caption text-on-surface-variant">Formal evening gathering with sit-down dinner</div>
+</div>
+</div>
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary mt-0.5">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+</div>
+<div>
+<div class="font-body-md-medium text-body-md-medium text-primary">Lake Pichola Palace Terraces</div>
+<div class="font-caption text-caption text-on-surface-variant">Udaipur, Rajasthan • Open-air courtyard</div>
+</div>
+</div>
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-tertiary mt-0.5">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+</div>
+<div class="w-full">
+<div class="flex items-center justify-between">
+<span class="font-body-md-medium text-body-md-medium text-primary">₹1,50,000 Total Decor Cap</span>
+<span class="font-caption text-caption text-secondary font-semibold">₹1,15,000 Unallocated</span>
+</div>
+<!-- Structural track -->
+<div class="w-full h-2 rounded-full bg-surface-container mt-1.5 overflow-hidden flex">
+<div class="bg-primary-container h-full" style="width: 23%;"></div>
+<div class="bg-secondary-fixed-dim h-full" style="width: 15%;"></div>
+<div class="bg-surface-variant h-full flex-1"></div>
+</div>
+</div>
+</div>
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant mt-0.5">
+<span class="material-symbols-outlined text-[18px]">group</span>
+</div>
+<div>
+<div class="font-body-md-medium text-body-md-medium text-primary">180 Guests (14 VIP Tables)</div>
+<div class="font-caption text-caption text-on-surface-variant">Requires 20ft central stage + walkway</div>
+</div>
+</div>
+</div>
+</div>
+<div class="pt-space-md mt-space-sm">
+<button class="w-full py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">edit_note</span>
+<span>Refine Venue Constraints</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Generation Status Bar -->
+<div class="bg-surface-container-low px-space-lg py-3 rounded-xl mb-space-lg flex flex-wrap items-center justify-between gap-space-sm shadow-sm">
+<div class="flex items-center gap-space-sm font-body-md text-body-md">
+<div class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></div>
+<span class="font-body-md-medium text-body-md-medium text-primary">Generation Complete</span>
+<span class="text-on-surface-variant">• 6 concepts synthesized in 1.4s matching Lake Pichola parameters</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="text-on-surface-variant hover:text-primary font-label-sm text-label-sm flex items-center gap-1 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+<span>Re-roll with tighter budget</span>
+</button>
+<span class="text-outline-variant font-label-sm">|</span>
+<button class="text-tertiary hover:text-on-tertiary-fixed-variant font-label-sm text-label-sm flex items-center gap-1 font-semibold transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">auto_fix_high</span>
+<span>Optimize All for ₹1.2L</span>
+</button>
+</div>
+</div>
+<!-- Category Filter Strip & Sort -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md mb-space-lg">
+<!-- Category Tabs -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+<button class="px-space-md py-2 rounded-xl bg-primary text-on-primary font-label-md text-label-md whitespace-nowrap flex items-center gap-2 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[17px] text-secondary-fixed">deck</span>
+<span>Themes &amp; Concepts (12)</span>
+</button>
+<button class="px-space-md py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant hover:text-primary font-label-md text-label-md whitespace-nowrap flex items-center gap-2 transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[17px]">lightbulb</span>
+<span>Decor &amp; Ambience (18)</span>
+</button>
+<button class="px-space-md py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant hover:text-primary font-label-md text-label-md whitespace-nowrap flex items-center gap-2 transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[17px]">restaurant</span>
+<span>Food &amp; Menus (8)</span>
+</button>
+<button class="px-space-md py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant hover:text-primary font-label-md text-label-md whitespace-nowrap flex items-center gap-2 transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[17px]">theater_comedy</span>
+<span>Activities &amp; Show (6)</span>
+</button>
+<button class="px-space-md py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant hover:text-primary font-label-md text-label-md whitespace-nowrap flex items-center gap-2 transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[17px]">savings</span>
+<span>Budget Hacks (5)</span>
+</button>
+</div>
+<!-- Controls -->
+<div class="flex items-center gap-space-sm self-end md:self-auto">
+<div class="flex items-center bg-surface-container-lowest p-1 rounded-lg shadow-sm">
+<button class="p-1.5 rounded-md bg-surface-container text-primary" title="Grid View" type="button">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+</button>
+<button class="p-1.5 rounded-md text-on-surface-variant hover:text-primary" title="List View" type="button">
+<span class="material-symbols-outlined text-[18px]">view_list</span>
+</button>
+</div>
+<div class="relative flex items-center">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-container-lowest text-label-sm font-label-sm text-primary appearance-none focus:outline-none shadow-sm cursor-pointer border-0">
+<option>Sort: Highest Feasibility</option>
+<option>Sort: Cost (Low to High)</option>
+<option>Sort: Cost (High to Low)</option>
+<option>Sort: Most Popular</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 text-on-surface-variant text-[16px] pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Main Content Grid with Side Drawer (Split Studio Layout) -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg items-start">
+<!-- Gallery Grid (Left 7 Cols on XL, full width on smaller) -->
+<div class="xl:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-space-lg">
+<!-- Card 1 (Inspected/Featured Active Idea) -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-md transition-all flex flex-col group relative ring-2 ring-primary">
+<div class="relative h-52 overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="A grand evening outdoor wedding reception dinner setup in a historic palace terrace in Udaipur at sunset. Warm string fairy lights glow overhead under a wooden pergola, long banquet table dressed with ivory linen and brass candelabras, majestic white floral arch overlooking serene mountain landscape, guests celebrating in refined cocktail attire." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9cDF5vUUXP_IBZSUhr7aPe2JI6CaZWKxuLezD9Xp9BxSvjXJ1YXCLUgpHPMmv-9cCNoUMSSVSWYViQNYg5i0d1v_aN0jFqAAYEZJLb0C4Cv2P_nNWoJyW_PLQGrpfqyWsfDmF_L_kwFlsH5l_AZODgE_bhi0uPXgLw_Se4D1hZPu6wSvNBnaUHbQN0fKffxxWrY5J1eoQCCCel9fHGawU0lehojgEYP-FDxteCnFgz1pyKcoiAdbgDg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/20 to-transparent"></div>
+<div class="absolute top-3 left-3 flex items-center gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-secondary text-on-secondary font-caption text-caption font-semibold uppercase tracking-wider shadow-sm">
+              Featured Pick
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur text-primary font-caption text-caption font-medium">
+              Decor &amp; Theme
+            </span>
+</div>
+<button class="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/90 hover:bg-surface-container-lowest text-error flex items-center justify-center transition-transform active:scale-90 shadow-sm" title="Saved" type="button">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+<div class="absolute bottom-3 left-3 right-3 flex items-end justify-between text-on-primary">
+<div>
+<span class="font-caption text-caption text-secondary-fixed uppercase tracking-wider">Estimated Allocation</span>
+<div class="font-headline-sm text-headline-sm leading-none">₹35,000</div>
+</div>
+<div class="px-2 py-1 rounded-lg bg-surface-container-lowest/90 text-primary font-label-sm text-label-sm flex items-center gap-1 backdrop-blur shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+<span>94% Match</span>
+</div>
+</div>
+</div>
+<div class="p-space-md flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<h3 class="font-title-md text-title-md text-primary">Royal Garden Evening</h3>
+<span class="font-caption text-caption text-on-surface-variant">ID: #AI-902</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-sm line-clamp-2">
+              Warm brass lantern pathways, ivory rajnigandha floral arches, layered foliage canopy, and antique low-cushion lounge seating.
+            </p>
+<div class="flex flex-wrap gap-1.5 mb-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Heritage</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Outdoor</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Warm Amber</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">High Impact</span>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-space-xs">
+<button class="flex-1 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-1.5 hover:bg-primary-container transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+<span>Inspecting</span>
+</button>
+<button class="py-2 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md flex items-center gap-1 transition-colors" title="Quick Add" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 2: Modern Minimal Celebration -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
+<div class="relative h-52 overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Intimate minimal luxury table setting for an evening celebration with architectural brass candlesticks, neutral flax linen runners, modern ribbed crystal glasses, and small organic white ranunculus florals under gentle diffused evening twilight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxvPSrf5c_80oC0yfbzSOHd_dsK0zZQ1jNoBGjEqbFI2z-L-muEehazjl2QKnYu3WS1_kKajbtaP9UcVMYLuwVVXMCtKgJ1ByzY8eesO0X1buXSvbiCEYNOh0AYjR0z7w0oUGP_pZvFOe3JZBxVcXk3dK6EeRFcInmpCGHs2ZRUwg8AwsYUMC9BQf93siWj8FxqLXiDRa1sG6o6zdl1KT2ycbfFho4UW2NTmMhO45RVBBAbJ2YguIjdQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/20 to-transparent"></div>
+<div class="absolute top-3 left-3 flex items-center gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur text-primary font-caption text-caption font-semibold uppercase tracking-wider">
+              Tablescape &amp; Linens
+            </span>
+</div>
+<button class="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/90 hover:bg-surface-container-lowest text-on-surface-variant hover:text-error flex items-center justify-center transition-transform active:scale-90 shadow-sm" title="Bookmark" type="button">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+<div class="absolute bottom-3 left-3 right-3 flex items-end justify-between text-on-primary">
+<div>
+<span class="font-caption text-caption text-secondary-fixed uppercase tracking-wider">Estimated Allocation</span>
+<div class="font-headline-sm text-headline-sm leading-none">₹22,000</div>
+</div>
+<div class="px-2 py-1 rounded-lg bg-surface-container-lowest/90 text-primary font-label-sm text-label-sm flex items-center gap-1 backdrop-blur shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+<span>89% Match</span>
+</div>
+</div>
+</div>
+<div class="p-space-md flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<h3 class="font-title-md text-title-md text-primary">Modern Minimal Dinner</h3>
+<span class="font-caption text-caption text-on-surface-variant">ID: #AI-408</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-sm line-clamp-2">
+              Clean architectural tablescapes with sculpted brass candlesticks, taupe linen runners, and low floral clusters for unobstructed guest conversations.
+            </p>
+<div class="flex flex-wrap gap-1.5 mb-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Minimal</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Sophisticated</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Budget-Savvy</span>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-space-xs">
+<button class="flex-1 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+<span>Inspect Concept</span>
+</button>
+<button class="py-2 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-1 hover:bg-primary transition-colors" title="Add to Event" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 3: Starlit Palace Canopy -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
+<div class="relative h-52 overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Magical night sky wedding reception courtyard with hundreds of hanging micro-fairy lights suspended like a starlight ceiling above celebration tables, sheer white drapes moving gently in the breeze, reflection on stone palace floor." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3NPKsZBnzdxz0TIPVopESyM0iEFaFKWYmCmNEoYEx8Pyf4RDKkjqLwEwwq9I5bl2oueVmK_LCtovN0F71YHmDGZE6kL9qYsnrvqGflGHGPTGfUepZVo_qgy7vs1wzql5aK2-sV2NWEEFD3jxRlur6fHKmPF1IcT7pKT9Bv4vjoSxWPGTlV16U95WLvsBCg8SZziTxkexAtFJY5ABQuSxD6zRmdyUxieF2GdnD-x2-FNqeBjpF89Z12w"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/20 to-transparent"></div>
+<div class="absolute top-3 left-3 flex items-center gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur text-primary font-caption text-caption font-semibold uppercase tracking-wider">
+              Lighting &amp; Rigging
+            </span>
+</div>
+<button class="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/90 hover:bg-surface-container-lowest text-on-surface-variant hover:text-error flex items-center justify-center transition-transform active:scale-90 shadow-sm" title="Bookmark" type="button">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+<div class="absolute bottom-3 left-3 right-3 flex items-end justify-between text-on-primary">
+<div>
+<span class="font-caption text-caption text-secondary-fixed uppercase tracking-wider">Estimated Allocation</span>
+<div class="font-headline-sm text-headline-sm leading-none">₹28,000</div>
+</div>
+<div class="px-2 py-1 rounded-lg bg-surface-container-lowest/90 text-primary font-label-sm text-label-sm flex items-center gap-1 backdrop-blur shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+<span>91% Match</span>
+</div>
+</div>
+</div>
+<div class="p-space-md flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<h3 class="font-title-md text-title-md text-primary">Starlit Palace Canopy</h3>
+<span class="font-caption text-caption text-on-surface-variant">ID: #AI-631</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-sm line-clamp-2">
+              Suspended micro-string matrix creating an artificial twilight galaxy over the dining perimeter with custom warm-toned filament dimming.
+            </p>
+<div class="flex flex-wrap gap-1.5 mb-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Canopy Light</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Romantic</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Photo Magnet</span>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-space-xs">
+<button class="flex-1 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+<span>Inspect Concept</span>
+</button>
+<button class="py-2 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-1 hover:bg-primary transition-colors" title="Add to Event" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 4: Rajasthani Heritage Craft Experience -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
+<div class="relative h-52 overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Traditional Indian artisan craft and live kulhad tea tasting station at a luxury destination wedding, terracotta cups stacked with dried marigold blooms, antique carved wood carts with warm brass vessels, Rajasthan royal backdrop." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDB7EooLrQhMy6CMTIDNv8fAekW9UH2XFm2P2kuY_Van_HbmXK4d-vMk2XLwOPM4Jhxe_Cc-tBTn_djSHbQ-6dv4IG8rfBvoMZtnvpxbdT1aJfcRADpIEw50La_8JrMwN9-ENcMBGCzEcD-j25l7LMVNrtEMSkKG0rkmx9qp7pfr5HUXEW1ClMyC18fR29jUiJbK7hvDvCnSDFl20gsfLP5K1P3hz1uN9KQ_TdwvoIEuxyxWIe6kFLn1w"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/20 to-transparent"></div>
+<div class="absolute top-3 left-3 flex items-center gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption font-semibold uppercase tracking-wider">
+              Cultural &amp; Interactive
+            </span>
+</div>
+<button class="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/90 hover:bg-surface-container-lowest text-on-surface-variant hover:text-error flex items-center justify-center transition-transform active:scale-90 shadow-sm" title="Bookmark" type="button">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+<div class="absolute bottom-3 left-3 right-3 flex items-end justify-between text-on-primary">
+<div>
+<span class="font-caption text-caption text-secondary-fixed uppercase tracking-wider">Estimated Allocation</span>
+<div class="font-headline-sm text-headline-sm leading-none">₹18,000</div>
+</div>
+<div class="px-2 py-1 rounded-lg bg-surface-container-lowest/90 text-primary font-label-sm text-label-sm flex items-center gap-1 backdrop-blur shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span>Value Champion</span>
+</div>
+</div>
+</div>
+<div class="p-space-md flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<h3 class="font-title-md text-title-md text-primary">Artisanal Heritage Corner</h3>
+<span class="font-caption text-caption text-on-surface-variant">ID: #AI-119</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-sm line-clamp-2">
+              Interactive block printing demonstration, organic scent blending with local attar oils, and hot saffron kulhad chai carts.
+            </p>
+<div class="flex flex-wrap gap-1.5 mb-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Interactive</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">High Engagement</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Local Craft</span>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-space-xs">
+<button class="flex-1 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+<span>Inspect Concept</span>
+</button>
+<button class="py-2 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-1 hover:bg-primary transition-colors" title="Add to Event" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Inspector Side Panel / Drawer (Right 5 Cols on XL) -->
+<div class="xl:col-span-5 bg-surface-container-lowest rounded-xl p-space-lg shadow-md sticky top-24">
+<!-- Drawer Header -->
+<div class="flex items-center justify-between pb-space-md mb-space-md">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-caption text-caption font-semibold uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+<span>Inspecting Concept</span>
+</span>
+<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-800 font-caption text-caption font-medium">94% AI Match</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors" title="Bookmark" type="button">
+<span class="material-symbols-outlined text-[20px] text-error" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors" title="Close Panel" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+</div>
+<!-- Preview Image Card -->
+<div class="relative h-44 rounded-xl overflow-hidden mb-space-md shadow-sm">
+<img class="w-full h-full object-cover" data-alt="High angle architectural view of a wedding dinner reception on a stone terrace in Udaipur overlooking Lake Pichola with candle-lit floral runners, warm incandescent glow, and guests seated in festive evening dresses." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAPXpwsLXg-iK2yJqbStMVh-6eO1lCPpvh7z_Lzd_1TfRDh8IxgB-SNPXGG9oUN-mVt3i0JtweQx9zXUMKGrAsJPEf5JBkMN8elnlr2EVAHWWQhCNv-PuMFCAukIO4Mtu-BdHkSVbbYiPTC-2FJyOP-iOUgcsDCQmEflPPIYivAWwZONXG2hb1r5h_9YhY7g6A5t45um4xgcVySnDBs60v6M2s-gZFppjSTPFZKXlSn7J8Y8W3y199wQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/70 via-transparent to-transparent"></div>
+<div class="absolute bottom-3 left-3 text-on-primary">
+<h2 class="font-headline-sm text-headline-sm leading-tight">Royal Garden Evening</h2>
+<p class="font-caption text-caption text-secondary-fixed">Lake Pichola Terrace Adaptation • Concept #902</p>
+</div>
+</div>
+<!-- Concept Overview Narrative -->
+<div class="mb-space-md">
+<span class="font-label-md text-label-md text-primary block mb-1">Architectural Concept</span>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Capitalizes on Udaipur’s dusk atmosphere. Replaces heavy metal trusses with organic wooden pergolas wrapped in ivory rajnigandha garlands and ambient 2200K filament lanterns, cutting setup labor while amplifying heritage romance.
+        </p>
+</div>
+<!-- Color Palette Harmony -->
+<div class="mb-space-md p-space-sm rounded-xl bg-surface-container-low">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider font-semibold">Recommended Palette</span>
+<span class="font-caption text-caption text-on-surface-variant">5 Harmonized Tones</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex-1 flex flex-col items-center gap-1">
+<div class="w-full h-7 rounded-lg bg-[#020d24] shadow-sm"></div>
+<span class="font-caption text-caption text-[10px] text-on-surface-variant">Midnight</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1">
+<div class="w-full h-7 rounded-lg bg-[#7c5816] shadow-sm"></div>
+<span class="font-caption text-caption text-[10px] text-on-surface-variant">Gilded</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1">
+<div class="w-full h-7 rounded-lg bg-[#e8edff] shadow-sm"></div>
+<span class="font-caption text-caption text-[10px] text-on-surface-variant">Lake Mist</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1">
+<div class="w-full h-7 rounded-lg bg-[#3b4760] shadow-sm"></div>
+<span class="font-caption text-caption text-[10px] text-on-surface-variant">Slate</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1">
+<div class="w-full h-7 rounded-lg bg-[#260075] shadow-sm"></div>
+<span class="font-caption text-caption text-[10px] text-on-surface-variant">Orchid</span>
+</div>
+</div>
+</div>
+<!-- Decor & Material Inventory (Checklist) -->
+<div class="mb-space-md">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-md text-label-md text-primary">Key Decor Deliverables</span>
+<span class="font-caption text-caption text-secondary font-semibold">4 Vendors Required</span>
+</div>
+<div class="space-y-1.5">
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low transition-colors shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">candle</span>
+<span class="font-body-md text-body-md text-primary">Brass Moroccan Floor Lanterns</span>
+</div>
+<span class="font-caption text-caption text-on-surface-variant">40 units</span>
+</div>
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low transition-colors shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">local_florist</span>
+<span class="font-body-md text-body-md text-primary">Rajnigandha &amp; Jasmine Arch</span>
+</div>
+<span class="font-caption text-caption text-on-surface-variant">2 Main Arches</span>
+</div>
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low transition-colors shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">chair</span>
+<span class="font-body-md text-body-md text-primary">Low Diwan Lounge Seating</span>
+</div>
+<span class="font-caption text-caption text-on-surface-variant">8 Ensembles</span>
+</div>
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low transition-colors shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">wb_twilight</span>
+<span class="font-body-md text-body-md text-primary">Fairy Canopy Lighting Grid</span>
+</div>
+<span class="font-caption text-caption text-on-surface-variant">1,200 sq.ft</span>
+</div>
+</div>
+</div>
+<!-- Budget Breakdown Card -->
+<div class="p-space-md rounded-xl bg-surface-container mb-space-md">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-md text-label-md text-primary">Cost Allocation Breakdown</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-lowest text-secondary font-label-sm text-label-sm font-semibold">Saved ₹12k vs standard</span>
+</div>
+<div class="space-y-1 font-body-md text-body-md text-on-surface-variant">
+<div class="flex justify-between">
+<span>Lighting &amp; Rigging</span>
+<span class="text-primary font-body-md-medium">₹18,000</span>
+</div>
+<div class="flex justify-between">
+<span>Florals &amp; Fragrance Station</span>
+<span class="text-primary font-body-md-medium">₹11,000</span>
+</div>
+<div class="flex justify-between">
+<span>Furniture &amp; Diwan Rentals</span>
+<span class="text-primary font-body-md-medium">₹6,000</span>
+</div>
+<div class="h-[1px] bg-outline-variant/30 my-1.5"></div>
+<div class="flex justify-between items-center text-primary font-headline-sm text-headline-sm">
+<span class="text-[16px]">Total Estimated Decor</span>
+<span>₹35,000</span>
+</div>
+</div>
+</div>
+<!-- Action Button Group -->
+<div class="flex flex-col gap-2">
+<button class="w-full py-3 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 active:translate-y-0.5 transition-all shadow-md" type="button">
+<span class="material-symbols-outlined text-[18px] text-secondary-fixed">bookmark_add</span>
+<span>Add to Event Execution Plan</span>
+</button>
+<div class="flex items-center gap-2">
+<button class="flex-1 py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-tertiary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">auto_fix_high</span>
+<span>Generate Variations</span>
+</button>
+<button class="py-2.5 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md flex items-center gap-1 transition-colors" title="Export PDF" type="button">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span class="hidden sm:inline">Export Deck</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Drawer: Saved Ideas Collection -->
+<div class="mt-space-xl p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm mb-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-7 h-7 rounded-lg bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+<span class="material-symbols-outlined text-[16px]">collections_bookmark</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-primary">Saved Ideas Collection (3 Saved)</h3>
+<span class="font-caption text-caption text-on-surface-variant hidden md:inline">• Aarav &amp; Priya Wedding Board</span>
+</div>
+<button class="text-tertiary hover:underline font-label-md text-label-md flex items-center gap-1 self-start sm:self-auto" type="button">
+<span>View Full Moodboard</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-space-md">
+<!-- Mini Preview 1 -->
+<div class="flex items-center gap-space-sm p-2 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer group">
+<div class="w-16 h-16 rounded-lg overflow-hidden shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Evening outdoor reception dinner setup with fairy lights and ivory florals in Udaipur palace terrace." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhBbUXLaVAP9ScIigJukW9ho9i7WNth0u7BmBfYptVBUwz8wNLQLk0NodnorgwQCVpA1LJgZaImqSiGzhxdfbtR1HzodnWlSCAtiO7p-jx41ag857Ombkt6rTfPMOp4Qxc6ETCQENQANaSSFUJZe3R15RT4RsMgNEnJYEX-jSnYMSuTVvOk_tTFrmPux_NE41XJAMU6XMoirH7mt8JignKdscGtqHnbKp1bEKWXafKGMKChCQCCff_iA"/>
+</div>
+<div class="min-w-0 flex-1">
+<span class="font-caption text-caption text-secondary font-semibold uppercase">Primary Theme</span>
+<div class="font-body-md-medium text-body-md-medium text-primary truncate">Royal Garden Evening</div>
+<span class="font-caption text-caption text-on-surface-variant">₹35,000 • 94% Match</span>
+</div>
+<span class="material-symbols-outlined text-primary text-[18px] mr-1 opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</div>
+<!-- Mini Preview 2 -->
+<div class="flex items-center gap-space-sm p-2 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer group">
+<div class="w-16 h-16 rounded-lg overflow-hidden shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Minimalist elegant wedding tablescape with sculptural brass candle holders and white ranunculus blooms." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBme1ClYwKNHa2NKA9wo7EjP0YZGTQasxMaJv54TW9YRRy1FmyPEN2zCA9IgFvpzRe_9ntxD_wQrfQmJ5OxRT2QDlkuzWd7__06tWLrRpqm6KHwo0dp36YaNWJfFvZOjnwiVNoOUlnq5NmbDqSp78Rg7nUG5x2FlLk5SjL-F9BUqHVWkxeFattFyIyqqL-V80me5qUvjPp8BBAnUsD-y7WfqoAXMXND1LFAkuRwVI-vXqbdR0yGKFZBVQ"/>
+</div>
+<div class="min-w-0 flex-1">
+<span class="font-caption text-caption text-on-surface-variant font-semibold uppercase">Dining Decor</span>
+<div class="font-body-md-medium text-body-md-medium text-primary truncate">Modern Minimal Dinner</div>
+<span class="font-caption text-caption text-on-surface-variant">₹22,000 • 89% Match</span>
+</div>
+<span class="material-symbols-outlined text-primary text-[18px] mr-1 opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</div>
+<!-- Mini Preview 3 -->
+<div class="flex items-center gap-space-sm p-2 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer group">
+<div class="w-16 h-16 rounded-lg overflow-hidden shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" data-alt="Handcrafted artisan kulhad station with Rajasthan block printing textiles and warm brass samovars." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2OgYRWqrB4HRG33Xe1FtsSpEM_TJHdvHGmrL492O7ToC1g8R2Fd2ddtxgt5qCrn4Lh3rIkVD79IRWJCmqrXWggqzPllkfzfmJ136I3JKzDBR1fBFYBdItZ1v6Q2EOQo3PHSOTacTtCfQV644GRjDu9UpzV4f5AES98-jBdFYfdJa1oaISDammDM9DQ80Pei-h0Iy8G1bnPdkow19CBbgQ_h_fqcRYrttr2czwrE22t5fsaLBbwTje7w"/>
+</div>
+<div class="min-w-0 flex-1">
+<span class="font-caption text-caption text-on-surface-variant font-semibold uppercase">Guest Experience</span>
+<div class="font-body-md-medium text-body-md-medium text-primary truncate">Artisanal Heritage Corner</div>
+<span class="font-caption text-caption text-on-surface-variant">₹18,000 • Value Pick</span>
+</div>
+<span class="material-symbols-outlined text-primary text-[18px] mr-1 opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Simple micro-interactions for prompt chips
+  document.querySelectorAll('[data-prompt-fill]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const input = document.getElementById('ai-prompt-input');
+      if (input) {
+        input.value = this.getAttribute('data-prompt-fill');
+        input.focus();
+      }
+    });
+  });
+</script></main></div></body></html>

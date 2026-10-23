@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_blank" name="shell-type"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "on-error-container": "#93000a",
+          "surface-container": "#e8edff",
+          "on-secondary-fixed-variant": "#604100",
+          "surface-tint": "#535e79",
+          "on-secondary-fixed": "#281800",
+          "tertiary": "#0f003b",
+          "secondary": "#7c5816",
+          "surface-container-lowest": "#ffffff",
+          "primary": "#020d24",
+          "inverse-surface": "#273044",
+          "error-container": "#ffdad6",
+          "outline-variant": "#c5c6ce",
+          "primary-fixed": "#d8e2ff",
+          "background": "#f9f9ff",
+          "primary-container": "#17233b",
+          "tertiary-fixed": "#e7deff",
+          "secondary-container": "#fecc80",
+          "surface-bright": "#f9f9ff",
+          "error": "#ba1a1a",
+          "surface-container-highest": "#d8e2fc",
+          "surface": "#f9f9ff",
+          "on-primary-fixed-variant": "#3b4760",
+          "on-tertiary-container": "#9075fa",
+          "surface-container-low": "#f1f3ff",
+          "primary-fixed-dim": "#bac6e6",
+          "surface-container-high": "#e0e8ff",
+          "secondary-fixed": "#ffdeae",
+          "inverse-primary": "#bac6e6",
+          "on-surface": "#111b2e",
+          "secondary-fixed-dim": "#efbf73",
+          "on-error": "#ffffff",
+          "tertiary-fixed-dim": "#cbbeff",
+          "tertiary-container": "#260075",
+          "on-secondary-container": "#795513",
+          "on-background": "#111b2e",
+          "surface-dim": "#d0daf4",
+          "on-surface-variant": "#45474d",
+          "on-tertiary": "#ffffff",
+          "outline": "#75777e",
+          "on-tertiary-fixed-variant": "#4b29b1",
+          "surface-variant": "#d8e2fc",
+          "on-tertiary-fixed": "#1e0061",
+          "inverse-on-surface": "#edf0ff",
+          "on-primary": "#ffffff",
+          "on-primary-container": "#7f8aa7",
+          "on-secondary": "#ffffff",
+          "on-primary-fixed": "#0f1b33"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "space-lg": "1.5rem",
+          "gutter": "1.5rem",
+          "gutter-mobile": "1rem",
+          "space-md": "1rem",
+          "margin-mobile": "1rem",
+          "margin": "2.5rem",
+          "space-sm": "0.5rem",
+          "space-xl": "2rem",
+          "margin-tablet": "1.5rem",
+          "space-xs": "0.25rem"
+        },
+        "fontFamily": {
+          "headline-xl-mobile": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-xl": [
+            "Plus Jakarta Sans"
+          ],
+          "body-md": [
+            "Inter"
+          ],
+          "display-hero": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "body-md-medium": [
+            "Inter"
+          ],
+          "caption": [
+            "Inter"
+          ],
+          "label-sm": [
+            "Inter"
+          ],
+          "label-md": [
+            "Inter"
+          ],
+          "title-md": [
+            "Inter"
+          ],
+          "headline-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "body-lg": [
+            "Inter"
+          ],
+          "headline-md": [
+            "Plus Jakarta Sans"
+          ],
+          "display-hero-mobile": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg-mobile": [
+            "Plus Jakarta Sans"
+          ]
+        },
+        "fontSize": {
+          "headline-xl-mobile": [
+            "28px",
+            {
+              "lineHeight": "36px",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-xl": [
+            "40px",
+            {
+              "lineHeight": "48px",
+              "fontWeight": "700"
+            }
+          ],
+          "body-md": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "display-hero": [
+            "56px",
+            {
+              "lineHeight": "64px",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-lg": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-md-medium": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "500"
+            }
+          ],
+          "caption": [
+            "11px",
+            {
+              "lineHeight": "14px",
+              "fontWeight": "600"
+            }
+          ],
+          "label-sm": [
+            "12px",
+            {
+              "lineHeight": "16px",
+              "fontWeight": "500"
+            }
+          ],
+          "label-md": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "fontWeight": "600"
+            }
+          ],
+          "title-md": [
+            "18px",
+            {
+              "lineHeight": "26px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-sm": [
+            "20px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-lg": [
+            "16px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-md": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "fontWeight": "600"
+            }
+          ],
+          "display-hero-mobile": [
+            "36px",
+            {
+              "lineHeight": "44px",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-lg-mobile": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "fontWeight": "600"
+            }
+          ]
+        }
+      }
+    }
+  }</script></head><body class="bg-surface font-body-md text-on-surface min-h-screen flex flex-col justify-between"><header class="w-full bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="w-full px-gutter md:px-margin h-16 flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-on-primary font-headline-sm text-headline-sm"><span class="material-symbols-outlined text-[18px] text-on-tertiary-container">auto_awesome</span></div><span class="font-headline-sm text-headline-sm tracking-tight text-primary">Planora <span class="text-tertiary-container font-headline-sm text-headline-sm">AI</span></span></div><div class="flex items-center gap-space-xs px-space-sm py-1 rounded-full bg-surface-container-low text-on-surface-variant"><span class="material-symbols-outlined text-[16px] text-secondary">verified_user</span><span class="font-caption text-caption uppercase tracking-wider">256-Bit SSL Encrypted</span></div></div></header><main class="flex-1 w-full flex items-center justify-center px-gutter-mobile md:px-gutter py-space-md md:py-space-xl"><div class="flex flex-col w-full max-w-6xl mx-auto my-auto">
+<div class="grid grid-cols-1 lg:grid-cols-12 rounded-xl overflow-hidden shadow-xl bg-surface-container-lowest">
+<!-- Left Hero & Editorial Panel -->
+<div class="lg:col-span-5 relative flex flex-col justify-between p-space-lg md:p-space-xl bg-primary text-on-primary overflow-hidden min-h-[580px] lg:min-h-[780px]">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover opacity-35 scale-105 transition-transform duration-1000 ease-out hover:scale-100" data-alt="Breathtaking Tuscan villa wedding celebration at golden hour with fairy lights draped under a wooden pergola, long banquet table adorned with floral arrangements and glassware, guests laughing and celebrating in warm ambient light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKB_7oMm4LLotabWHGxyx-f-eYM49DpOjNesB1RSnsqs0RwBR-NuQWub3p_5FEzgKL5IVEvB2Qx-gD-NPwQTwx4BOMc4S-QrOk6h8nWMuR9TV0rflZIPwslduEYSBRmxpBCyMlhFoJKWebUbZ-jbxBkRxW50HvePXKreuU1ruoR253YUg_RFuZoWET6160HZ-nwgJjJAbjQ-ronNQxK5yBNpkfFcWoH1pGC1RhRzLhuaFXZgZVACTQ6Q"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-primary/40"></div>
+<div class="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-secondary/20 blur-3xl pointer-events-none"></div>
+<div class="absolute bottom-10 right-0 w-64 h-64 rounded-full bg-tertiary-container/30 blur-2xl pointer-events-none"></div>
+</div>
+<div class="relative z-10 space-y-space-md">
+<div class="inline-flex items-center gap-space-xs px-3 py-1.5 rounded-full bg-surface-container-lowest/10 backdrop-blur-md">
+<span class="material-symbols-outlined text-[16px] text-secondary-container" style="font-variation-settings: 'FILL' 1;">arrow_back_ios_new</span>
+<span class="font-caption text-caption tracking-wider uppercase text-secondary-fixed">The AI Celebration Suite</span>
+</div>
+<div class="space-y-space-sm pt-space-xs">
+<h1 class="font-headline-xl text-headline-xl text-surface-container-lowest tracking-tight leading-tight">
+            Every great event starts with a plan.
+          </h1>
+<p class="font-body-md text-body-md text-outline-variant max-w-sm">
+            Bring your ideas together, organize every detail, and create unforgettable moments with Planora AI.
+          </p>
+</div>
+<div class="pt-space-sm space-y-space-sm">
+<div class="flex items-start gap-space-sm group">
+<div class="w-6 h-6 rounded-full bg-surface-container-lowest/15 flex items-center justify-center text-secondary-container shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[14px]">check</span>
+</div>
+<p class="font-body-md text-body-md text-surface-container-lowest">Plan every detail in one place</p>
+</div>
+<div class="flex items-start gap-space-sm group">
+<div class="w-6 h-6 rounded-full bg-surface-container-lowest/15 flex items-center justify-center text-secondary-container shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[14px]">check</span>
+</div>
+<p class="font-body-md text-body-md text-surface-container-lowest">Keep your budget under control</p>
+</div>
+<div class="flex items-start gap-space-sm group">
+<div class="w-6 h-6 rounded-full bg-surface-container-lowest/15 flex items-center justify-center text-secondary-container shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[14px]">check</span>
+</div>
+<p class="font-body-md text-body-md text-surface-container-lowest">Turn ideas into memorable experiences</p>
+</div>
+</div>
+</div>
+<!-- Testimonial Quote Card -->
+<div class="relative z-10 mt-space-lg pt-space-md bg-surface-container-low/10 backdrop-blur-md rounded-xl p-space-md shadow-sm">
+<div class="flex items-center gap-1 text-secondary-container mb-space-xs">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-surface-container-lowest italic leading-relaxed">
+          “Planora AI saved us 40+ hours managing vendor cohorts and seating for our Udaipur wedding.”
+        </p>
+<div class="flex items-center gap-space-sm mt-space-sm">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center font-label-md text-label-md">
+            PK
+          </div>
+<div>
+<h4 class="font-label-md text-label-md text-surface-container-lowest">Priya K.</h4>
+<p class="font-caption text-caption text-outline-variant">Bride &amp; Planner</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Sign Up Form Panel -->
+<div class="lg:col-span-7 p-space-md sm:p-space-lg md:p-space-xl flex flex-col justify-center bg-surface-container-lowest">
+<!-- Top Switcher & Prototype Status -->
+<div class="flex items-center justify-between pb-space-sm mb-space-sm">
+<div class="inline-flex items-center gap-space-xs px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-caption text-caption">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span>Prototype Mode • Early Access</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant font-caption text-caption">
+<span class="material-symbols-outlined text-[16px] text-tertiary-container">encrypted</span>
+<span>End-to-End Private</span>
+</div>
+</div>
+<div class="space-y-space-xs mb-space-md">
+<h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Create your account</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Your next unforgettable event starts here.</p>
+</div>
+<!-- Google Single Sign-On Button -->
+<button class="w-full flex items-center justify-center gap-space-sm py-2.5 px-space-md rounded-lg bg-surface-container-low hover:bg-surface-container text-primary font-body-md-medium text-body-md-medium transition-all shadow-sm active:translate-y-0.5" type="button">
+<svg class="w-5 h-5" viewbox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"></path>
+</svg>
+<span>Sign up with Google</span>
+</button>
+<!-- Divider -->
+<div class="relative my-space-md flex items-center justify-center">
+<div class="w-full h-px bg-outline-variant/40"></div>
+<span class="absolute bg-surface-container-lowest px-space-sm font-caption text-caption uppercase tracking-wider text-outline">or register with email</span>
+</div>
+<!-- Registration Form -->
+<form class="space-y-space-sm" id="registrationForm" onsubmit="event.preventDefault();">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
+<!-- Full Name -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md text-on-surface">Full Name</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-[18px] text-outline">person</span>
+<input class="w-full h-11 pl-10 pr-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:shadow-md transition-all" id="fullName" placeholder="Alex Morgan" type="text" value="Alex Morgan"/>
+</div>
+</div>
+<!-- Email Address -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md text-on-surface">Email Address</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-[18px] text-outline">mail</span>
+<input class="w-full h-11 pl-10 pr-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:shadow-md transition-all" id="email" placeholder="alex@planora.ai" type="email" value="alex@planora.ai"/>
+</div>
+</div>
+</div>
+<!-- Password -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md text-on-surface">Password</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-[18px] text-outline">lock</span>
+<input class="w-full h-11 pl-10 pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:shadow-md transition-all" id="password" type="password" value="PlanoraLuxe2025!"/>
+<button class="absolute right-3 text-outline hover:text-on-surface transition-colors flex items-center justify-center" id="togglePasswordBtn" type="button">
+<span class="material-symbols-outlined text-[18px]" id="passwordIcon">visibility</span>
+</button>
+</div>
+</div>
+<!-- Password Strength Meter -->
+<div class="bg-surface-container-low/70 p-2.5 rounded-lg space-y-2">
+<div class="flex items-center justify-between">
+<span class="font-caption text-caption text-on-surface-variant">Security Level</span>
+<span class="font-label-md text-label-md text-secondary" id="strengthText">Strong</span>
+</div>
+<!-- 4 segment bars -->
+<div class="grid grid-cols-4 gap-1.5 h-1.5 w-full">
+<div class="h-full rounded-full bg-secondary transition-colors duration-300" id="bar1"></div>
+<div class="h-full rounded-full bg-secondary transition-colors duration-300" id="bar2"></div>
+<div class="h-full rounded-full bg-secondary transition-colors duration-300" id="bar3"></div>
+<div class="h-full rounded-full bg-secondary transition-colors duration-300" id="bar4"></div>
+</div>
+<!-- Requirements Checklist -->
+<div class="grid grid-cols-3 gap-2 pt-1">
+<div class="flex items-center gap-1 font-caption text-caption text-secondary" id="reqLength">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>8+ characters</span>
+</div>
+<div class="flex items-center gap-1 font-caption text-caption text-secondary" id="reqSymbol">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>Symbol &amp; Upper</span>
+</div>
+<div class="flex items-center gap-1 font-caption text-caption text-secondary" id="reqNumber">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>Numbers</span>
+</div>
+</div>
+</div>
+<!-- Confirm Password -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md text-on-surface">Confirm Password</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-[18px] text-outline">verified_user</span>
+<input class="w-full h-11 pl-10 pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:shadow-md transition-all" id="confirmPassword" type="password" value="PlanoraLuxe2025!"/>
+<span class="material-symbols-outlined absolute right-3 text-[18px] text-secondary" id="matchIcon">check_circle</span>
+</div>
+</div>
+<!-- Agreement Checkbox -->
+<label class="flex items-start gap-space-xs pt-1 cursor-pointer select-none">
+<input checked="" class="mt-1 w-4 h-4 rounded bg-surface-container-low text-primary focus:ring-0 focus:outline-none" id="termsCheck" type="checkbox"/>
+<span class="font-caption text-caption text-on-surface-variant leading-snug">
+            I agree to the <a class="text-primary font-body-md-medium hover:underline" href="#">Terms of Service</a> and <a class="text-primary font-body-md-medium hover:underline" href="#">Privacy Policy</a>, and consent to receive curated AI event planning insights.
+          </span>
+</label>
+<!-- Submit CTA -->
+<div class="pt-space-xs">
+<button class="w-full h-12 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-body-md-medium text-body-md-medium flex items-center justify-center gap-space-xs transition-all shadow-md hover:shadow-lg active:translate-y-0.5" id="createAccountBtn" type="submit">
+<span>Create Account</span>
+<span class="material-symbols-outlined text-[18px] text-secondary-container" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</button>
+</div>
+</form>
+<!-- Bottom Navigation Back to Sign In -->
+<div class="mt-space-md text-center">
+<p class="font-body-md text-body-md text-on-surface-variant">
+          Already have an account? 
+          <a class="font-body-md-medium text-body-md-medium text-secondary hover:text-on-secondary-container transition-colors inline-flex items-center gap-0.5" href="#">
+            Sign in
+            <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</a>
+</p>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    const passwordInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirmPassword');
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+    const passwordIcon = document.getElementById('passwordIcon');
+    const strengthText = document.getElementById('strengthText');
+    const bar1 = document.getElementById('bar1');
+    const bar2 = document.getElementById('bar2');
+    const bar3 = document.getElementById('bar3');
+    const bar4 = document.getElementById('bar4');
+    const reqLength = document.getElementById('reqLength');
+    const reqSymbol = document.getElementById('reqSymbol');
+    const reqNumber = document.getElementById('reqNumber');
+    const matchIcon = document.getElementById('matchIcon');
+
+    // Password visibility toggle
+    toggleBtn.addEventListener('click', () => {
+      const isPassword = passwordInput.getAttribute('type') === 'password';
+      passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+      passwordIcon.textContent = isPassword ? 'visibility_off' : 'visibility';
+    });
+
+    function evaluateStrength(val) {
+      let score = 0;
+      const hasLength = val.length >= 8;
+      const hasUpperOrSymbol = /[A-Z]/.test(val) && /[^A-Za-z0-9]/.test(val);
+      const hasNumber = /[0-9]/.test(val);
+
+      // Requirements UI
+      reqLength.className = `flex items-center gap-1 font-caption text-caption ${hasLength ? 'text-secondary' : 'text-outline'}`;
+      reqLength.querySelector('.material-symbols-outlined').textContent = hasLength ? 'check_circle' : 'radio_button_unchecked';
+
+      reqSymbol.className = `flex items-center gap-1 font-caption text-caption ${hasUpperOrSymbol ? 'text-secondary' : 'text-outline'}`;
+      reqSymbol.querySelector('.material-symbols-outlined').textContent = hasUpperOrSymbol ? 'check_circle' : 'radio_button_unchecked';
+
+      reqNumber.className = `flex items-center gap-1 font-caption text-caption ${hasNumber ? 'text-secondary' : 'text-outline'}`;
+      reqNumber.querySelector('.material-symbols-outlined').textContent = hasNumber ? 'check_circle' : 'radio_button_unchecked';
+
+      if (hasLength) score++;
+      if (hasUpperOrSymbol) score++;
+      if (hasNumber) score++;
+      if (val.length >= 12 && score === 3) score++;
+
+      // Reset bars
+      [bar1, bar2, bar3, bar4].forEach(b => {
+        b.className = 'h-full rounded-full bg-outline-variant/30 transition-colors duration-300';
+      });
+
+      if (score === 0) {
+        strengthText.textContent = 'Too Short';
+        strengthText.className = 'font-label-md text-label-md text-outline';
+      } else if (score === 1) {
+        strengthText.textContent = 'Weak';
+        strengthText.className = 'font-label-md text-label-md text-error';
+        bar1.className = 'h-full rounded-full bg-error transition-colors duration-300';
+      } else if (score === 2) {
+        strengthText.textContent = 'Fair';
+        strengthText.className = 'font-label-md text-label-md text-secondary-container';
+        bar1.className = 'h-full rounded-full bg-secondary-container transition-colors duration-300';
+        bar2.className = 'h-full rounded-full bg-secondary-container transition-colors duration-300';
+      } else if (score === 3) {
+        strengthText.textContent = 'Good';
+        strengthText.className = 'font-label-md text-label-md text-secondary';
+        bar1.className = 'h-full rounded-full bg-secondary transition-colors duration-300';
+        bar2.className = 'h-full rounded-full bg-secondary transition-colors duration-300';
+        bar3.className = 'h-full rounded-full bg-secondary transition-colors duration-300';
+      } else {
+        strengthText.textContent = 'Strong';
+        strengthText.className = 'font-label-md text-label-md text-secondary';
+        [bar1, bar2, bar3, bar4].forEach(b => {
+          b.className = 'h-full rounded-full bg-secondary transition-colors duration-300';
+        });
+      }
+    }
+
+    function checkMatch() {
+      const match = passwordInput.value === confirmInput.value && confirmInput.value.length > 0;
+      if (match) {
+        matchIcon.textContent = 'check_circle';
+        matchIcon.className = 'material-symbols-outlined absolute right-3 text-[18px] text-secondary';
+      } else {
+        matchIcon.textContent = 'cancel';
+        matchIcon.className = 'material-symbols-outlined absolute right-3 text-[18px] text-outline';
+      }
+    }
+
+    passwordInput.addEventListener('input', (e) => {
+      evaluateStrength(e.target.value);
+      checkMatch();
+    });
+
+    confirmInput.addEventListener('input', checkMatch);
+
+    // Initial triggers
+    evaluateStrength(passwordInput.value);
+    checkMatch();
+  })();
+</script></main><footer class="w-full bg-surface-container-low/50 py-space-md"><div class="w-full px-gutter md:px-margin flex flex-col sm:flex-row items-center justify-between gap-space-sm text-on-surface-variant"><p class="font-caption text-caption">© 2025 Planora AI Orchestration Inc. All rights reserved.</p><div class="flex items-center gap-space-lg"><a class="font-caption text-caption text-on-surface-variant hover:text-on-surface transition-colors" href="#">Privacy Policy</a><a class="font-caption text-caption text-on-surface-variant hover:text-on-surface transition-colors" href="#">Terms of Service</a><a class="font-caption text-caption text-on-surface-variant hover:text-on-surface transition-colors" href="#">Security Standards</a></div></div></footer></body></html>
