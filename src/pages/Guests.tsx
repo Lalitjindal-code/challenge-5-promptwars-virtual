@@ -1,143 +1,11 @@
 import { useState, type FormEvent } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
-
-interface DetailedGuest {
-  id: string;
-  name: string;
-  avatar: string;
-  email: string;
-  phone: string;
-  cohort: "VIP" | "Family" | "Friends" | "College Team" | "Vendors";
-  event: string;
-  partySize: number;
-  plusOne?: string;
-  status: "Confirmed" | "Awaiting Response" | "Declined";
-  dispatchStatus: "Delivered & Opened" | "Delivered" | "Opened" | "Pending";
-  dietary: string;
-  table: string;
-  specialRequest?: string;
-  isVip?: boolean;
-}
-
-const DEMO_GUEST_LIST: DetailedGuest[] = [
-  {
-    id: "g-1",
-    name: "Priya Kapoor",
-    avatar: "PK",
-    isVip: true,
-    email: "priya.k@example.com",
-    phone: "+91 98201 44102",
-    cohort: "VIP",
-    event: "Aarav & Priya Wedding",
-    partySize: 2,
-    plusOne: "Sameer Kapoor (Spouse)",
-    status: "Confirmed",
-    dispatchStatus: "Delivered & Opened",
-    dietary: "Pure Vegetarian (Jain Option)",
-    table: "Table 04 — Royal Court",
-    specialRequest: "Ground floor entrance golf cart transport requested for elder family members upon palace arrival."
-  },
-  {
-    id: "g-2",
-    name: "Arjun Mehta",
-    avatar: "AM",
-    email: "arjun.m@example.com",
-    phone: "+91 97112 55890",
-    cohort: "Friends",
-    event: "Aarav & Priya Wedding",
-    partySize: 1,
-    plusOne: "None requested",
-    status: "Awaiting Response",
-    dispatchStatus: "Delivered",
-    dietary: "Standard Catering",
-    table: "Table 09 — Groom's Circle",
-    specialRequest: "Requested airport transfer shuttle schedule."
-  },
-  {
-    id: "g-3",
-    name: "Riya Sharma",
-    avatar: "RS",
-    email: "riya.s@example.com",
-    phone: "+91 98450 12098",
-    cohort: "Family",
-    event: "Aarav & Priya Wedding",
-    partySize: 3,
-    plusOne: "Kavita Sharma & Dhruv Sharma",
-    status: "Confirmed",
-    dispatchStatus: "Delivered & Opened",
-    dietary: "Vegetarian (1 nut-allergy item: Dhruv)",
-    table: "Table 02 — Bride's Clan",
-    specialRequest: "Adjoining rooms requested at heritage wing."
-  },
-  {
-    id: "g-4",
-    name: "Karan Verma",
-    avatar: "KV",
-    email: "karan.v@example.com",
-    phone: "+91 99881 33412",
-    cohort: "College Team",
-    event: "TechFest 2026",
-    partySize: 1,
-    status: "Declined",
-    dispatchStatus: "Opened",
-    dietary: "Standard Catering",
-    table: "Unassigned (Seat freed for waitlist)",
-    specialRequest: "Requested recorded session livestreams."
-  },
-  {
-    id: "g-5",
-    name: "Ananya Singh",
-    avatar: "AS",
-    email: "ananya.s@example.com",
-    phone: "+91 98199 44321",
-    cohort: "Family",
-    event: "Aarav & Priya Wedding",
-    partySize: 2,
-    plusOne: "Rohit Singh",
-    status: "Awaiting Response",
-    dispatchStatus: "Delivered",
-    dietary: "Vegetarian",
-    table: "Table 03 — Family Suite"
-  },
-  {
-    id: "g-6",
-    name: "Neha Patel",
-    avatar: "NP",
-    email: "neha.p@example.com",
-    phone: "+91 98210 99876",
-    cohort: "Friends",
-    event: "Birthday Celebration",
-    partySize: 1,
-    status: "Confirmed",
-    dispatchStatus: "Delivered & Opened",
-    dietary: "Vegetarian",
-    table: "Table 06 — South Terrace"
-  },
-  {
-    id: "g-7",
-    name: "Rohan Deshmukh",
-    avatar: "RD",
-    isVip: true,
-    email: "rohan.d@example.com",
-    phone: "+91 97654 33210",
-    cohort: "VIP",
-    event: "Aarav & Priya Wedding",
-    partySize: 2,
-    plusOne: "Meera Deshmukh",
-    status: "Confirmed",
-    dispatchStatus: "Delivered",
-    dietary: "Non-Vegetarian",
-    table: "Table 01 — Executive Court"
-  }
-];
+import type { DetailedGuest } from "../types";
 
 export default function Guests() {
-  const { isDemo, activeEvent, addGuest } = useEventContext();
-
-  const [guestList, setGuestList] = useState<DetailedGuest[]>(() => {
-    return isDemo ? DEMO_GUEST_LIST : [];
-  });
+  const { isDemo, activeEvent, guests, addGuest, updateGuest, deleteGuest } = useEventContext();
+  const guestList = guests;
 
   // Filters & State
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -212,23 +80,23 @@ export default function Guests() {
   };
 
   // Quick toggle status in Drawer
-  const toggleDrawerRsvp = () => {
+  const toggleDrawerRsvp = async () => {
     if (!activeDrawerGuest) return;
-    const nextStatus =
+    const nextStatus: "Confirmed" | "Declined" | "Awaiting Response" =
       activeDrawerGuest.status === "Confirmed"
         ? "Awaiting Response"
         : activeDrawerGuest.status === "Awaiting Response"
         ? "Declined"
         : "Confirmed";
 
-    const updated = { ...activeDrawerGuest, status: nextStatus };
+    const updated: DetailedGuest = { ...activeDrawerGuest, status: nextStatus };
     setActiveDrawerGuest(updated);
-    setGuestList((prev) => prev.map((g) => (g.id === activeDrawerGuest.id ? updated : g)));
+    await updateGuest(activeDrawerGuest.id, { status: nextStatus });
     showToast(`Updated RSVP status to: ${nextStatus}`);
   };
 
   // Save new guest
-  const handleSaveNewGuest = (e: FormEvent) => {
+  const handleSaveNewGuest = async (e: FormEvent) => {
     e.preventDefault();
     if (!newFirstName.trim()) {
       showToast("Please provide a guest name");
@@ -237,14 +105,13 @@ export default function Guests() {
 
     const fullName = `${newFirstName.trim()} ${newLastName.trim()}`.trim();
     const initials = (newFirstName[0] || "G") + (newLastName[0] || "");
-    const newGuest: DetailedGuest = {
-      id: `g-${Date.now()}`,
+    const guestData: Omit<DetailedGuest, "id" | "eventId"> = {
       name: fullName,
       avatar: initials.toUpperCase(),
       email: newEmail.trim() || `${newFirstName.toLowerCase()}@example.com`,
       phone: newPhone.trim() || "+91 98000 00000",
       cohort: newCohort,
-      event: newEventTarget,
+      event: activeEvent?.name || newEventTarget,
       partySize: newPartySize,
       status: "Confirmed",
       dispatchStatus: "Delivered",
@@ -253,16 +120,7 @@ export default function Guests() {
       isVip: newCohort === "VIP"
     };
 
-    setGuestList((prev) => [newGuest, ...prev]);
-    addGuest({
-      eventId: activeEvent?.id || "evt-1",
-      name: fullName,
-      email: newGuest.email,
-      phone: newGuest.phone,
-      status: "Confirmed",
-      table: newGuest.table,
-      dietary: newGuest.dietary
-    });
+    await addGuest(guestData);
 
     setIsAddModalOpen(false);
     setNewFirstName("");
@@ -273,8 +131,8 @@ export default function Guests() {
   };
 
   // Remove guest
-  const handleRemoveGuest = (guestId: string) => {
-    setGuestList((prev) => prev.filter((g) => g.id !== guestId));
+  const handleRemoveGuest = async (guestId: string) => {
+    await deleteGuest(guestId);
     setIsDrawerOpen(false);
     showToast("Guest removed from celebration roster");
   };

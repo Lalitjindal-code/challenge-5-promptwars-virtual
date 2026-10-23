@@ -1,119 +1,11 @@
 import { useState, type FormEvent } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
-
-interface DetailedTask {
-  id: string;
-  title: string;
-  subtitle: string;
-  event: string;
-  dueDate: string;
-  dueLabel?: string;
-  priority: "High" | "Medium" | "Normal" | "Low";
-  status: "Completed" | "In Progress" | "Pending" | "Not Started" | "Overdue";
-  assignee: { name: string; initials: string; bg: string; text: string };
-  category?: string;
-  description?: string;
-  subtasks?: { label: string; checked: boolean }[];
-  dependency?: string;
-}
-
-const DEMO_TASKS: DetailedTask[] = [
-  {
-    id: "T-104",
-    title: "Confirm wedding venue contract",
-    subtitle: "Final clause review for Udaipur Palace load-in rules",
-    event: "Aarav & Priya",
-    dueDate: "Tomorrow, 24 Oct",
-    dueLabel: "Tomorrow, 24 Oct",
-    priority: "High",
-    status: "In Progress",
-    assignee: { name: "Priya K.", initials: "PK", bg: "bg-secondary-fixed", text: "text-on-secondary-fixed" },
-    category: "Legal & Contracts",
-    description: "Review terms for Udaipur Heritage Palace including 2 AM curfew and noise ordinances.",
-    dependency: "Requires: Legal terms review (Cleared by Legal Team)",
-    subtasks: [
-      { label: "Load-in timing and loading dock clearance", checked: true },
-      { label: "Advance deposit wire transfer receipt attached", checked: true },
-      { label: "Security deposit refund and cancellation terms", checked: false }
-    ]
-  },
-  {
-    id: "T-105",
-    title: "Finalize catering menu & tasting",
-    subtitle: "Sample 6-course North Indian banquet menu",
-    event: "Birthday Gala",
-    dueDate: "28 Oct 2026",
-    priority: "Medium",
-    status: "In Progress",
-    assignee: { name: "Alex M.", initials: "AM", bg: "bg-primary-container", text: "text-on-primary" },
-    category: "Catering & Food",
-    description: "Chef table tasting session with 4 dessert samplers.",
-    subtasks: [
-      { label: "Live chaat counter selection", checked: true },
-      { label: "Custom mocktail menu review", checked: false }
-    ]
-  },
-  {
-    id: "T-106",
-    title: "Send TechFest invitations & RSVP link",
-    subtitle: "Email blast to 450 tech leads and speaker roster",
-    event: "TechFest 2026",
-    dueDate: "30 Oct 2026",
-    priority: "High",
-    status: "Pending",
-    assignee: { name: "Dev R.", initials: "DR", bg: "bg-tertiary-fixed-dim", text: "text-on-tertiary" },
-    category: "Guest Relations",
-    description: "Campaign dispatch via SendGrid with tracked RSVP token links.",
-    subtasks: [
-      { label: "Keynote VIP personalized invites", checked: true },
-      { label: "Speaker bio confirmation", checked: false }
-    ]
-  },
-  {
-    id: "T-107",
-    title: "Book birthday photographer",
-    subtitle: "Review 3 shortlisted candidate portfolios",
-    event: "Birthday Gala",
-    dueDate: "2 Nov 2026",
-    priority: "Normal",
-    status: "Not Started",
-    assignee: { name: "Alex M.", initials: "AM", bg: "bg-primary-container", text: "text-on-primary" },
-    category: "AV & Production",
-    description: "Candid portrait and drone reel coverage for the gala evening."
-  },
-  {
-    id: "T-108",
-    title: "Venue advance payment (₹45,000)",
-    subtitle: "Wire transfer confirmation receipt logged",
-    event: "Aarav & Priya",
-    dueDate: "18 Oct 2026",
-    priority: "High",
-    status: "Completed",
-    assignee: { name: "Alex M.", initials: "AM", bg: "bg-surface-container", text: "text-on-surface-variant" },
-    category: "Legal & Contracts"
-  },
-  {
-    id: "T-109",
-    title: "Stage lighting & truss rigging specs",
-    subtitle: "Verify power load capacity with venue electrician",
-    event: "TechFest 2026",
-    dueDate: "22 Oct 2026",
-    priority: "High",
-    status: "Overdue",
-    assignee: { name: "Rohan S.", initials: "RS", bg: "bg-error-container", text: "text-error" },
-    category: "AV & Production",
-    description: "Main auditorium truss load capacity certification."
-  }
-];
+import type { DetailedTask } from "../types";
 
 export default function Timeline() {
-  const { isDemo, events, activeEvent, addTask } = useEventContext();
-
-  // Local Task state
-  const [taskList, setTaskList] = useState<DetailedTask[]>(() => {
-    return isDemo ? DEMO_TASKS : [];
-  });
+  const { isDemo, events, activeEvent, tasks, addTask, updateTask, toggleTask } = useEventContext();
+  const taskList = tasks;
 
   // Filters & Views
   const [activeTab, setActiveTab] = useState<"All" | "My" | "Upcoming" | "Completed" | "Overdue">("All");
@@ -148,18 +40,9 @@ export default function Timeline() {
   };
 
   // Toggle single task completed status in table
-  const handleToggleCompleted = (taskId: string) => {
-    setTaskList((prev) =>
-      prev.map((t) => {
-        if (t.id === taskId) {
-          const isDone = t.status === "Completed";
-          const newStatus = isDone ? "In Progress" : "Completed";
-          showToast(`Marked "${t.title}" as ${newStatus}`);
-          return { ...t, status: newStatus };
-        }
-        return t;
-      })
-    );
+  const handleToggleCompleted = async (taskId: string) => {
+    await toggleTask(taskId);
+    showToast("Task status updated");
   };
 
   // Toggle selection checkbox
@@ -180,8 +63,8 @@ export default function Timeline() {
     setIsCreatingNew(false);
     setDrawerTask(task);
     setFormTitle(task.title);
-    setFormDescription(task.description || task.subtitle);
-    setFormEvent(task.event);
+    setFormDescription(task.description || task.subtitle || "");
+    setFormEvent(task.event || activeEvent?.name || "Event");
     setFormDueDate(task.dueDate);
     setFormPriority(task.priority);
     setFormStatus(task.status);
@@ -202,7 +85,7 @@ export default function Timeline() {
   };
 
   // Save changes from Drawer
-  const handleSaveDrawer = (e: FormEvent) => {
+  const handleSaveDrawer = async (e: FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim()) {
       showToast("Please provide a task title");
@@ -210,44 +93,27 @@ export default function Timeline() {
     }
 
     if (isCreatingNew) {
-      const newTask: DetailedTask = {
-        id: `T-${Math.floor(100 + Math.random() * 900)}`,
+      await addTask({
         title: formTitle.trim(),
         subtitle: formDescription.trim() || "Planned milestone",
-        event: formEvent,
+        event: activeEvent?.name || formEvent,
         dueDate: formDueDate,
         priority: formPriority,
         status: formStatus,
         assignee: { name: "Alex M.", initials: "AM", bg: "bg-primary-container", text: "text-on-primary" },
         category: "General",
         description: formDescription.trim()
-      };
-      setTaskList((prev) => [newTask, ...prev]);
-      addTask({
-        eventId: activeEvent?.id || "evt-1",
-        title: formTitle.trim(),
-        category: "General",
-        dueDate: formDueDate,
-        completed: formStatus === "Completed",
-        priority: formPriority === "Normal" ? "Low" : formPriority
       });
-      showToast(`Task "${newTask.title}" added to timeline`);
+      showToast(`Task "${formTitle.trim()}" added to timeline`);
     } else if (drawerTask) {
-      setTaskList((prev) =>
-        prev.map((t) =>
-          t.id === drawerTask.id
-            ? {
-                ...t,
-                title: formTitle.trim(),
-                description: formDescription.trim(),
-                event: formEvent,
-                dueDate: formDueDate,
-                priority: formPriority,
-                status: formStatus
-              }
-            : t
-        )
-      );
+      await updateTask(drawerTask.id, {
+        title: formTitle.trim(),
+        description: formDescription.trim(),
+        event: formEvent,
+        dueDate: formDueDate,
+        priority: formPriority,
+        status: formStatus
+      });
       showToast(`Task updated successfully`);
     }
     setIsDrawerOpen(false);
@@ -263,7 +129,7 @@ export default function Timeline() {
   // Filter tasks
   const filteredTasks = taskList.filter((task) => {
     // Tab filter
-    if (activeTab === "My" && !task.assignee.name.includes("Alex")) return false;
+    if (activeTab === "My" && !task.assignee?.name?.includes("Alex")) return false;
     if (activeTab === "Upcoming" && task.status === "Completed") return false;
     if (activeTab === "Completed" && task.status !== "Completed") return false;
     if (activeTab === "Overdue" && task.status !== "Overdue") return false;
@@ -1178,7 +1044,7 @@ export default function Timeline() {
                     className="h-11 px-3 rounded-lg bg-surface-container-low text-body-md font-body-md text-on-surface focus:outline-none cursor-pointer"
                   >
                     {events.length > 0 ? (
-                      events.map((evt) => (
+                      events.map((evt: { id: string; name: string }) => (
                         <option key={evt.id} value={evt.name}>
                           {evt.name}
                         </option>

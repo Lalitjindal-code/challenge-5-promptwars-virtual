@@ -3,15 +3,16 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 interface AuthPageProps {
-  initialTab?: "signin" | "signup" | "forgot";
+  initialTab?: "signin" | "signup" | "forgot" | "dispatched" | "success";
 }
 
 export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isConfigured, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword } = useAuth();
+  const { user, isConfigured, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword, enterDemoWorkspace } = useAuth();
 
-  const [tab, setTab] = useState<"signin" | "signup" | "forgot" | "success">(initialTab);
+  const [tab, setTab] = useState<"signin" | "signup" | "forgot" | "dispatched" | "success">(initialTab);
+  const [showDevices, setShowDevices] = useState(false);
 
   // Form Fields
   const [email, setEmail] = useState("");
@@ -23,7 +24,7 @@ export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
   const from = (location.state as any)?.from?.pathname || "/dashboard";
 
   // Redirect if already logged in
-  if (user && tab !== "success") {
+  if (user && tab !== "success" && tab !== "dispatched") {
     navigate(from, { replace: true });
   }
 
@@ -41,7 +42,7 @@ export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
         navigate(from, { replace: true });
       } else if (tab === "forgot") {
         await resetPassword(email);
-        setTab("success");
+        setTab("dispatched");
       }
     } catch (err: any) {
       console.error(err);
@@ -277,6 +278,24 @@ export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
                       Create Account
                     </button>
                   </div>
+
+                  {/* Explore Demo Workspace CTA */}
+                  <div className="pt-3 border-t border-outline-variant/20 flex flex-col items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        enterDemoWorkspace();
+                        navigate("/dashboard");
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-secondary-container/40 hover:bg-secondary-container/70 border border-secondary/30 text-primary text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <span className="material-symbols-outlined text-[16px] text-secondary">explore</span>
+                      <span>Explore Demo Studio (Pre-loaded Portfolio)</span>
+                    </button>
+                    <span className="text-[11px] text-on-surface-variant">
+                      Preview complete luxury event workflows without credentials
+                    </span>
+                  </div>
                 </form>
               )}
 
@@ -411,25 +430,158 @@ export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
                 </form>
               )}
 
-              {/* Reset Sent Confirmation State */}
-              {tab === "success" && (
-                <div className="flex flex-col gap-4 text-center items-center py-4">
-                  <div className="w-14 h-14 rounded-full bg-surface-container text-primary flex items-center justify-center">
-                    <span className="material-symbols-outlined text-3xl">mark_email_read</span>
+              {/* Reset Instructions Dispatched State */}
+              {tab === "dispatched" && (
+                <div className="w-full flex flex-col items-center text-center animate-fade-in pt-2">
+                  <div className="w-16 h-16 rounded-full bg-secondary-container/40 flex items-center justify-center text-secondary mb-4 border border-secondary/30">
+                    <span className="material-symbols-outlined text-[32px]">forward_to_inbox</span>
                   </div>
-                  <div>
-                    <h2 className="font-heading font-bold text-2xl text-primary">Check Your Inbox</h2>
-                    <p className="text-xs text-on-surface-variant mt-1 max-w-xs">
-                      We have sent password reset instructions to <strong>{email}</strong>.
+
+                  <span className="font-caption text-caption uppercase tracking-wider text-secondary font-semibold">
+                    Recovery Link Dispatched
+                  </span>
+                  <h2 className="font-heading font-bold text-2xl text-primary tracking-tight mt-1 mb-2">
+                    Check your inbox
+                  </h2>
+                  <p className="font-body-md text-xs text-on-surface-variant leading-relaxed max-w-sm mb-6">
+                    We dispatched secure recovery instructions to <strong>{email}</strong>. Please click the security link in your email to choose a new password.
+                  </p>
+
+                  <div className="p-3.5 bg-surface-container-low rounded-xl border border-outline-variant/15 text-xs text-on-surface-variant text-left mb-6 w-full">
+                    <p className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-secondary mt-0.5">info</span>
+                      <span>If you don't receive the email within 2 minutes, check your spam or promotional folder.</span>
                     </p>
                   </div>
+
                   <button
                     type="button"
-                    onClick={() => setTab("signin")}
-                    className="w-full h-11 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container shadow-md transition-all mt-2"
+                    onClick={() => { setTab("signin"); setError(""); }}
+                    className="w-full h-11 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container shadow-md transition-all flex items-center justify-center gap-2"
                   >
-                    Return to Sign In
+                    <span>Return to Sign In</span>
+                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                   </button>
+                </div>
+              )}
+
+              {/* Reset Sent / Password Updated Confirmation State (Matching Stitch Auth password updated.html) */}
+              {tab === "success" && (
+                <div className="w-full flex flex-col items-center text-center relative overflow-hidden animate-fade-in pt-2">
+                  {/* Subtle Gilded Accent Strip */}
+                  <div className="w-full h-1 bg-gradient-to-r from-secondary-container via-secondary to-on-tertiary-container rounded-full mb-6"></div>
+
+                  {/* Circular Green & Gold Shield / Checkmark Badge */}
+                  <div className="relative mb-4 flex items-center justify-center">
+                    <div className="absolute -inset-2 rounded-full bg-secondary-container/30 blur-md animate-pulse"></div>
+                    <div className="w-20 h-20 rounded-full bg-surface-container-low flex items-center justify-center shadow-inner relative z-10">
+                      <div className="w-14 h-14 rounded-full bg-primary-container text-secondary-fixed flex items-center justify-center shadow-md">
+                        <span className="material-symbols-outlined text-[32px]">check_circle</span>
+                      </div>
+                    </div>
+                    {/* Floater Gold Sparkle */}
+                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-secondary-fixed flex items-center justify-center text-primary shadow-sm z-20">
+                      <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                    </div>
+                    {/* Floater Violet Sentinel Node */}
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary-container shadow-sm z-20">
+                      <span className="material-symbols-outlined text-[13px]">lock</span>
+                    </div>
+                  </div>
+
+                  {/* Main Typography Stack */}
+                  <div className="flex flex-col items-center gap-1 max-w-md">
+                    <span className="font-caption text-caption uppercase tracking-wider text-secondary font-semibold">
+                      Security Protocol Complete
+                    </span>
+                    <h2 className="font-headline-lg text-headline-lg text-primary tracking-tight font-bold">
+                      Password updated
+                    </h2>
+                    <p className="font-body-md text-body-md text-on-surface-variant mt-1 leading-relaxed">
+                      Your password recovery instructions have been dispatched. Your active sessions are secured and you can now return to sign in.
+                    </p>
+                  </div>
+
+                  {/* Security Audit Metadata Pill */}
+                  <div className="mt-4 w-full bg-surface-container-low py-2.5 px-3 rounded-lg flex items-center justify-between text-left border border-outline-variant/15">
+                    <div className="flex items-center gap-1.5 text-on-surface">
+                      <span className="material-symbols-outlined text-[18px] text-secondary">verified</span>
+                      <span className="font-label-sm text-label-sm text-on-surface font-medium">Dispatched just now</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-on-surface-variant">
+                      <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                      <span className="font-caption text-caption text-on-surface-variant font-medium">Planora Sentinel 2FA Active</span>
+                    </div>
+                  </div>
+
+                  {/* Action Station */}
+                  <div className="w-full mt-6 flex flex-col gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setTab("signin")}
+                      className="w-full h-12 bg-primary hover:bg-primary-container active:scale-[0.99] text-on-primary rounded-lg font-title-md text-title-md flex items-center justify-center gap-2 shadow-sm transition-all group"
+                    >
+                      <span>Continue to Sign In</span>
+                      <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">
+                        arrow_forward
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowDevices(!showDevices)}
+                      className="w-full py-2 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md flex items-center justify-center gap-2 transition-colors border border-outline-variant/15"
+                    >
+                      <span className="material-symbols-outlined text-[16px] text-tertiary-container">devices</span>
+                      <span>{showDevices ? "Hide authorized devices" : "Review active authorized devices (3)"}</span>
+                    </button>
+                  </div>
+
+                  {/* Expandable Device Inspection Drawer */}
+                  {showDevices && (
+                    <div className="w-full mt-2 flex flex-col gap-2 p-3 rounded-lg bg-surface-container-low text-left border border-outline-variant/15 animate-fade-in">
+                      <div className="flex items-center justify-between font-caption text-caption text-on-surface-variant pb-1">
+                        <span className="font-semibold uppercase tracking-wider">Authorized Sessions</span>
+                        <span className="text-secondary font-medium">All Other Sessions Revoked</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5 px-2 rounded bg-surface-container-lowest border border-outline-variant/10">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[16px] text-primary">laptop_mac</span>
+                          <div className="flex flex-col">
+                            <span className="font-label-sm text-label-sm text-on-surface font-semibold">MacBook Pro 16″ • Florence, IT</span>
+                            <span className="font-caption text-caption text-on-surface-variant">Current device • Chrome 124</span>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed text-caption font-caption font-semibold">
+                          Current
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5 px-2 rounded bg-surface-container-lowest border border-outline-variant/10">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[16px] text-primary">phone_iphone</span>
+                          <div className="flex flex-col">
+                            <span className="font-label-sm text-label-sm text-on-surface font-semibold">iPhone 15 Pro Max • Milan, IT</span>
+                            <span className="font-caption text-caption text-on-surface-variant">Planora Concierge App • 4m ago</span>
+                          </div>
+                        </div>
+                        <span className="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Enterprise Guarantee Footer */}
+                  <div className="w-full mt-6 pt-4 border-t border-outline-variant/15 flex flex-wrap items-center justify-between gap-1 text-on-surface-variant">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-secondary">workspace_premium</span>
+                      <span className="font-caption text-caption uppercase tracking-wider font-semibold">Planora Enterprise Vault</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                      <span className="font-caption text-caption">SOC-2 Type II Certified</span>
+                      <span className="text-outline-variant">•</span>
+                      <span className="font-caption text-caption">TLS 1.3 Strict</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

@@ -1,11 +1,20 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 
 export default function EventDetails() {
   const navigate = useNavigate();
-  const { activeEvent, updateEvent, tasks, toggleTask, isDemo } = useEventContext();
+  const { id } = useParams<{ id?: string }>();
+  const { events, activeEventId, setActiveEventId, activeEvent, updateEvent, tasks, toggleTask, isDemo } = useEventContext();
+
+  useEffect(() => {
+    if (id && id !== activeEventId && events.some((e) => e.id === id)) {
+      setActiveEventId(id);
+    }
+  }, [id, activeEventId, events, setActiveEventId]);
+
+  const currentEvent = (id ? events.find((e) => e.id === id) : null) || activeEvent || events[0];
 
   const [activeTab, setActiveTab] = useState<string>("Overview");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -13,17 +22,30 @@ export default function EventDetails() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Editable Form State
-  const [editTitle, setEditTitle] = useState(activeEvent?.name || "Aarav & Priya Wedding");
-  const [editType, setEditType] = useState(activeEvent?.type || "Royal Indian Wedding");
-  const [editGuestCount, setEditGuestCount] = useState(activeEvent?.guestCount || 180);
-  const [editDate, setEditDate] = useState(activeEvent?.date || "2026-12-15");
+  const [editTitle, setEditTitle] = useState(currentEvent?.name || "Aarav & Priya Wedding");
+  const [editType, setEditType] = useState(currentEvent?.type || "Royal Indian Wedding");
+  const [editGuestCount, setEditGuestCount] = useState(currentEvent?.guestsCount || 180);
+  const [editDate, setEditDate] = useState(currentEvent?.date || "2026-12-15");
   const [editEndDate, setEditEndDate] = useState("2026-12-17");
-  const [editLocation, setEditLocation] = useState(activeEvent?.location || "Lake Pichola Palace Terraces, Udaipur, Rajasthan");
-  const [editBudget, setEditBudget] = useState(activeEvent?.budget || 150000);
+  const [editLocation, setEditLocation] = useState(currentEvent?.location || "Lake Pichola Palace Terraces, Udaipur, Rajasthan");
+  const [editBudget, setEditBudget] = useState(currentEvent?.budget || 150000);
   const [editNotes, setEditNotes] = useState(
-    activeEvent?.description ||
+    currentEvent?.description ||
       "A 3-day royal celebration celebrating heritage, sunset pheras on the palace terrace, and an intimate 180-guest dinner banquet under Udaipur starry skies."
   );
+
+  // Update form state if currentEvent changes
+  useEffect(() => {
+    if (currentEvent) {
+      setEditTitle(currentEvent.name);
+      setEditType(currentEvent.type);
+      setEditGuestCount(currentEvent.guestsCount || 180);
+      setEditDate(currentEvent.date);
+      setEditLocation(currentEvent.location);
+      setEditBudget(currentEvent.budget);
+      if (currentEvent.description) setEditNotes(currentEvent.description);
+    }
+  }, [currentEvent?.id]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -32,11 +54,11 @@ export default function EventDetails() {
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (activeEvent) {
-      updateEvent(activeEvent.id, {
+    if (currentEvent) {
+      updateEvent(currentEvent.id, {
         name: editTitle,
         type: editType,
-        guestCount: Number(editGuestCount),
+        guestsCount: Number(editGuestCount),
         date: editDate,
         location: editLocation,
         budget: Number(editBudget),
@@ -47,17 +69,19 @@ export default function EventDetails() {
     showToast("Event details successfully updated!");
   };
 
-  // Demo fallback values if no activeEvent is present
-  const eventName = activeEvent?.name || (isDemo ? "Aarav & Priya Wedding" : "My Event");
-  const eventType = activeEvent?.type || "Grand Wedding";
-  const eventBudget = activeEvent?.budget || 150000;
-  const eventSpent = activeEvent?.spent || 120000;
-  const eventGuests = activeEvent?.guestCount || 180;
-  const eventLocation = activeEvent?.location || "Lake Pichola Palace";
-  const eventDate = activeEvent?.date || "15 Dec 2026";
+  // Resolved event values
+  const eventName = currentEvent?.name || (isDemo ? "Aarav & Priya Wedding" : "My Event");
+  const eventType = currentEvent?.type || "Grand Wedding";
+  const eventBudget = currentEvent?.budget || (isDemo ? 150000 : 0);
+  const eventSpent = currentEvent?.spent || 0;
+  const eventGuests = currentEvent?.guestsCount || (isDemo ? 180 : 0);
+  const eventLocation = currentEvent?.location || (isDemo ? "Lake Pichola Palace" : "Location TBD");
+  const eventDate = currentEvent?.date || (isDemo ? "15 Dec 2026" : "Date TBD");
   const eventDescription =
-    activeEvent?.description ||
-    "A 3-day royal celebration celebrating heritage, sunset pheras on the palace terrace, and an intimate 180-guest dinner banquet under Udaipur starry skies.";
+    currentEvent?.description ||
+    (isDemo
+      ? "A 3-day royal celebration celebrating heritage, sunset pheras on the palace terrace, and an intimate 180-guest dinner banquet under Udaipur starry skies."
+      : "No description recorded yet for this event.");
 
   const eventTasks = tasks.length > 0 ? tasks : [
     { id: "demo-t1", title: "Confirm Lake Palace security & jetty permit", dueDate: "23 Oct 2026", completed: false, priority: "High Priority", tag: "Due Tomorrow", assignee: "PK" },
@@ -522,10 +546,10 @@ export default function EventDetails() {
                         <div className="flex items-center gap-2 mt-1">
                           <span
                             className={`px-2 py-0.5 rounded font-caption text-caption uppercase font-medium ${
-                              task.tag === "Due Tomorrow" ? "bg-error-container text-on-error-container" : "bg-surface-container text-on-surface-variant"
+                              (task as any).tag === "Due Tomorrow" ? "bg-error-container text-on-error-container" : "bg-surface-container text-on-surface-variant"
                             }`}
                           >
-                            {task.tag || "Scheduled"}
+                            {(task as any).tag || "Scheduled"}
                           </span>
                           <span className="text-caption font-caption text-on-surface-variant">• {task.dueDate}</span>
                         </div>
@@ -536,7 +560,7 @@ export default function EventDetails() {
                         {task.priority}
                       </span>
                       <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary font-caption text-caption flex items-center justify-center font-bold">
-                        {task.assignee || "AM"}
+                        {(task as any).assignee || "AM"}
                       </div>
                     </div>
                   </div>

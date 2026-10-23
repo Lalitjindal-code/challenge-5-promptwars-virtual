@@ -15,6 +15,7 @@ import Vendors from "./pages/Vendors";
 import AiIdeas from "./pages/AiIdeas";
 import Settings from "./pages/Settings";
 import AuthPage from "./pages/auth/AuthPage";
+import AuthActionPage from "./pages/auth/AuthActionPage";
 
 export default function App() {
   return (
@@ -52,6 +53,14 @@ export default function App() {
             />
             <Route
               path="/event-details"
+              element={
+                <ProtectedRoute>
+                  <EventDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events/:id"
               element={
                 <ProtectedRoute>
                   <EventDetails />
@@ -107,10 +116,13 @@ export default function App() {
               }
             />
 
-            {/* Authentication Gateway */}
+            {/* Authentication Gateway & Actions */}
             <Route path="/signin" element={<AuthPage initialTab="signin" />} />
             <Route path="/signup" element={<AuthPage initialTab="signup" />} />
             <Route path="/forgot-password" element={<AuthPage initialTab="forgot" />} />
+            <Route path="/password-updated" element={<AuthPage initialTab="success" />} />
+            <Route path="/auth/action" element={<AuthActionPage />} />
+            <Route path="/reset-password" element={<AuthActionPage />} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

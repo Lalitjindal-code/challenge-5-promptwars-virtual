@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
-import { useEventContext, isTestEmail } from "../context/EventContext";
+import { useEventContext } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import DashboardStatCard from "../components/dashboard/DashboardStatCard";
 import DashboardEventCard from "../components/dashboard/DashboardEventCard";
@@ -62,11 +62,11 @@ const INITIAL_DEMO_TASKS: DemoTask[] = [
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { events, tasks, toggleTask, setActiveEventId } = useEventContext();
+  const { events, tasks, toggleTask, setActiveEventId, isDemo } = useEventContext();
   const [demoTasks, setDemoTasks] = useState<DemoTask[]>(INITIAL_DEMO_TASKS);
 
-  // Check if current user is on a demo / test account or actual user
-  const isTest = isTestEmail(user?.email);
+  // Check if current user is on a demo workspace or actual user
+  const isTest = isDemo;
 
   // Greeting based on time of day
   const hour = new Date().getHours();
@@ -365,8 +365,8 @@ export default function Dashboard() {
                       title={t.title}
                       dueDate={t.dueDate}
                       eventName={events.find((e) => e.id === t.eventId)?.name || "Active Event"}
-                      priority={t.priority}
-                      completed={t.completed}
+                      priority={t.priority === "Normal" ? "Medium" : t.priority}
+                      completed={Boolean(t.completed)}
                       onToggle={toggleTask}
                     />
                   ))

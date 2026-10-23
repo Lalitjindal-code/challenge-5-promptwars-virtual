@@ -297,7 +297,7 @@ export default function AiIdeas() {
                 {activeEvent?.name || "Aarav & Priya Wedding"}
               </span>
               <span className="font-body-md text-body-md text-on-surface-variant text-[13px] hidden sm:inline">
-                • {activeEvent?.guestCount || 180} Guests • ₹{(activeEvent?.budget || 150000).toLocaleString()} Budget • {activeEvent?.location || "Udaipur"}
+                • {activeEvent?.guestsCount || 180} Guests • ₹{(activeEvent?.budget || 150000).toLocaleString()} Budget • {activeEvent?.location || "Udaipur"}
               </span>
             </div>
             <button
@@ -323,9 +323,9 @@ export default function AiIdeas() {
                   <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
                   <span>Your Creative Event Copilot</span>
                 </div>
-                <div className="flex items-center gap-space-xs text-on-surface-variant font-caption text-caption">
-                  <span className="material-symbols-outlined text-[15px] text-tertiary">bolt</span>
-                  <span>Planora Studio Engine v4.2</span>
+                <div className="flex items-center gap-space-xs text-on-surface-variant font-caption text-caption bg-amber-50 text-amber-900 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                  <span className="material-symbols-outlined text-[14px] text-amber-700">info</span>
+                  <span>Curated Concept Simulation (Secure Backend Required for Live LLM)</span>
                 </div>
               </div>
               <h1 className="font-headline-lg text-headline-lg text-primary tracking-tight mb-2">

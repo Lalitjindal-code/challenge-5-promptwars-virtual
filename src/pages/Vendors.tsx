@@ -1,206 +1,17 @@
 import { useState, type FormEvent } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
+import type { DetailedVendor } from "../types";
 
-interface DetailedVendor {
-  id: string;
-  name: string;
-  category: "Venue" | "Catering" | "Photography" | "Decoration" | "Music & DJ" | "Logistics & AV" | "Makeup & Styling" | "Other Services";
-  location: string;
-  rating: number;
-  reviewCount: number;
-  event: string;
-  tags: string[];
-  cost: number;
-  paidAmount?: number;
-  status: "Booked • Adv. Paid" | "Booked • Tasting Done" | "Shortlisted" | "Booked" | "Pending Contract";
-  image: string;
-  contactName: string;
-  contactRole: string;
-  contactPhone: string;
-  contactEmail: string;
-  inclusions: string[];
-  advisoryText: string;
-  notes: string;
-  isInspecting?: boolean;
-}
 
-const DEMO_VENDORS: DetailedVendor[] = [
-  {
-    id: "VND-8491",
-    name: "Royal Palace Events",
-    category: "Venue",
-    location: "Lake Pichola Road, Udaipur, Rajasthan",
-    rating: 4.9,
-    reviewCount: 42,
-    event: "Aarav & Priya Wedding (Dec 2026)",
-    tags: ["Heritage", "Lakeview", "450 Cap"],
-    cost: 95000,
-    paidAmount: 45000,
-    status: "Booked • Adv. Paid",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuD84hI89HU0-gXS60ebF2HVREdmPyBHchcdjM1k9DXHGlfRBYTfzZjyk0kIRU2dr1Ulw_vsdmLuIe-jHgv6QGwjTrISspxdk63yiC4GMLR8VpELARydhrDU17JV7uOITyc5eZoyu62n2edC0dw_vIHoKYVWclq8NJIRaYgf2K457AhdGS1duppQBL-M1KIm2o5ATVMESQX_2-W7gtZf1kfMKLz3Yhc4H9yKo8g1YIvK9XvhqtDJV_Lb_g",
-    contactName: "Rajesh Shekhawat",
-    contactRole: "General Manager",
-    contactPhone: "+91 98290 44210",
-    contactEmail: "r.shekhawat@palace-events.example",
-    inclusions: [
-      "Grand Courtyard (300 banquet / 450 floating)",
-      "Indoor Darbar Hall reserved as weather backup",
-      "Valet parking for 80 vehicles included",
-      "Architectural facade illumination active till midnight"
-    ],
-    advisoryText:
-      "Bundling palace-owned fairy lights saved ₹14,500 vs external rental quotes. Note: Sound curfew strictly enforced by Udaipur civic law at 10:00 PM.",
-    notes:
-      "Security deposit clearance verified with accounts team. Catering load-in dock accessible via North Gate strictly between 06:00 AM – 09:00 AM."
-  },
-  {
-    id: "VND-8492",
-    name: "FlavourCraft Catering",
-    category: "Catering",
-    location: "Civil Lines, Udaipur",
-    rating: 4.8,
-    reviewCount: 38,
-    event: "Aarav & Priya Wedding",
-    tags: ["North Indian", "Rajasthani Thali", "Live Chaat"],
-    cost: 65000,
-    paidAmount: 30000,
-    status: "Booked • Tasting Done",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDjtMEkzs-csDkMQdyCr8uDOlLVPhxrSGA-6LQgZx09K1IuEMwG6VA7iYSE8wj6wpAYayw8CTKHxyOHZkJyJ8q3xUr_Vylxub5Nd-983RjRGl_sgIwkQU2S0DzgMXEhpxF5VEzQamt4ylrGGGS36GFxRI6SwXH2-4IBsWuTaYml0_gzVH8V1-RRKrRsXptJlPRSWP537WiEjofeIUIrq85ZoUswtW-tVQ-V5GlmiLka8csQigIQ8Ko-Jw",
-    contactName: "Chef Sanjeev Mehra",
-    contactRole: "Head of Culinary",
-    contactPhone: "+91 98201 55678",
-    contactEmail: "sanjeev@flavourcraft.example",
-    inclusions: [
-      "6-course royal banquet with live counter setup",
-      "Custom mocktail bar and mixology team",
-      "Dedicated Jain and pure vegetarian station",
-      "Silver chafing dinnerware and 24 service staff"
-    ],
-    advisoryText: "Live chaat counter can be scheduled alongside sangeet cocktail hour for optimal guest circulation.",
-    notes: "Tasting approved by couple on Oct 18. Pre-event loading scheduled 4 hours prior."
-  },
-  {
-    id: "VND-8493",
-    name: "Lens & Light Studio",
-    category: "Photography",
-    location: "Bandra West, Mumbai",
-    rating: 4.9,
-    reviewCount: 56,
-    event: "TechFest 2026 & Wedding",
-    tags: ["Drone Cinematic", "Candid 4K", "48hr Teaser"],
-    cost: 25000,
-    paidAmount: 10000,
-    status: "Shortlisted",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDZ7iRjIj7VkzDu5nqkx20AD7yvn62JIU8eRHbvZtueApWos784Pr5chG2gKfJP8dkAGHhzM1viRI1Qy5aR_Z0c_iMRpX1qb00nBky6Sy3Z2VhmVFjhSikHOrTEYqC_pWLTluI6NZZcbVev8lh9KQJK-WTc0jpIfTeg1eS-YQv4BrlWoUSIoFGDZTXMFwzNAPnLzDdcP34Rz5zrV2ZbQqjxkdWrR_P-T1anYWJJNSgxhUOmrL_IJqPMyw",
-    contactName: "Kabir Roy",
-    contactRole: "Lead Cinematographer",
-    contactPhone: "+91 98112 33456",
-    contactEmail: "kabir@lenslight.example",
-    inclusions: [
-      "2 Candid Photographers + 2 Traditional Photographers",
-      "1 Drone Operator for aerial lake shots",
-      "48-hour teaser film + full wedding documentary film",
-      "High-resolution edited digital gallery"
-    ],
-    advisoryText: "Shortlisted with 10% advance incentive if confirmed before Oct 30.",
-    notes: "Requires drone permissions from palace administration."
-  },
-  {
-    id: "VND-8494",
-    name: "FloralBloom Couture",
-    category: "Decoration",
-    location: "Old City, Udaipur",
-    rating: 4.7,
-    reviewCount: 31,
-    event: "Aarav & Priya Wedding",
-    tags: ["Jasmine Arch", "Floating Diyas", "Regal Mandap"],
-    cost: 40000,
-    paidAmount: 20000,
-    status: "Booked",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDwNkgDVkeFX_duoXORPvZY7JWX4HzsrY611mzDapF3Y8gxzOuCEVyVgoe9mzyyANp4ROFrxfZabyNrexRowj94VhDhwdzquvdPSWk7BXTyn25uqh7tuJtgTBCNCHOyEzY2KYPPn6VX3-9GY_aL-BITi6XtPG2etdIwRrRihz0mx0d_UZFUnk_CnO3RltIRA0fsuPzL3ubdUNa0LzlUtUSpmvNeQnT5SbZOjsH8NvZubGJR0HcnFy0-fg",
-    contactName: "Pooja Singhania",
-    contactRole: "Lead Floral Designer",
-    contactPhone: "+91 97200 44321",
-    contactEmail: "pooja@floralbloom.example",
-    inclusions: [
-      "Custom handwoven jasmine flower mandap",
-      "300 floating terracotta diyas in palace fountain pool",
-      "Aisle floral urns and banquet centerpieces",
-      "Complete dismantling and eco-friendly composting"
-    ],
-    advisoryText: "Replaced imported lilies with locally sourced Udaipur marigolds to reduce footprint.",
-    notes: "Flower delivery expected at 05:00 AM on wedding day."
-  },
-  {
-    id: "VND-8495",
-    name: "DJ Pulse & Strings",
-    category: "Music & DJ",
-    location: "Hauz Khas, New Delhi",
-    rating: 4.8,
-    reviewCount: 27,
-    event: "Aarav & Priya Sangeet",
-    tags: ["Live Dhol", "EDM & Bollywood", "Acoustic Duo"],
-    cost: 18000,
-    paidAmount: 5000,
-    status: "Shortlisted",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBgL_oso3TgAJAH_pn6JVVdyGGdEwTizoaCh20zUPezPvf0woFWjubU2i6V81eAGAa-XJ4QSzGel3OqYisIgF0nNbSnYEMsLoUbYKfJFYpypMkS9xbWfDKD9BwUIqIS3UVkPyKKmNw8ffObnoqeyvoED6FbAiKzQQhAk68tvv4v5PATAKhxpoajOZJXVdJE4K28YbjW--doucJ4BOQ0RRp1qqqpZyny-b1x0YBj740f756ySTsT4uwa0A",
-    contactName: "DJ Varun",
-    contactRole: "Resident Artist",
-    contactPhone: "+91 99100 88210",
-    contactEmail: "varun@djpulse.example",
-    inclusions: [
-      "4-hour high energy Bollywood and commercial DJ set",
-      "2 Live Punjabi Dhol players for Baraat entry",
-      "Wireless microphone consoles for family sangeet performances"
-    ],
-    advisoryText: "Strict volume dampening required at 9:45 PM per Rajasthan lake heritage laws.",
-    notes: "Sound setup coordination needed with GrandStage AV team."
-  },
-  {
-    id: "VND-8496",
-    name: "GrandStage AV",
-    category: "Logistics & AV",
-    location: "Koramangala, Bengaluru",
-    rating: 4.6,
-    reviewCount: 19,
-    event: "TechFest 2026 (Jan 2026)",
-    tags: ["Truss Rigging", "Line Array", "LED Screen"],
-    cost: 32000,
-    paidAmount: 0,
-    status: "Pending Contract",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAHS9kJw0z2T4PeIyhbl1soLhg0PVS-iP54rhLxiu4LiTuY23I0A_47kSGFw8T-JruPTsGzC1Ch3VGfrxyQCpN6C7oXVEb_WmslYeo67soM8Z1lhYEnujOUVHhWlI9-ByCJ5S56n_qGzBC0zTe8UgwXaCPrn6KITs6jjJKHzjRixFCkv3nI9ZUzGY77dqKoaFqZIiP_r2F99P2kBUzcJB2KDy8JuBdo2raj704Bbm_tzaPzoCJe_xHmhA",
-    contactName: "Amitabh Nair",
-    contactRole: "Technical Director",
-    contactPhone: "+91 98800 22100",
-    contactEmail: "amitabh@grandstage.example",
-    inclusions: [
-      "P3 Ultra HD curved LED backdrop screen (24x12 ft)",
-      "JBL VRX line array audio system with digital mixer",
-      "Moving head beam lights and haze atmospheric generators",
-      "Onsite audio engineer for 12 hours"
-    ],
-    advisoryText: "Awaiting load-in clearance and venue power load certification.",
-    notes: "Requires 3-phase 63A power source."
-  }
-];
 
 export default function Vendors() {
-  const { isDemo, events, activeEvent } = useEventContext();
-
-  const [vendorList, setVendorList] = useState<DetailedVendor[]>(() => {
-    return isDemo ? DEMO_VENDORS : [];
-  });
+  const { isDemo, events, activeEvent, vendors, addVendor } = useEventContext();
+  const vendorList = vendors;
 
   // Selected vendor for inspection in right drawer
   const [selectedVendorId, setSelectedVendorId] = useState<string>(() => {
-    return isDemo ? "VND-8491" : "";
+    return vendors[0]?.id || (isDemo ? "VND-8491" : "");
   });
 
   // Filters & State
@@ -272,21 +83,20 @@ export default function Vendors() {
     : vendorList.reduce((acc, v) => acc + (v.cost - (v.paidAmount || 0)), 0);
 
   // Add Vendor Handler
-  const handleSaveVendor = (e: FormEvent) => {
+  const handleSaveVendor = async (e: FormEvent) => {
     e.preventDefault();
     if (!newVendorName.trim()) {
       showToast("Please provide vendor name");
       return;
     }
 
-    const created: DetailedVendor = {
-      id: `VND-${Math.floor(1000 + Math.random() * 9000)}`,
+    const createdData: Omit<DetailedVendor, "id" | "eventId"> = {
       name: newVendorName.trim(),
       category: newVendorCategory,
       location: newCity || "Udaipur, Rajasthan",
       rating: 4.8,
       reviewCount: 1,
-      event: newEvent,
+      event: activeEvent?.name || newEvent,
       tags: [newVendorCategory, "Vetted"],
       cost: newPrice,
       paidAmount: 0,
@@ -302,14 +112,13 @@ export default function Vendors() {
       notes: newNotes || "Added via Planora Vendor Directory."
     };
 
-    setVendorList((prev) => [created, ...prev]);
-    setSelectedVendorId(created.id);
+    await addVendor(createdData);
     setIsAddModalOpen(false);
     setNewVendorName("");
     setNewContactName("");
     setNewPhone("");
     setNewEmail("");
-    showToast(`Vendor ${created.name} added successfully!`);
+    showToast(`Vendor ${createdData.name} added successfully!`);
   };
 
   return (
@@ -1038,7 +847,7 @@ export default function Vendors() {
                     className="h-11 px-3 rounded-lg bg-surface text-body-md font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container border border-outline-variant/20"
                   >
                     {events.length > 0 ? (
-                      events.map((evt) => (
+                      events.map((evt: { id: string; name: string }) => (
                         <option key={evt.id} value={evt.name}>
                           {evt.name}
                         </option>

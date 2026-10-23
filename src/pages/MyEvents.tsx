@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
-import { useEventContext, isTestEmail, type EventItem } from "../context/EventContext";
-import { useAuth } from "../context/AuthContext";
+import { useEventContext, type EventItem } from "../context/EventContext";
 
 const DEMO_PORTFOLIO_EVENTS: EventItem[] = [
   {
@@ -76,12 +75,11 @@ const DEMO_PORTFOLIO_EVENTS: EventItem[] = [
 ];
 
 export default function MyEvents() {
-  const { user } = useAuth();
-  const { events, setActiveEventId } = useEventContext();
+  const { events, setActiveEventId, isDemo } = useEventContext();
   const navigate = useNavigate();
 
-  const isTest = isTestEmail(user?.email);
-  const displayEvents = isTest ? DEMO_PORTFOLIO_EVENTS : events;
+  const isTest = isDemo;
+  const displayEvents = isDemo ? DEMO_PORTFOLIO_EVENTS : events;
 
   // Filter & Search states
   const [activeTab, setActiveTab] = useState<string>("All");

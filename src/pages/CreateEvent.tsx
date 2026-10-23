@@ -103,8 +103,8 @@ export default function CreateEvent() {
   };
 
   // Launch event creation
-  const handleLaunchEvent = () => {
-    const newEvt = createEvent({
+  const handleLaunchEvent = async () => {
+    const newEvt = await createEvent({
       name: eventName,
       type: selectedArchetype,
       date: eventDate,

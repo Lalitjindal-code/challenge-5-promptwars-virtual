@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useAuth } from "../context/AuthContext";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db, isFirebaseConfigured } from "../lib/firebase";
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, updateUserPassword } = useAuth();
 
   // Navigation
   const [activeSection, setActiveSection] = useState<string>("section-profile");
@@ -16,6 +18,24 @@ export default function Settings() {
   const [organization, setOrganization] = useState("Aura Luxe Event Curators");
   const [region, setRegion] = useState("India (IN) — Domestic & Destination Operations");
   const [timezone, setTimezone] = useState("(GMT+05:30) India Standard Time (IST) — Kolkata, Mumbai, New Delhi");
+
+  useEffect(() => {
+    if (user && isFirebaseConfigured && db && !user.isDemo) {
+      getDoc(doc(db, "users", user.uid)).then((snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.fullName) setFullName(data.fullName);
+          if (data.phone) setPhone(data.phone);
+          if (data.jobTitle) setJobTitle(data.jobTitle);
+          if (data.organization) setOrganization(data.organization);
+          if (data.region) setRegion(data.region);
+          if (data.timezone) setTimezone(data.timezone);
+          if (data.currency) setCurrency(data.currency);
+          if (data.themeMode) setThemeMode(data.themeMode);
+        }
+      }).catch(console.warn);
+    }
+  }, [user?.uid]);
 
   // Preferences State
   const [currency, setCurrency] = useState<"INR" | "USD" | "EUR" | "GBP" | "AED">("INR");
@@ -74,23 +94,59 @@ export default function Settings() {
     }
   };
 
-  const handleProfileSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    triggerToast("Profile settings saved and synced across 8 active events.");
+    if (user && isFirebaseConfigured && db && !user.isDemo) {
+      try {
+        await setDoc(
+          doc(db, "users", user.uid),
+          {
+            fullName,
+            phone,
+            jobTitle,
+            organization,
+            region,
+            timezone,
+            currency,
+            themeMode,
+            updatedAt: new Date().toISOString()
+          },
+          { merge: true }
+        );
+        triggerToast("Profile settings saved and synced to cloud.");
+      } catch (err: any) {
+        console.error("Profile save error:", err);
+        triggerToast("Error saving profile to cloud: " + (err?.message || "Unknown error"));
+      }
+    } else {
+      triggerToast("Profile settings updated (Demo Studio Preview).");
+    }
   };
 
-  const handlePasswordUpdate = () => {
-    if (!pwdNew || pwdNew.length < 8) {
-      triggerToast("Password must be at least 8 characters long.");
+  const handlePasswordUpdate = async () => {
+    if (!pwdNew || pwdNew.length < 6) {
+      triggerToast("Password must be at least 6 characters long.");
       return;
     }
     if (pwdNew !== pwdConfirm) {
       triggerToast("New passwords do not match.");
       return;
     }
-    triggerToast("Password updated securely. Sessions maintained.");
-    setPwdNew("");
-    setPwdConfirm("");
+    if (user && !user.isDemo) {
+      try {
+        await updateUserPassword(pwdNew);
+        triggerToast("Password updated securely in Firebase Authentication.");
+        setPwdNew("");
+        setPwdConfirm("");
+      } catch (err: any) {
+        console.error("Password update error:", err);
+        triggerToast(err?.message?.replace("Firebase: ", "") || "Failed to update password.");
+      }
+    } else {
+      triggerToast("Password updated securely (Demo Studio Sandbox).");
+      setPwdNew("");
+      setPwdConfirm("");
+    }
   };
 
   const handleRevokeSession = (id: string) => {

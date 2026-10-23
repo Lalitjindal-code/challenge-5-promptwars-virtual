@@ -1,99 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
-import { useEventContext, isTestEmail } from "../context/EventContext";
-import { useAuth } from "../context/AuthContext";
-
-interface ExpenseTransaction {
-  id: string;
-  name: string;
-  event: string;
-  category: "Venue" | "Catering" | "Decoration" | "Photography" | "Logistics" | "Other";
-  date: string;
-  amount: number;
-  status: "Paid" | "Pending" | "Scheduled";
-  vendor?: string;
-  icon: string;
-}
-
-const INITIAL_EXPENSES: ExpenseTransaction[] = [
-  {
-    id: "tx-1",
-    name: "Palace Venue Advance",
-    event: "Aarav & Priya Wedding",
-    category: "Venue",
-    date: "18 Oct 2026",
-    amount: 45000,
-    status: "Paid",
-    vendor: "Royal Grounds Udaipur",
-    icon: "domain"
-  },
-  {
-    id: "tx-2",
-    name: "Catering Tasting & Menu Advance",
-    event: "Birthday Celebration",
-    category: "Catering",
-    date: "14 Oct 2026",
-    amount: 8500,
-    status: "Paid",
-    vendor: "Spice Route Culinary Co.",
-    icon: "dinner_dining"
-  },
-  {
-    id: "tx-3",
-    name: "Floral Decoration Deposit",
-    event: "Aarav & Priya Wedding",
-    category: "Decoration",
-    date: "12 Oct 2026",
-    amount: 12000,
-    status: "Pending",
-    vendor: "Bloom & Foliage Decor",
-    icon: "local_florist"
-  },
-  {
-    id: "tx-4",
-    name: "Event Photography Booking",
-    event: "TechFest 2026",
-    category: "Photography",
-    date: "08 Oct 2026",
-    amount: 15000,
-    status: "Paid",
-    vendor: "Weddings by Shutterbug",
-    icon: "videocam"
-  },
-  {
-    id: "tx-5",
-    name: "Sound & Lighting Rigging",
-    event: "TechFest 2026",
-    category: "Logistics",
-    date: "04 Oct 2026",
-    amount: 9500,
-    status: "Pending",
-    vendor: "Acoustic Mirage Band",
-    icon: "speaker"
-  },
-  {
-    id: "tx-6",
-    name: "Artisanal Cake Baker Deposit",
-    event: "Birthday Celebration",
-    category: "Catering",
-    date: "29 Sep 2026",
-    amount: 4200,
-    status: "Paid",
-    vendor: "The Mumbai Bakehouse",
-    icon: "cake"
-  }
-];
+import { useEventContext } from "../context/EventContext";
+import type { ExpenseTransaction } from "../types";
 
 export default function Budget() {
-  const { user } = useAuth();
-  const { events } = useEventContext();
-  const isTest = isTestEmail(user?.email);
+  const { events, activeEvent, expenses, addExpense, isDemo } = useEventContext();
 
   // States
-  const [selectedEventFilter, setSelectedEventFilter] = useState("All Events (3 Active)");
+  const [selectedEventFilter, setSelectedEventFilter] = useState("Active Event");
   const [eventMenuOpen, setEventMenuOpen] = useState(false);
-  const [expenses, setExpenses] = useState<ExpenseTransaction[]>(INITIAL_EXPENSES);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -106,7 +22,7 @@ export default function Budget() {
   // Form states
   const [formName, setFormName] = useState("");
   const [formEvent, setFormEvent] = useState(
-    events[0]?.name || "Aarav & Priya Wedding (Nov 2026)"
+    activeEvent?.name || events[0]?.name || "Wedding Event"
   );
   const [formCategory, setFormCategory] = useState<ExpenseTransaction["category"]>("Venue");
   const [formAmount, setFormAmount] = useState("");
@@ -119,16 +35,11 @@ export default function Budget() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Aggregated amounts
-  const computedTotalBudget = isTest
-    ? 240000
-    : events.reduce((acc, e) => acc + (e.budget || 0), 0) || 100000;
-  const currentTotalSpent = isTest
-    ? expenses.reduce((acc, tx) => acc + tx.amount, 0)
-    : events.reduce((acc, e) => acc + (e.spent || 0), 0) +
-      expenses.filter((tx) => !isTest).reduce((acc, tx) => acc + tx.amount, 0);
+  // Aggregated amounts scoped to active event / workspace
+  const computedTotalBudget = activeEvent?.budget || (isDemo ? 4500000 : 0);
+  const currentTotalSpent = expenses.reduce((acc, tx) => acc + (tx.amount || 0), 0);
 
-  const spentRatio = Math.min(Math.round((currentTotalSpent / computedTotalBudget) * 100), 100);
+  const spentRatio = computedTotalBudget > 0 ? Math.min(Math.round((currentTotalSpent / computedTotalBudget) * 100), 100) : 0;
   const remainingBudget = Math.max(0, computedTotalBudget - currentTotalSpent);
 
   // Filtered transactions
@@ -139,14 +50,14 @@ export default function Budget() {
       const q = searchQuery.toLowerCase();
       return (
         tx.name.toLowerCase().includes(q) ||
-        tx.event.toLowerCase().includes(q) ||
+        (tx.event && tx.event.toLowerCase().includes(q)) ||
         (tx.vendor && tx.vendor.toLowerCase().includes(q))
       );
     }
     return true;
   });
 
-  const handleAddExpense = (e: React.FormEvent) => {
+  const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(formAmount);
     if (!formName || isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -154,8 +65,7 @@ export default function Budget() {
       return;
     }
 
-    const newExpense: ExpenseTransaction = {
-      id: "tx-" + Date.now(),
+    await addExpense({
       name: formName,
       event: formEvent,
       category: formCategory,
@@ -177,9 +87,8 @@ export default function Budget() {
           : formCategory === "Photography"
           ? "videocam"
           : "receipt_long"
-    };
+    });
 
-    setExpenses((prev) => [newExpense, ...prev]);
     setDrawerOpen(false);
     setFormName("");
     setFormAmount("");
