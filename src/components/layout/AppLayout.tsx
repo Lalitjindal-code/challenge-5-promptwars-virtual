@@ -27,7 +27,7 @@ export default function AppLayout({ title, subtitle, children }: AppLayoutProps)
           subtitle={subtitle}
           onToggleMobileSidebar={() => setMobileSidebarOpen((prev) => !prev)}
         />
-        <main className="w-full pt-20 bg-surface flex-1 px-4 sm:px-6 lg:px-space-xl py-space-md lg:py-space-lg">
+        <main className="w-full pt-24 sm:pt-28 lg:pt-24 bg-surface flex-1 px-4 sm:px-6 lg:px-space-xl py-space-md lg:py-space-lg">
           <div className="flex flex-col w-full gap-space-lg pb-space-xl max-w-full overflow-x-hidden">
             {children || <Outlet />}
           </div>
