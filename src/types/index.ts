@@ -131,3 +131,65 @@ export interface UserSettings {
   density: "comfortable" | "compact";
   telemetryConsent: boolean;
 }
+
+export interface ConceptColor {
+  name: string;
+  hex: string;
+}
+
+export interface ConceptDeliverable {
+  icon: string;
+  name: string;
+  qty: string;
+  checked: boolean;
+}
+
+export interface ConceptBreakdown {
+  item: string;
+  cost: number;
+}
+
+export interface ConceptItem {
+  id: string;
+  code: string;
+  title: string;
+  category: "Themes & Concepts" | "Decor & Ambience" | "Food & Menus" | "Activities & Show" | "Budget Hacks";
+  badge?: string;
+  badgeType?: "featured" | "value" | "standard";
+  allocation: number;
+  matchScore: number;
+  image: string;
+  alt: string;
+  description: string;
+  tags: string[];
+  palette: ConceptColor[];
+  deliverables: ConceptDeliverable[];
+  breakdown: ConceptBreakdown[];
+  saved: boolean;
+  eventId?: string;
+  savedAt?: string;
+  timelineSuggestions?: string[];
+  vendorRecommendations?: string[];
+  guestExperienceNotes?: string;
+  createdAt?: string;
+}
+
+export interface AiGenerationRequest {
+  eventId: string;
+  category: ConceptItem["category"];
+  userPrompt?: string;
+  eventContext: {
+    name: string;
+    type: string;
+    date: string;
+    location: string;
+    budget: number;
+    guestCount: number;
+    description?: string;
+  };
+}
+
+export interface AiGenerationResponse {
+  concept: ConceptItem;
+  missingInfoQuestions?: string[];
+}

@@ -4,10 +4,11 @@ import { useEventContext } from "../context/EventContext";
 import type { DetailedTask } from "../types";
 
 export default function Timeline() {
-  const { isDemo, events, activeEvent, tasks, addTask, updateTask, toggleTask } = useEventContext();
+  const { isDemo, events, activeEventId, setActiveEventId, activeEvent, tasks, addTask, updateTask, toggleTask } = useEventContext();
   const taskList = tasks;
 
   // Filters & Views
+  const [eventDropdownOpen, setEventDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"All" | "My" | "Upcoming" | "Completed" | "Overdue">("All");
   const [activeView, setActiveView] = useState<"List" | "Board" | "Timeline">("List");
   const [searchQuery, setSearchQuery] = useState("");
@@ -182,14 +183,42 @@ export default function Timeline() {
             <button
               id="event-selector-btn"
               type="button"
-              className="h-10 px-space-md rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container transition-colors flex items-center gap-2 font-label-md text-label-md"
+              onClick={() => setEventDropdownOpen(!eventDropdownOpen)}
+              className="h-10 px-space-md rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container transition-colors flex items-center gap-2 font-label-md text-label-md cursor-pointer"
             >
               <span className="w-2 h-2 rounded-full bg-secondary"></span>
-              <span className="font-headline-sm text-body-md text-primary">
-                {activeEvent ? activeEvent.name : isDemo ? "All Events (3 Active)" : "All Celebrations"}
+              <span className="font-headline-sm text-body-md text-primary font-semibold">
+                {activeEvent ? activeEvent.name : "All Celebrations"}
               </span>
               <span className="material-symbols-outlined text-[18px] text-on-surface-variant">expand_more</span>
             </button>
+
+            {eventDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-64 bg-surface-container-lowest rounded-xl shadow-xl z-30 py-2 border border-outline-variant/20 max-h-72 overflow-y-auto">
+                {events.map((evt) => (
+                  <button
+                    key={evt.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveEventId(evt.id);
+                      setEventDropdownOpen(false);
+                      showToast(`Calibrated tasks for: ${evt.name}`);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-body-md hover:bg-surface-container flex items-center justify-between ${
+                      evt.id === activeEventId ? "text-primary font-semibold bg-surface-container/50" : "text-on-surface"
+                    }`}
+                  >
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <span className="truncate">{evt.name}</span>
+                      <span className="text-caption font-caption text-on-surface-variant truncate">{evt.date}</span>
+                    </div>
+                    {evt.id === activeEventId && (
+                      <span className="material-symbols-outlined text-[18px] text-secondary shrink-0">check</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Divider line */}

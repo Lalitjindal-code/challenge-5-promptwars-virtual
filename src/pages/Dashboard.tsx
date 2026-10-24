@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
@@ -16,54 +15,9 @@ const DEMO_IMAGES = {
     "https://lh3.googleusercontent.com/aida-public/AB6AXuCe1fk2VCs69xMfnd9d9lJee3jtI1lzPbIP6ZL5t6YfEZ1SGOv4c6jdjPOeilmE0kmc3jMSunTuwJeNmtGyW7a9YxAXO2-ZWuWHsw5YsE1nzhHh-k9RxTLTvC46bD8U4Vxj4iGACmq_tLift6SRFHw4TjmX9JdLJSZMS63FdZwjMSV1dFwhCjyM2qmq89oiJZVolVyR4SiZb0iPMVZH4eHk-nC1HJ08sNAOpGnRVg1Fzxd0kWW7-M6MjA"
 };
 
-interface DemoTask {
-  id: string;
-  title: string;
-  dueDate: string;
-  eventName: string;
-  priority: "High" | "Medium" | "Low";
-  completed: boolean;
-}
-
-const INITIAL_DEMO_TASKS: DemoTask[] = [
-  {
-    id: "dt-1",
-    title: "Confirm wedding venue contract",
-    dueDate: "Tomorrow, 24 Oct",
-    eventName: "Aarav & Priya Wedding",
-    priority: "High",
-    completed: false
-  },
-  {
-    id: "dt-2",
-    title: "Finalize catering menu & tasting",
-    dueDate: "28 Oct",
-    eventName: "Birthday Celebration",
-    priority: "Medium",
-    completed: false
-  },
-  {
-    id: "dt-3",
-    title: "Send TechFest invitations & RSVP link",
-    dueDate: "30 Oct",
-    eventName: "TechFest 2026",
-    priority: "High",
-    completed: false
-  },
-  {
-    id: "dt-4",
-    title: "Book birthday photographer",
-    dueDate: "2 Nov",
-    eventName: "Birthday Celebration",
-    priority: "Low",
-    completed: false
-  }
-];
-
 export default function Dashboard() {
   const { user } = useAuth();
   const { events, tasks, toggleTask, setActiveEventId, isDemo } = useEventContext();
-  const [demoTasks, setDemoTasks] = useState<DemoTask[]>(INITIAL_DEMO_TASKS);
 
   // Check if current user is on a demo workspace or actual user
   const isTest = isDemo;
@@ -75,7 +29,7 @@ export default function Dashboard() {
     ? "Alex"
     : user?.displayName?.split(" ")[0] || (user?.email ? user.email.split("@")[0] : "Host");
 
-  // Dynamic calculations for real users
+  // Dynamic calculations for active workspace
   const totalBudget = events.reduce((acc, e) => acc + (e.budget || 0), 0);
   const totalSpent = events.reduce((acc, e) => acc + (e.spent || 0), 0);
   const spentPct = totalBudget > 0 ? Math.min(Math.round((totalSpent / totalBudget) * 100), 100) : 0;
@@ -83,12 +37,6 @@ export default function Dashboard() {
   const totalTasksCount = tasks.length;
   const completedTasksCount = tasks.filter((t) => t.completed).length;
   const taskPct = totalTasksCount > 0 ? Math.min(Math.round((completedTasksCount / totalTasksCount) * 100), 100) : 0;
-
-  const handleToggleDemoTask = (id: string) => {
-    setDemoTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
-  };
 
   return (
     <AppLayout title="Dashboard" subtitle="Here's what's happening with your events.">
@@ -134,8 +82,8 @@ export default function Dashboard() {
           {/* Stat 1: Total Events */}
           <DashboardStatCard
             label="Total Events"
-            value={isTest ? 8 : events.length}
-            subtext={isTest ? "5 archived, 3 active" : `0 archived, ${events.length} active`}
+            value={events.length}
+            subtext={`${events.length} active celebration${events.length === 1 ? "" : "s"}`}
             icon="calendar_month"
             iconBg="bg-surface-container"
             iconColor="text-primary"
@@ -144,11 +92,9 @@ export default function Dashboard() {
           {/* Stat 2: Upcoming Events */}
           <DashboardStatCard
             label="Upcoming Events"
-            value={isTest ? 3 : events.length}
+            value={events.length}
             subtext={
-              isTest
-                ? "Next: Aarav & Priya Wedding"
-                : events[0]
+              events[0]
                 ? `Next: ${events[0].name}`
                 : "No upcoming events scheduled"
             }
@@ -160,34 +106,26 @@ export default function Dashboard() {
           {/* Stat 3: Total Planned Budget */}
           <DashboardStatCard
             label="Planned Budget"
-            value={isTest ? "₹2,40,000" : `₹${totalBudget.toLocaleString("en-IN")}`}
-            subtext={
-              isTest
-                ? "₹1,45,000 spent"
-                : `₹${totalSpent.toLocaleString("en-IN")} spent`
-            }
-            rightLabel={isTest ? "60.4%" : `${spentPct}%`}
+            value={`₹${totalBudget.toLocaleString("en-IN")}`}
+            subtext={`₹${totalSpent.toLocaleString("en-IN")} spent`}
+            rightLabel={`${spentPct}%`}
             icon="account_balance_wallet"
             iconBg="bg-surface-container"
             iconColor="text-primary"
-            progress={isTest ? 60.4 : spentPct}
+            progress={spentPct}
             progressColor="bg-primary"
           />
 
           {/* Stat 4: Tasks Completed */}
           <DashboardStatCard
             label="Tasks Completed"
-            value={isTest ? "68%" : `${taskPct}%`}
-            subtext={
-              isTest
-                ? "28 of 41 tasks done"
-                : `${completedTasksCount} of ${totalTasksCount} tasks done`
-            }
-            rightLabel={isTest ? "13 left" : `${Math.max(0, totalTasksCount - completedTasksCount)} left`}
+            value={`${taskPct}%`}
+            subtext={`${completedTasksCount} of ${totalTasksCount} tasks done`}
+            rightLabel={`${Math.max(0, totalTasksCount - completedTasksCount)} left`}
             icon="task_alt"
             iconBg="bg-tertiary-fixed"
             iconColor="text-on-tertiary-fixed-variant"
-            progress={isTest ? 68 : taskPct}
+            progress={taskPct}
             progressColor="bg-secondary-fixed-dim"
           />
         </section>
@@ -218,54 +156,7 @@ export default function Dashboard() {
 
               {/* Event Cards Container */}
               <div className="flex flex-col gap-space-md">
-                {isTest ? (
-                  <>
-                    {/* Event Card 1: Aarav & Priya Wedding */}
-                    <DashboardEventCard
-                      id="demo-1"
-                      name="Aarav & Priya Wedding"
-                      type="Wedding"
-                      date="15 December 2026"
-                      location="Udaipur Heritage Palace, Rajasthan"
-                      coverImage={DEMO_IMAGES.wedding}
-                      budget={150000}
-                      spent={120000}
-                      tasksCompleted={18}
-                      totalTasks={22}
-                      onSelect={() => setActiveEventId("demo-1")}
-                    />
-
-                    {/* Event Card 2: TechFest 2026 */}
-                    <DashboardEventCard
-                      id="demo-2"
-                      name="TechFest 2026"
-                      type="Corporate"
-                      date="5 November 2026"
-                      location="Grand Convention Hall, Bengaluru"
-                      coverImage={DEMO_IMAGES.techfest}
-                      budget={60000}
-                      spent={55000}
-                      tasksCompleted={8}
-                      totalTasks={12}
-                      onSelect={() => setActiveEventId("demo-2")}
-                    />
-
-                    {/* Event Card 3: Birthday Celebration */}
-                    <DashboardEventCard
-                      id="demo-3"
-                      name="Birthday Celebration"
-                      type="Birthday"
-                      date="28 October 2026"
-                      location="The Glasshouse Terrace, Mumbai"
-                      coverImage={DEMO_IMAGES.birthday}
-                      budget={30000}
-                      spent={25000}
-                      tasksCompleted={4}
-                      totalTasks={7}
-                      onSelect={() => setActiveEventId("demo-3")}
-                    />
-                  </>
-                ) : events.length > 0 ? (
+                {events.length > 0 ? (
                   events.map((evt) => (
                     <DashboardEventCard
                       key={evt.id}
@@ -274,7 +165,7 @@ export default function Dashboard() {
                       type={evt.type}
                       date={evt.date}
                       location={evt.location}
-                      coverImage={evt.coverImage}
+                      coverImage={evt.coverImage || DEMO_IMAGES.wedding}
                       budget={evt.budget}
                       spent={evt.spent}
                       tasksCompleted={evt.tasksCompleted}
@@ -315,9 +206,7 @@ export default function Dashboard() {
                     Upcoming Tasks
                   </h2>
                   <span className="px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container font-caption text-caption font-semibold">
-                    {isTest
-                      ? "4 Pending This Week"
-                      : `${Math.max(0, totalTasksCount - completedTasksCount)} Pending`}
+                    {`${Math.max(0, totalTasksCount - completedTasksCount)} Pending`}
                   </span>
                 </div>
                 <Link
@@ -338,26 +227,13 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <span className="font-caption text-caption text-on-surface-variant font-medium">
-                  {isTest || tasks.length > 0 ? "75% scheduled on-time" : "Ready to schedule"}
+                  {tasks.length > 0 ? "75% scheduled on-time" : "Ready to schedule"}
                 </span>
               </div>
 
               {/* Task Items */}
               <div className="flex flex-col divide-y divide-surface-container/60">
-                {isTest ? (
-                  demoTasks.map((task) => (
-                    <DashboardTaskItem
-                      key={task.id}
-                      id={task.id}
-                      title={task.title}
-                      dueDate={task.dueDate}
-                      eventName={task.eventName}
-                      priority={task.priority}
-                      completed={task.completed}
-                      onToggle={handleToggleDemoTask}
-                    />
-                  ))
-                ) : tasks.length > 0 ? (
+                {tasks.length > 0 ? (
                   tasks.slice(0, 5).map((t) => (
                     <DashboardTaskItem
                       key={t.id}

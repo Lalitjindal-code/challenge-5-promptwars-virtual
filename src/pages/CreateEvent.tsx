@@ -119,7 +119,7 @@ export default function CreateEvent() {
   };
 
   return (
-    <AppLayout title="Guests & RSVPs" subtitle="Every guest, every invitation, all in one place.">
+    <AppLayout title="Create Event" subtitle="Design and configure your new event in minutes.">
       {/* Toast */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-primary-container text-on-primary rounded-xl shadow-xl text-sm font-medium border border-outline-variant/20 animate-fade-in">
@@ -132,7 +132,7 @@ export default function CreateEvent() {
       <div className="flex flex-wrap items-center justify-between gap-space-md mb-space-lg">
         <div className="flex items-center gap-space-sm">
           <Link
-            to="/my-events"
+            to="/events"
             className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1"
           >
             <span>My Events</span>
@@ -147,7 +147,7 @@ export default function CreateEvent() {
         <div className="flex items-center gap-space-sm">
           <button
             type="button"
-            onClick={() => navigate("/my-events")}
+            onClick={() => navigate("/events")}
             className="h-9 px-space-md rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-error hover:bg-error-container/40 font-label-md text-label-md transition-colors flex items-center gap-1.5 shadow-sm border border-outline-variant/10"
           >
             <span className="material-symbols-outlined text-[16px]">close</span>
@@ -1175,7 +1175,7 @@ export default function CreateEvent() {
                 type="button"
                 onClick={() => {
                   setShowSuccessModal(false);
-                  navigate("/my-events");
+                  navigate("/events");
                 }}
                 className="w-full sm:w-1/2 h-11 px-space-md rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high font-label-md text-label-md transition-colors"
               >

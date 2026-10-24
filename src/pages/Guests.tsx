@@ -37,10 +37,11 @@ export default function Guests() {
   };
 
   // Calculations
-  const totalGuests = isDemo ? 180 : guestList.reduce((acc, g) => acc + g.partySize, 0);
-  const confirmedCount = isDemo ? 124 : guestList.filter((g) => g.status === "Confirmed").reduce((acc, g) => acc + g.partySize, 0);
-  const awaitingCount = isDemo ? 38 : guestList.filter((g) => g.status === "Awaiting Response").reduce((acc, g) => acc + g.partySize, 0);
-  const declinedCount = isDemo ? 18 : guestList.filter((g) => g.status === "Declined").reduce((acc, g) => acc + g.partySize, 0);
+  const computedTotal = guestList.reduce((acc, g) => acc + (g.partySize || 1), 0);
+  const totalGuests = computedTotal > 0 ? computedTotal : (isDemo ? 180 : 0);
+  const confirmedCount = guestList.filter((g) => g.status === "Confirmed").reduce((acc, g) => acc + (g.partySize || 1), 0);
+  const awaitingCount = guestList.filter((g) => g.status === "Awaiting Response").reduce((acc, g) => acc + (g.partySize || 1), 0);
+  const declinedCount = guestList.filter((g) => g.status === "Declined").reduce((acc, g) => acc + (g.partySize || 1), 0);
   const respondedTotal = confirmedCount + declinedCount;
   const rsvpRate = totalGuests > 0 ? ((respondedTotal / totalGuests) * 100).toFixed(1) : "0";
 

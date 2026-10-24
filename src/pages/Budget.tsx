@@ -1,14 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 import type { ExpenseTransaction } from "../types";
 
 export default function Budget() {
-  const { events, activeEvent, expenses, addExpense, isDemo } = useEventContext();
+  const { events, activeEventId, setActiveEventId, activeEvent, expenses, addExpense, isDemo } = useEventContext();
 
   // States
-  const [selectedEventFilter, setSelectedEventFilter] = useState("Active Event");
   const [eventMenuOpen, setEventMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -24,6 +23,13 @@ export default function Budget() {
   const [formEvent, setFormEvent] = useState(
     activeEvent?.name || events[0]?.name || "Wedding Event"
   );
+
+  // Sync formEvent when activeEvent updates
+  useEffect(() => {
+    if (activeEvent?.name) {
+      setFormEvent(activeEvent.name);
+    }
+  }, [activeEvent?.id, activeEvent?.name]);
   const [formCategory, setFormCategory] = useState<ExpenseTransaction["category"]>("Venue");
   const [formAmount, setFormAmount] = useState("");
   const [formDate, setFormDate] = useState("2026-10-24");
@@ -121,56 +127,33 @@ export default function Budget() {
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container text-primary font-label-md text-label-md hover:bg-surface-container-high transition-colors font-semibold"
                 >
                   <span className="w-2 h-2 rounded-full bg-secondary"></span>
-                  <span>{selectedEventFilter}</span>
+                  <span>{activeEvent?.name || "Active Celebration"}</span>
                   <span className="material-symbols-outlined text-[16px] text-on-surface-variant">expand_more</span>
                 </button>
 
                 {eventMenuOpen && (
-                  <div className="absolute left-0 mt-2 w-64 bg-surface-container-lowest rounded-xl shadow-xl z-30 py-2 border border-outline-variant/20">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedEventFilter("All Events (3 Active)");
-                        setEventMenuOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-body-md font-body-md-medium text-primary hover:bg-surface-container flex items-center justify-between font-semibold"
-                    >
-                      <span>All Events</span>
-                      <span className="material-symbols-outlined text-[18px] text-secondary">check</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedEventFilter("Aarav & Priya Wedding");
-                        setEventMenuOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-body-md text-on-surface hover:bg-surface-container flex items-center justify-between"
-                    >
-                      <span>Aarav &amp; Priya Wedding</span>
-                      <span className="text-caption font-caption text-on-surface-variant">Nov 2026</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedEventFilter("TechFest 2026");
-                        setEventMenuOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-body-md text-on-surface hover:bg-surface-container flex items-center justify-between"
-                    >
-                      <span>TechFest 2026</span>
-                      <span className="text-caption font-caption text-on-surface-variant">Dec 2026</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedEventFilter("Birthday Celebration");
-                        setEventMenuOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-body-md text-on-surface hover:bg-surface-container flex items-center justify-between"
-                    >
-                      <span>Birthday Celebration</span>
-                      <span className="text-caption font-caption text-on-surface-variant">Oct 2026</span>
-                    </button>
+                  <div className="absolute left-0 mt-2 w-64 bg-surface-container-lowest rounded-xl shadow-xl z-30 py-2 border border-outline-variant/20 max-h-72 overflow-y-auto">
+                    {events.map((evt) => (
+                      <button
+                        key={evt.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveEventId(evt.id);
+                          setEventMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-body-md hover:bg-surface-container flex items-center justify-between ${
+                          evt.id === activeEventId ? "text-primary font-semibold bg-surface-container/50" : "text-on-surface"
+                        }`}
+                      >
+                        <div className="flex flex-col min-w-0 pr-2">
+                          <span className="truncate">{evt.name}</span>
+                          <span className="text-caption font-caption text-on-surface-variant truncate">{evt.date}</span>
+                        </div>
+                        {evt.id === activeEventId && (
+                          <span className="material-symbols-outlined text-[18px] text-secondary shrink-0">check</span>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>

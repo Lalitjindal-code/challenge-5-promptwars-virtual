@@ -15,8 +15,10 @@ import type {
   DetailedGuest,
   DetailedVendor,
   ExpenseTransaction,
-  BudgetItem
+  BudgetItem,
+  ConceptItem
 } from "../types";
+import { DEMO_CONCEPTS } from "../data/demoConcepts";
 
 export type {
   EventItem,
@@ -24,7 +26,8 @@ export type {
   DetailedGuest,
   DetailedVendor,
   ExpenseTransaction,
-  BudgetItem
+  BudgetItem,
+  ConceptItem
 };
 
 interface EventContextType {
@@ -67,6 +70,11 @@ interface EventContextType {
   budgetItems: BudgetItem[];
   addBudgetItem: (item: Omit<BudgetItem, "id" | "eventId">) => Promise<void>;
   updateBudgetItem: (budgetId: string, updates: Partial<BudgetItem>) => Promise<void>;
+
+  // Saved AI Concepts
+  savedAiConcepts: ConceptItem[];
+  saveAiConcept: (concept: ConceptItem) => Promise<void>;
+  removeAiConcept: (conceptId: string) => Promise<void>;
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
@@ -332,6 +340,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const [vendors, setVendors] = useState<DetailedVendor[]>([]);
   const [expenses, setExpenses] = useState<ExpenseTransaction[]>([]);
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
+  const [savedAiConcepts, setSavedAiConcepts] = useState<ConceptItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // 1. Sync User's Events on Login / Logout
@@ -345,6 +354,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
       setVendors([]);
       setExpenses([]);
       setBudgetItems([]);
+      setSavedAiConcepts([]);
       setIsLoading(false);
       return;
     }
@@ -358,6 +368,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
       setVendors(DEMO_VENDORS);
       setExpenses(DEMO_EXPENSES);
       setBudgetItems(DEMO_BUDGET);
+      setSavedAiConcepts(DEMO_CONCEPTS.filter((c) => c.saved));
       setIsLoading(false);
       return;
     }
@@ -409,6 +420,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
       setVendors(DEMO_VENDORS.filter((v) => v.eventId === activeEventId || v.eventId === "demo-evt-1"));
       setExpenses(DEMO_EXPENSES.filter((e) => e.eventId === activeEventId || e.eventId === "demo-evt-1"));
       setBudgetItems(DEMO_BUDGET.filter((b) => b.eventId === activeEventId || b.eventId === "demo-evt-1"));
+      setSavedAiConcepts(DEMO_CONCEPTS.filter((c) => c.saved));
       return;
     }
 
@@ -418,6 +430,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
       setVendors([]);
       setExpenses([]);
       setBudgetItems([]);
+      setSavedAiConcepts([]);
       return;
     }
 
@@ -428,6 +441,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     const vendorsRef = collection(firestore, "users", user.uid, "events", activeEventId, "vendors");
     const expensesRef = collection(firestore, "users", user.uid, "events", activeEventId, "expenses");
     const budgetRef = collection(firestore, "users", user.uid, "events", activeEventId, "budgetItems");
+    const aiConceptsRef = collection(firestore, "users", user.uid, "events", activeEventId, "aiConcepts");
 
     const unsubTasks = onSnapshot(tasksRef, (snap) => {
       const list: DetailedTask[] = [];
@@ -459,12 +473,19 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
       setBudgetItems(list);
     }, (err) => console.warn("Budget listener note:", err));
 
+    const unsubAiConcepts = onSnapshot(aiConceptsRef, (snap) => {
+      const list: ConceptItem[] = [];
+      snap.forEach((d) => list.push({ id: d.id, eventId: activeEventId, ...(d.data() as any) }));
+      setSavedAiConcepts(list);
+    }, (err) => console.warn("AI Concepts listener note:", err));
+
     return () => {
       unsubTasks();
       unsubGuests();
       unsubVendors();
       unsubExpenses();
       unsubBudget();
+      unsubAiConcepts();
     };
   }, [user?.uid, activeEventId, isDemo]);
 
@@ -704,6 +725,35 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     await updateDoc(doc(db, "users", user.uid, "events", targetEventId, "budgetItems", budgetId), updates as any);
   };
 
+  // --- CRUD: AI CONCEPTS ---
+  const saveAiConcept = async (concept: ConceptItem) => {
+    const targetEventId = activeEventId || events[0]?.id;
+    if (!targetEventId) throw new Error("No active event selected to save concept.");
+
+    const conceptToSave: ConceptItem = {
+      ...concept,
+      eventId: targetEventId,
+      saved: true,
+      savedAt: new Date().toISOString()
+    };
+
+    if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setSavedAiConcepts((prev) => [conceptToSave, ...prev.filter((c) => c.id !== concept.id)]);
+      return;
+    }
+
+    await setDoc(doc(db, "users", user.uid, "events", targetEventId, "aiConcepts", concept.id), conceptToSave);
+  };
+
+  const removeAiConcept = async (conceptId: string) => {
+    const targetEventId = activeEventId || events[0]?.id;
+    if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setSavedAiConcepts((prev) => prev.filter((c) => c.id !== conceptId));
+      return;
+    }
+    await deleteDoc(doc(db, "users", user.uid, "events", targetEventId, "aiConcepts", conceptId));
+  };
+
   return (
     <EventContext.Provider
       value={{
@@ -734,7 +784,10 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
         deleteExpense,
         budgetItems,
         addBudgetItem,
-        updateBudgetItem
+        updateBudgetItem,
+        savedAiConcepts,
+        saveAiConcept,
+        removeAiConcept
       }}
     >
       {children}

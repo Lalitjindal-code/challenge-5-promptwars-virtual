@@ -11,7 +11,7 @@ export default function Vendors() {
 
   // Selected vendor for inspection in right drawer
   const [selectedVendorId, setSelectedVendorId] = useState<string>(() => {
-    return vendors[0]?.id || (isDemo ? "VND-8491" : "");
+    return vendors[0]?.id || "";
   });
 
   // Filters & State
@@ -75,12 +75,10 @@ export default function Vendors() {
   });
 
   // KPI Calculations
-  const totalVendors = isDemo ? 24 : vendorList.length;
-  const shortlistedCount = isDemo ? 8 : vendorList.filter((v) => v.status === "Shortlisted").length;
-  const bookedCount = isDemo ? 6 : vendorList.filter((v) => v.status.includes("Booked")).length;
-  const pendingPayments = isDemo
-    ? 42500
-    : vendorList.reduce((acc, v) => acc + (v.cost - (v.paidAmount || 0)), 0);
+  const totalVendors = vendorList.length || (isDemo ? 24 : 0);
+  const shortlistedCount = vendorList.filter((v) => v.status === "Shortlisted").length;
+  const bookedCount = vendorList.filter((v) => v.status.includes("Booked")).length;
+  const pendingPayments = vendorList.reduce((acc, v) => acc + (v.cost - (v.paidAmount || 0)), 0);
 
   // Add Vendor Handler
   const handleSaveVendor = async (e: FormEvent) => {

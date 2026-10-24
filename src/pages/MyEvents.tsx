@@ -3,83 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext, type EventItem } from "../context/EventContext";
 
-const DEMO_PORTFOLIO_EVENTS: EventItem[] = [
-  {
-    id: "demo-p1",
-    name: "Aarav & Priya Wedding",
-    type: "Wedding",
-    date: "15 Dec 2026",
-    location: "Lake Pichola, Udaipur",
-    budget: 240000,
-    spent: 145000,
-    guestsCount: 180,
-    confirmedGuests: 124,
-    tasksCompleted: 18,
-    totalTasks: 22,
-    status: "On Track",
-    coverImage:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCTQuJeIsnlwIWl57UH1okZNeamLOrEQLOQIY3B1mghlwMIqjBfx8ukFZYO0J6fvjAspPDYpJK7cBS1v7g66fQJ3GhUQ0YRaL9Yk_ZHBd1SC-qGyTdMBlNbdkC-w5wBc2xIAaSsBMxyB17SfZybnvYqd5WSLd2TlNgAK8NSBGRdZHUUUX3eOdUGwo-wfGIgOMHCL_-7hM69qKjbwU321OSaUSLFT_ZIwPe4fXu8MUeKsTCppIa3A8AjtA",
-    description: "3-Day royal heritage nuptials across Taj Lake Palace & Jagmandir Island."
-  },
-  {
-    id: "demo-p2",
-    name: "TechFest 2026 Summit",
-    type: "Tech",
-    date: "5 Nov 2026",
-    location: "KTPO Center, Bengaluru",
-    budget: 60000,
-    spent: 24500,
-    guestsCount: 500,
-    confirmedGuests: 450,
-    tasksCompleted: 8,
-    totalTasks: 12,
-    status: "Planning",
-    coverImage:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAEbW2_bi2tIAq74DJ-AHa35uso9KWd_h6rAVdACkot8Gj3-qdhdq5FCF7ZmUVrDls71iLUrqPNAqmCqLn9WNGadIpjsR8cX66FsWbIemu9LFPV0x8eWI-QNxZTEZlaV0yA-97FOtxXmoHP6kwA5qC7nKlsA0aSLOipB4W-BBKXO_8OBdvdh2PgKpAStQxDfhbAuUtxzBzTh_ycOAcbrphlNKJfCIZ4YEX6Ed4jOieoimmDSeRLXJsk6A",
-    description: "India's premier student-led AI & Robotics developers convention."
-  },
-  {
-    id: "demo-p3",
-    name: "Ananya's Milestone 30th",
-    type: "Birthday",
-    date: "28 Oct 2026",
-    location: "Marine Drive Lounge, Mumbai",
-    budget: 30000,
-    spent: 18000,
-    guestsCount: 35,
-    confirmedGuests: 35,
-    tasksCompleted: 4,
-    totalTasks: 7,
-    status: "On Track",
-    coverImage:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDqofFcKMCk0HPLfhHkXt6TFkyy9yEePQpKT_J5JGW6sII-tl_XrZfO5XU4nEGOKFBr3HMVjS042UKEGLlrM8_GwO2wvfOlOqdEhwFM6GBDxxaPIAbUKqoR35sU0GoqDG-b_NRDNBAcOMHUx2-zswbNc7TVA90s4GPQyy7W7Xi3B-9ow3wQiVMRV-hFNAjoj9Nf_pYVoCagBvPpc9qe8Eam8jVe1kA4KhsnigW7w2docyEmbIQNQAbcqw",
-    description: "Curated sunset cocktail lounge, live jazz trio & 5-course chef tasting."
-  },
-  {
-    id: "demo-p4",
-    name: "Planora 2.0 Launch Gala",
-    type: "Corporate",
-    date: "10 Jan 2027",
-    location: "Aerocity, New Delhi",
-    budget: 80000,
-    spent: 10400,
-    guestsCount: 120,
-    confirmedGuests: 40,
-    tasksCompleted: 2,
-    totalTasks: 15,
-    status: "Planning",
-    coverImage:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuB6zXqO2tHWY9vHbr7fDPgyPb876R5OynyqGHfDeJAsdN9b3pyuNwkycbQhT7NW2aYVfKuq7coJSuoH-AyqTcEygoNaOm91nNfVLJEs43l8L9QxmMbTq6dq-7W0M2VfUxJCEUS9bosycRPjJ5Kp3Lkb02ycHebN90LqyXTk9ZZn9dLf2pI8gOkcJ0ohYtzx3ggtUszNI0u6nQcgvjm2PsCz64di9SwIFVs9lYZI-ea3V3pgaPUDJW8FLQ",
-    description: "National keynote unveil with venture partners, media press & VIP founders."
-  }
-];
-
 export default function MyEvents() {
   const { events, setActiveEventId, isDemo } = useEventContext();
   const navigate = useNavigate();
 
   const isTest = isDemo;
-  const displayEvents = isDemo ? DEMO_PORTFOLIO_EVENTS : events;
+  const displayEvents = events;
 
   // Filter & Search states
   const [activeTab, setActiveTab] = useState<string>("All");
@@ -87,7 +16,7 @@ export default function MyEvents() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortOption, setSortOption] = useState("Date: Soonest First");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [archivedCount] = useState(2);
+  const [archivedCount] = useState(0);
 
   // Drawer & Toast state
   const [inspectingEvent, setInspectingEvent] = useState<EventItem | null>(null);
@@ -152,13 +81,13 @@ export default function MyEvents() {
             </div>
             <div className="flex items-baseline gap-2 relative z-10">
               <span className="font-headline-xl text-headline-xl text-primary tracking-tight font-bold">
-                {isTest ? 8 : displayEvents.length}
+                {displayEvents.length}
               </span>
               <span className="font-label-sm text-label-sm text-secondary font-semibold">Active &amp; Historic</span>
             </div>
             <div className="mt-2 font-caption text-caption text-on-surface-variant relative z-10 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-secondary-container"></span>
-              <span>Across 4 curated categories</span>
+              <span>Across portfolio categories</span>
             </div>
           </div>
 
@@ -175,16 +104,16 @@ export default function MyEvents() {
             </div>
             <div className="flex items-baseline gap-2 relative z-10">
               <span className="font-headline-xl text-headline-xl text-primary tracking-tight font-bold">
-                {isTest ? 3 : displayEvents.filter((e) => e.status === "On Track").length}
+                {displayEvents.filter((e) => e.status === "On Track" || e.status === "Planning").length}
               </span>
               <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption font-semibold">
-                6 Days Next
+                Scheduled
               </span>
             </div>
             <div className="mt-2 font-caption text-caption text-on-surface-variant relative z-10 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-secondary-fixed-dim animate-ping"></span>
               <span className="text-on-surface font-body-md-medium">
-                {isTest ? "Next: Milestone Birthday" : displayEvents[0]?.name ? `Next: ${displayEvents[0].name}` : "No events"}
+                {displayEvents[0]?.name ? `Next: ${displayEvents[0].name}` : "No events"}
               </span>
             </div>
           </div>
@@ -202,7 +131,7 @@ export default function MyEvents() {
             </div>
             <div className="flex items-baseline gap-2 relative z-10">
               <span className="font-headline-xl text-headline-xl text-primary tracking-tight font-bold">
-                {isTest ? 4 : displayEvents.filter((e) => e.status === "Completed").length}
+                {displayEvents.filter((e) => e.status === "Completed").length}
               </span>
               <span className="font-label-sm text-label-sm text-on-surface-variant font-medium">Reconciled</span>
             </div>

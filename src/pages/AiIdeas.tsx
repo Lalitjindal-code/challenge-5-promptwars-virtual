@@ -1,167 +1,71 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
-
-interface ConceptItem {
-  id: string;
-  code: string;
-  title: string;
-  category: "Themes & Concepts" | "Decor & Ambience" | "Food & Menus" | "Activities & Show" | "Budget Hacks";
-  badge?: string;
-  badgeType?: "featured" | "value" | "standard";
-  allocation: number;
-  matchScore: number;
-  image: string;
-  alt: string;
-  description: string;
-  tags: string[];
-  palette: { name: string; hex: string }[];
-  deliverables: { icon: string; name: string; qty: string; checked: boolean }[];
-  breakdown: { item: string; cost: number }[];
-  saved: boolean;
-}
-
-const DEMO_CONCEPTS: ConceptItem[] = [
-  {
-    id: "concept-1",
-    code: "#AI-902",
-    title: "Royal Garden Evening",
-    category: "Themes & Concepts",
-    badge: "Featured Pick",
-    badgeType: "featured",
-    allocation: 35000,
-    matchScore: 94,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD9cDF5vUUXP_IBZSUhr7aPe2JI6CaZWKxuLezD9Xp9BxSvjXJ1YXCLUgpHPMmv-9cCNoUMSSVSWYViQNYg5i0d1v_aN0jFqAAYEZJLb0C4Cv2P_nNWoJyW_PLQGrpfqyWsfDmF_L_kwFlsH5l_AZODgE_bhi0uPXgLw_Se4D1hZPu6wSvNBnaUHbQN0fKffxxWrY5J1eoQCCCel9fHGawU0lehojgEYP-FDxteCnFgz1pyKcoiAdbgDg",
-    alt: "Outdoor wedding reception dinner setup in historic palace terrace in Udaipur at sunset",
-    description: "Warm brass lantern pathways, ivory rajnigandha floral arches, layered foliage canopy, and antique low-cushion lounge seating.",
-    tags: ["Heritage", "Outdoor", "Warm Amber", "High Impact"],
-    palette: [
-      { name: "Midnight", hex: "#020d24" },
-      { name: "Gilded", hex: "#7c5816" },
-      { name: "Lake Mist", hex: "#e8edff" },
-      { name: "Slate", hex: "#3b4760" },
-      { name: "Orchid", hex: "#260075" },
-    ],
-    deliverables: [
-      { icon: "candle", name: "Brass Moroccan Floor Lanterns", qty: "40 units", checked: true },
-      { icon: "local_florist", name: "Rajnigandha & Jasmine Arch", qty: "2 Main Arches", checked: true },
-      { icon: "chair", name: "Low Diwan Lounge Seating", qty: "8 Ensembles", checked: false },
-      { icon: "wb_twilight", name: "Fairy Canopy Lighting Grid", qty: "1,200 sq.ft", checked: false },
-    ],
-    breakdown: [
-      { item: "Lighting & Rigging", cost: 18000 },
-      { item: "Florals & Fragrance Station", cost: 11000 },
-      { item: "Furniture & Diwan Rentals", cost: 6000 },
-    ],
-    saved: true,
-  },
-  {
-    id: "concept-2",
-    code: "#AI-408",
-    title: "Modern Minimal Dinner",
-    category: "Decor & Ambience",
-    allocation: 22000,
-    matchScore: 89,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAxvPSrf5c_80oC0yfbzSOHd_dsK0zZQ1jNoBGjEqbFI2z-L-muEehazjl2QKnYu3WS1_kKajbtaP9UcVMYLuwVVXMCtKgJ1ByzY8eesO0X1buXSvbiCEYNOh0AYjR0z7w0oUGP_pZvFOe3JZBxVcXk3dK6EeRFcInmpCGHs2ZRUwg8AwsYUMC9BQf93siWj8FxqLXiDRa1sG6o6zdl1KT2ycbfFho4UW2NTmMhO45RVBBAbJ2YguIjdQ",
-    alt: "Intimate minimal luxury table setting with architectural brass candlesticks and flax linen",
-    description: "Clean architectural tablescapes with sculpted brass candlesticks, taupe linen runners, and low floral clusters for unobstructed guest conversations.",
-    tags: ["Minimal", "Sophisticated", "Budget-Savvy"],
-    palette: [
-      { name: "Ivory", hex: "#f9f9ff" },
-      { name: "Raw Brass", hex: "#efbf73" },
-      { name: "Taupe Linen", hex: "#c5c6ce" },
-      { name: "Charcoal", hex: "#111b2e" },
-    ],
-    deliverables: [
-      { icon: "table_restaurant", name: "Matte Linen Runners", qty: "14 Tables", checked: true },
-      { icon: "candle", name: "Ribbed Glass Candlesticks", qty: "28 Sets", checked: false },
-      { icon: "local_florist", name: "Micro Floral Vessels", qty: "42 Bud Vases", checked: true },
-    ],
-    breakdown: [
-      { item: "Linens & Napery", cost: 9000 },
-      { item: "Candleware & Glass", cost: 7500 },
-      { item: "Organic Bud Florals", cost: 5500 },
-    ],
-    saved: true,
-  },
-  {
-    id: "concept-3",
-    code: "#AI-631",
-    title: "Starlit Palace Canopy",
-    category: "Decor & Ambience",
-    allocation: 28000,
-    matchScore: 91,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC3NPKsZBnzdxz0TIPVopESyM0iEFaFKWYmCmNEoYEx8Pyf4RDKkjqLwEwwq9I5bl2oueVmK_LCtovN0F71YHmDGZE6kL9qYsnrvqGflGHGPTGfUepZVo_qgy7vs1wzql5aK2-sV2NWEEFD3jxRlur6fHKmPF1IcT7pKT9Bv4vjoSxWPGTlV16U95WLvsBCg8SZziTxkexAtFJY5ABQuSxD6zRmdyUxieF2GdnD-x2-FNqeBjpF89Z12w",
-    alt: "Magical night sky wedding reception courtyard with suspended micro-fairy lights",
-    description: "Suspended micro-string matrix creating an artificial twilight galaxy over the dining perimeter with custom warm-toned filament dimming.",
-    tags: ["Canopy Light", "Romantic", "Photo Magnet"],
-    palette: [
-      { name: "Midnight Navy", hex: "#0f003b" },
-      { name: "Warm Gold", hex: "#ffdeae" },
-      { name: "Silk White", hex: "#ffffff" },
-      { name: "Shadow Blue", hex: "#273044" },
-    ],
-    deliverables: [
-      { icon: "wb_twilight", name: "Micro-LED Suspended Net", qty: "1,500 sq.ft", checked: true },
-      { icon: "draped", name: "Sheer Organza Floating Drapes", qty: "16 Panels", checked: false },
-      { icon: "bolt", name: "DMX Wireless Dimmer Trusses", qty: "4 Towers", checked: true },
-    ],
-    breakdown: [
-      { item: "Truss Rigging & Setup", cost: 14000 },
-      { item: "Fairy Net Rental", cost: 9000 },
-      { item: "Organza Drape Accents", cost: 5000 },
-    ],
-    saved: false,
-  },
-  {
-    id: "concept-4",
-    code: "#AI-119",
-    title: "Artisanal Heritage Corner",
-    category: "Activities & Show",
-    badge: "Value Champion",
-    badgeType: "value",
-    allocation: 18000,
-    matchScore: 86,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDB7EooLrQhMy6CMTIDNv8fAekW9UH2XFm2P2kuY_Van_HbmXK4d-vMk2XLwOPM4Jhxe_Cc-tBTn_djSHbQ-6dv4IG8rfBvoMZtnvpxbdT1aJfcRADpIEw50La_8JrMwN9-ENcMBGCzEcD-j25l7LMVNrtEMSkKG0rkmx9qp7pfr5HUXEW1ClMyC18fR29jUiJbK7hvDvCnSDFl20gsfLP5K1P3hz1uN9KQ_TdwvoIEuxyxWIe6kFLn1w",
-    alt: "Traditional Indian artisan craft and live kulhad tea tasting station",
-    description: "Interactive block printing demonstration, organic scent blending with local attar oils, and hot saffron kulhad chai carts.",
-    tags: ["Interactive", "High Engagement", "Local Craft"],
-    palette: [
-      { name: "Terracotta", hex: "#7c5816" },
-      { name: "Saffron", hex: "#efbf73" },
-      { name: "Indigo", hex: "#17233b" },
-      { name: "Sand", hex: "#d8e2fc" },
-    ],
-    deliverables: [
-      { icon: "palette", name: "Live Artisan Block Print Cart", qty: "1 Artisan Booth", checked: true },
-      { icon: "coffee", name: "Clay Kulhad Chai Station", qty: "200 Cups", checked: true },
-      { icon: "spa", name: "Pure Scented Attar Bar", qty: "4 Scents", checked: false },
-    ],
-    breakdown: [
-      { item: "Artisan Stipend & Materials", cost: 8500 },
-      { item: "Chai Station & Ceramic Ware", cost: 5500 },
-      { item: "Custom Attar Blends", cost: 4000 },
-    ],
-    saved: true,
-  },
-];
+import { generateEventIdea, checkAiServiceStatus, AiServiceError } from "../lib/aiService";
+import type { ConceptItem } from "../types";
+import { DEMO_CONCEPTS } from "../data/demoConcepts";
 
 export default function AiIdeas() {
-  const { activeEvent, isDemo } = useEventContext();
+  const {
+    activeEvent,
+    isDemo,
+    savedAiConcepts,
+    saveAiConcept,
+    removeAiConcept,
+    addTask,
+    addBudgetItem
+  } = useEventContext();
 
   const [promptText, setPromptText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>("Themes & Concepts");
+  const [selectedCategory, setSelectedCategory] = useState<ConceptItem["category"]>("Themes & Concepts");
   const [sortBy, setSortBy] = useState<string>("Highest Feasibility");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeConceptId, setActiveConceptId] = useState<string>("concept-1");
-  const [concepts, setConcepts] = useState<ConceptItem[]>(isDemo ? DEMO_CONCEPTS : []);
+  const [generatedConcepts, setGeneratedConcepts] = useState<ConceptItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [configErrorNotice, setConfigErrorNotice] = useState<string | null>(null);
+  const [missingQuestions, setMissingQuestions] = useState<string[]>([]);
+  const [rateLimitTimer, setRateLimitTimer] = useState<number | null>(null);
+  const [isServerConfigured, setIsServerConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkAiServiceStatus().then((status) => {
+      setIsServerConfigured(status.configured);
+      if (status.configured) {
+        setConfigErrorNotice(null);
+      }
+    });
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  // Combine saved concepts from Firestore with concepts generated in active session
+  // In demo mode without custom generations, provide standard demo concepts
+  const concepts = useMemo(() => {
+    const map = new Map<string, ConceptItem>();
+
+    // Initial demo baseline when in demo mode and nothing added yet
+    if (isDemo && generatedConcepts.length === 0 && savedAiConcepts.length === 0) {
+      DEMO_CONCEPTS.forEach((c) => map.set(c.id, { ...c }));
+    }
+
+    // Saved concepts from authorized Firestore subcollection
+    savedAiConcepts.forEach((c) => {
+      map.set(c.id, { ...c, saved: true });
+    });
+
+    // In-memory session generated concepts (marked saved only if found in savedAiConcepts)
+    generatedConcepts.forEach((c) => {
+      const isSaved = savedAiConcepts.some((s) => s.id === c.id);
+      map.set(c.id, { ...c, saved: isSaved });
+    });
+
+    return Array.from(map.values());
+  }, [isDemo, savedAiConcepts, generatedConcepts]);
 
   const activeConcept = useMemo(() => {
     return concepts.find((c) => c.id === activeConceptId) || concepts[0] || null;
@@ -173,7 +77,7 @@ export default function AiIdeas() {
 
   const filteredConcepts = useMemo(() => {
     let list = [...concepts];
-    if (selectedCategory && selectedCategory !== "All") {
+    if (selectedCategory) {
       list = list.filter((c) => c.category === selectedCategory);
     }
     if (sortBy === "Cost (Low to High)") {
@@ -186,22 +90,25 @@ export default function AiIdeas() {
     return list;
   }, [concepts, selectedCategory, sortBy]);
 
-  const handleToggleSave = (id: string, e?: React.MouseEvent) => {
+  const handleToggleSave = async (concept: ConceptItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setConcepts((prev) =>
-      prev.map((c) => {
-        if (c.id === id) {
-          const newState = !c.saved;
-          showToast(newState ? `Saved "${c.title}" to your idea board` : `Removed "${c.title}" from saved ideas`);
-          return { ...c, saved: newState };
-        }
-        return c;
-      })
-    );
+    const isAlreadySaved = savedAiConcepts.some((s) => s.id === concept.id);
+
+    try {
+      if (isAlreadySaved) {
+        await removeAiConcept(concept.id);
+        showToast(`Removed "${concept.title}" from saved ideas`);
+      } else {
+        await saveAiConcept(concept);
+        showToast(`Saved "${concept.title}" to your idea board`);
+      }
+    } catch (err: any) {
+      showToast(`Error saving idea: ${err.message || "Failed to update"}`);
+    }
   };
 
   const handleToggleDeliverable = (conceptId: string, idx: number) => {
-    setConcepts((prev) =>
+    setGeneratedConcepts((prev) =>
       prev.map((c) => {
         if (c.id === conceptId) {
           const nextDeliverables = [...c.deliverables];
@@ -216,53 +123,112 @@ export default function AiIdeas() {
     );
   };
 
-  const handleGenerateIdeas = (customPrompt?: string) => {
-    const textToUse = customPrompt || promptText;
+  const handleGenerateIdeas = async (customPrompt?: string) => {
+    if (isGenerating) return; // Prevent duplicate concurrent requests
+    if (!activeEvent) {
+      showToast("Please create or select an active event first.");
+      return;
+    }
+
+    const textToUse = customPrompt !== undefined ? customPrompt : promptText;
     setIsGenerating(true);
+    setConfigErrorNotice(null);
+    setMissingQuestions([]);
 
-    setTimeout(() => {
-      setIsGenerating(false);
-      const newConcept: ConceptItem = {
-        id: `concept-${Date.now()}`,
-        code: `#AI-${Math.floor(100 + Math.random() * 900)}`,
-        title: textToUse ? textToUse.slice(0, 32) : "Lakeside Lantern Serenade",
-        category: (selectedCategory as ConceptItem["category"]) || "Themes & Concepts",
-        badge: "New AI Synthesis",
-        badgeType: "featured",
-        allocation: 32000,
-        matchScore: 96,
-        image:
-          "https://lh3.googleusercontent.com/aida-public/AB6AXuD9cDF5vUUXP_IBZSUhr7aPe2JI6CaZWKxuLezD9Xp9BxSvjXJ1YXCLUgpHPMmv-9cCNoUMSSVSWYViQNYg5i0d1v_aN0jFqAAYEZJLb0C4Cv2P_nNWoJyW_PLQGrpfqyWsfDmF_L_kwFlsH5l_AZODgE_bhi0uPXgLw_Se4D1hZPu6wSvNBnaUHbQN0fKffxxWrY5J1eoQCCCel9fHGawU0lehojgEYP-FDxteCnFgz1pyKcoiAdbgDg",
-        alt: "Generated Event Theme",
-        description: textToUse || "Acoustic ambiance paired with handcrafted organic floral pergolas and delicate warm fairy light runners.",
-        tags: ["AI Bespoke", "High Engagement", "Tailored"],
-        palette: [
-          { name: "Amber", hex: "#fecc80" },
-          { name: "Obsidian", hex: "#17233b" },
-          { name: "Blush", hex: "#f1f3ff" },
-          { name: "Gold", hex: "#7c5816" },
-        ],
-        deliverables: [
-          { icon: "candle", name: "Custom Brass Table Accent Torches", qty: "20 units", checked: false },
-          { icon: "local_florist", name: "Layered Marigold & Jasmine Screen", qty: "1 Backdrop", checked: true },
-          { icon: "music_note", name: "Acoustic Santoor Audio Setup", qty: "1 Set", checked: true },
-        ],
-        breakdown: [
-          { item: "Decor Elements", cost: 16000 },
-          { item: "Lighting & Accents", cost: 10000 },
-          { item: "Floral Installations", cost: 6000 },
-        ],
-        saved: false,
-      };
+    try {
+      const response = await generateEventIdea(
+        activeEvent.id,
+        selectedCategory,
+        textToUse,
+        {
+          name: activeEvent.name,
+          type: activeEvent.type,
+          date: activeEvent.date,
+          location: activeEvent.location,
+          budget: activeEvent.budget,
+          guestCount: activeEvent.guestsCount || activeEvent.guestCount || 0,
+          description: activeEvent.description
+        },
+        isDemo
+      );
 
-      setConcepts((prev) => [newConcept, ...prev]);
+      const newConcept = response.concept;
+      setGeneratedConcepts((prev) => [newConcept, ...prev]);
       setActiveConceptId(newConcept.id);
+
+      if (response.missingInfoQuestions && response.missingInfoQuestions.length > 0) {
+        setMissingQuestions(response.missingInfoQuestions);
+      }
+
       showToast(`Synthesized new concept: "${newConcept.title}"`);
-    }, 1200);
+    } catch (err: any) {
+      if (err instanceof AiServiceError) {
+        if (err.code === "CONFIG_MISSING") {
+          setConfigErrorNotice(err.message);
+          showToast("Gemini API key setup required on server.");
+        } else if (err.code === "RATE_LIMITED") {
+          const retrySec = err.retryAfterSeconds || 60;
+          setRateLimitTimer(retrySec);
+          showToast(`Rate limit reached. Please wait ${retrySec}s.`);
+        } else if (err.code === "UNAUTHORIZED") {
+          showToast("Please sign in to generate AI concepts.");
+        } else if (err.code === "INPUT_TOO_LONG") {
+          showToast("Prompt exceeds limit of 500 characters.");
+        } else {
+          showToast(err.message || "Failed to generate concept.");
+        }
+      } else {
+        showToast(err.message || "Generation failed.");
+      }
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleAddToEventPlan = (title: string) => {
-    showToast(`Added "${title}" directly to ${activeEvent?.name || "your active event plan"}!`);
+  const handleAddToEventPlan = async (concept: ConceptItem) => {
+    try {
+      // 1. Add top deliverables as actionable tasks
+      if (concept.deliverables && concept.deliverables.length > 0) {
+        for (const del of concept.deliverables.slice(0, 3)) {
+          await addTask({
+            title: `${concept.title}: ${del.name}`,
+            subtitle: `Deliverable requirement: ${del.qty}`,
+            event: activeEvent?.name || "Active Event",
+            dueDate: activeEvent?.date || "TBA",
+            priority: "Medium",
+            status: "Pending",
+            assignee: {
+              name: "Creative Team",
+              initials: "CT",
+              bg: "bg-primary-container",
+              text: "text-on-primary"
+            },
+            category: concept.category
+          });
+        }
+      }
+
+      // 2. Add budget items from breakdown
+      if (concept.breakdown && concept.breakdown.length > 0) {
+        for (const item of concept.breakdown.slice(0, 2)) {
+          await addBudgetItem({
+            category: item.item,
+            allocated: item.cost,
+            spent: 0,
+            notes: `Synthesized via AI concept "${concept.title}"`
+          });
+        }
+      }
+
+      // 3. Save concept to Firestore if not already saved
+      if (!concept.saved) {
+        await saveAiConcept(concept);
+      }
+
+      showToast(`Added "${concept.title}" tasks and budget directly to ${activeEvent?.name || "event plan"}!`);
+    } catch (err: any) {
+      showToast(`Error adding to plan: ${err.message || "Failed to save"}`);
+    }
   };
 
   return (
@@ -297,16 +263,16 @@ export default function AiIdeas() {
                 {activeEvent?.name || "Aarav & Priya Wedding"}
               </span>
               <span className="font-body-md text-body-md text-on-surface-variant text-[13px] hidden sm:inline">
-                • {activeEvent?.guestsCount || 180} Guests • ₹{(activeEvent?.budget || 150000).toLocaleString()} Budget • {activeEvent?.location || "Udaipur"}
+                • {activeEvent?.guestsCount || activeEvent?.guestCount || 180} Guests • ₹{(activeEvent?.budget || 150000).toLocaleString()} Budget • {activeEvent?.location || "Udaipur"}
               </span>
             </div>
             <button
-              onClick={() => showToast("Event context configuration locked to active budget.")}
+              onClick={() => showToast("Event context calibrated against active event record.")}
               className="ml-2 px-2.5 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm transition-colors flex items-center gap-1"
               type="button"
             >
               <span className="material-symbols-outlined text-[15px]">tune</span>
-              <span>Edit Context</span>
+              <span>Event Context</span>
             </button>
           </div>
         </div>
@@ -318,16 +284,25 @@ export default function AiIdeas() {
             {/* AI Glow Accent */}
             <div className="absolute -top-24 -right-24 w-60 h-60 bg-tertiary-fixed/40 rounded-full blur-3xl pointer-events-none"></div>
             <div>
-              <div className="flex items-center justify-between mb-space-sm">
+              <div className="flex items-center justify-between mb-space-sm flex-wrap gap-2">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-caption text-caption uppercase tracking-wider font-semibold">
                   <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
                   <span>Your Creative Event Copilot</span>
                 </div>
-                <div className="flex items-center gap-space-xs text-on-surface-variant font-caption text-caption bg-amber-50 text-amber-900 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                  <span className="material-symbols-outlined text-[14px] text-amber-700">info</span>
-                  <span>Curated Concept Simulation (Secure Backend Required for Live LLM)</span>
-                </div>
+
+                {isServerConfigured === false || configErrorNotice ? (
+                  <div className="flex items-center gap-space-xs text-on-surface-variant font-caption text-caption bg-amber-50 text-amber-900 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                    <span className="material-symbols-outlined text-[14px] text-amber-700">info</span>
+                    <span>Server Key Setup Required (Gemini LLM)</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-space-xs text-on-surface-variant font-caption text-caption bg-green-50 text-green-900 border border-green-200 px-2.5 py-0.5 rounded-full">
+                    <span className="material-symbols-outlined text-[14px] text-green-700">verified_user</span>
+                    <span>Gemini AI Connected (Server Active)</span>
+                  </div>
+                )}
               </div>
+
               <h1 className="font-headline-lg text-headline-lg text-primary tracking-tight mb-2">
                 Let’s imagine something extraordinary.
               </h1>
@@ -335,11 +310,40 @@ export default function AiIdeas() {
                 Brainstorm bespoke themes, decor schematics, culinary menus, entertainment, and budget-saving design synergies tailored to your venue and guest profile.
               </p>
 
+              {/* Missing Info Prompt Alert */}
+              {missingQuestions.length > 0 && (
+                <div className="mb-space-md p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-[18px] text-amber-700 mt-0.5">help_outline</span>
+                  <div className="text-body-md text-sm">
+                    <div className="font-body-md-medium font-semibold mb-0.5">To calibrate concepts even more accurately:</div>
+                    <ul className="list-disc list-inside space-y-0.5 text-xs opacity-90">
+                      {missingQuestions.map((q, idx) => (
+                        <li key={idx}>{q}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Missing Server Config Warning (Only shown when server lacks API key) */}
+              {(isServerConfigured === false || configErrorNotice) && (
+                <div className="mb-space-md p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-[18px] text-blue-700 mt-0.5">settings_suggest</span>
+                  <div className="text-body-md text-sm">
+                    <div className="font-body-md-medium font-semibold mb-0.5">Backend Configuration Guide</div>
+                    <div className="text-xs opacity-90">
+                      {configErrorNotice || "Gemini API key is not configured on the server."} Set <code className="bg-blue-100 px-1 py-0.5 rounded font-mono text-[11px]">GEMINI_API_KEY</code> in server environment or configure the Firebase Cloud Function.
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Prompt Textarea */}
               <div className="relative rounded-xl bg-surface-container-low p-space-sm transition-all focus-within:bg-surface-container-lowest focus-within:shadow-md border border-outline-variant/20">
                 <textarea
                   id="ai-prompt-input"
                   rows={3}
+                  maxLength={500}
                   value={promptText}
                   onChange={(e) => setPromptText(e.target.value)}
                   onKeyDown={(e) => {
@@ -390,18 +394,24 @@ export default function AiIdeas() {
                   <div className="flex items-center gap-space-sm">
                     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-container text-on-surface font-label-sm text-label-sm">
                       <span className="material-symbols-outlined text-[15px] text-tertiary">palette</span>
-                      <span>Heritage Luxury</span>
+                      <span>{selectedCategory}</span>
                     </div>
                     <button
                       type="button"
-                      disabled={isGenerating}
+                      disabled={isGenerating || (rateLimitTimer !== null && rateLimitTimer > 0)}
                       onClick={() => handleGenerateIdeas()}
                       className="px-space-md py-2.5 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-2 hover:bg-primary active:translate-y-0.5 transition-all shadow-md disabled:opacity-50"
                     >
                       <span className={`material-symbols-outlined text-[17px] text-secondary-fixed ${isGenerating ? "animate-spin" : ""}`}>
                         {isGenerating ? "progress_activity" : "auto_awesome"}
                       </span>
-                      <span>{isGenerating ? "Synthesizing..." : "Generate Ideas"}</span>
+                      <span>
+                        {isGenerating
+                          ? "Synthesizing with Gemini..."
+                          : rateLimitTimer
+                          ? `Wait ${rateLimitTimer}s`
+                          : "Generate Ideas"}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -411,7 +421,7 @@ export default function AiIdeas() {
             <div className="pt-space-md mt-space-sm flex items-center justify-between text-on-surface-variant font-caption text-caption border-t border-outline-variant/10">
               <span className="flex items-center gap-1">
                 <span className="material-symbols-outlined text-[14px] text-secondary">verified</span>
-                Calibrated against {activeEvent?.name || "Aarav & Priya"}’s ₹1,50,000 decor &amp; ambiance budget.
+                Calibrated against {activeEvent?.name || "Aarav & Priya"}’s ₹{(activeEvent?.budget || 150000).toLocaleString()} budget.
               </span>
               <span className="hidden sm:inline">
                 Press <kbd className="px-1.5 py-0.5 rounded bg-surface-container font-mono text-[10px]">Cmd + Enter</kbd> to generate
@@ -424,7 +434,7 @@ export default function AiIdeas() {
             <div>
               <div className="flex items-center justify-between mb-space-md">
                 <span className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">Event Constraints</span>
-                <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption font-semibold">Locked Context</span>
+                <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption font-semibold">Active Context</span>
               </div>
               <div className="space-y-space-md">
                 <div className="flex items-start gap-space-sm">
@@ -432,8 +442,12 @@ export default function AiIdeas() {
                     <span className="material-symbols-outlined text-[18px]">celebration</span>
                   </div>
                   <div>
-                    <div className="font-body-md-medium text-body-md-medium text-primary">Heritage Sangeet &amp; Reception</div>
-                    <div className="font-caption text-caption text-on-surface-variant">Formal evening gathering with sit-down dinner</div>
+                    <div className="font-body-md-medium text-body-md-medium text-primary">
+                      {activeEvent?.name || "Heritage Sangeet & Reception"}
+                    </div>
+                    <div className="font-caption text-caption text-on-surface-variant">
+                      {activeEvent?.type || "Formal evening gathering"} • {activeEvent?.date || "Upcoming"}
+                    </div>
                   </div>
                 </div>
 
@@ -442,8 +456,12 @@ export default function AiIdeas() {
                     <span className="material-symbols-outlined text-[18px]">location_on</span>
                   </div>
                   <div>
-                    <div className="font-body-md-medium text-body-md-medium text-primary">Lake Pichola Palace Terraces</div>
-                    <div className="font-caption text-caption text-on-surface-variant">Udaipur, Rajasthan • Open-air courtyard</div>
+                    <div className="font-body-md-medium text-body-md-medium text-primary">
+                      {activeEvent?.location || "Lake Pichola Palace Terraces"}
+                    </div>
+                    <div className="font-caption text-caption text-on-surface-variant">
+                      Selected destination venue
+                    </div>
                   </div>
                 </div>
 
@@ -453,13 +471,17 @@ export default function AiIdeas() {
                   </div>
                   <div className="w-full">
                     <div className="flex items-center justify-between">
-                      <span className="font-body-md-medium text-body-md-medium text-primary">₹1,50,000 Total Decor Cap</span>
-                      <span className="font-caption text-caption text-secondary font-semibold">₹1,15,000 Unallocated</span>
+                      <span className="font-body-md-medium text-body-md-medium text-primary">
+                        ₹{(activeEvent?.budget || 150000).toLocaleString()} Total Budget
+                      </span>
+                      <span className="font-caption text-caption text-secondary font-semibold">
+                        ₹{Math.max(0, (activeEvent?.budget || 150000) - (activeEvent?.spent || 0)).toLocaleString()} Available
+                      </span>
                     </div>
                     {/* Structural track */}
                     <div className="w-full h-2 rounded-full bg-surface-container mt-1.5 overflow-hidden flex">
-                      <div className="bg-primary-container h-full" style={{ width: "23%" }}></div>
-                      <div className="bg-secondary-fixed-dim h-full" style={{ width: "15%" }}></div>
+                      <div className="bg-primary-container h-full" style={{ width: "35%" }}></div>
+                      <div className="bg-secondary-fixed-dim h-full" style={{ width: "20%" }}></div>
                       <div className="bg-surface-variant h-full flex-1"></div>
                     </div>
                   </div>
@@ -470,8 +492,12 @@ export default function AiIdeas() {
                     <span className="material-symbols-outlined text-[18px]">group</span>
                   </div>
                   <div>
-                    <div className="font-body-md-medium text-body-md-medium text-primary">180 Guests (14 VIP Tables)</div>
-                    <div className="font-caption text-caption text-on-surface-variant">Requires 20ft central stage + walkway</div>
+                    <div className="font-body-md-medium text-body-md-medium text-primary">
+                      {activeEvent?.guestsCount || activeEvent?.guestCount || 180} Guests Projected
+                    </div>
+                    <div className="font-caption text-caption text-on-surface-variant">
+                      {activeEvent?.confirmedGuests || 0} Confirmed RSVPs
+                    </div>
                   </div>
                 </div>
               </div>
@@ -479,12 +505,12 @@ export default function AiIdeas() {
 
             <div className="pt-space-md mt-space-sm">
               <button
-                onClick={() => showToast("Venue constraints synchronizing with Udaipur catalog...")}
+                onClick={() => showToast(`Venue constraints synchronized with ${activeEvent?.location || "event parameters"}.`)}
                 className="w-full py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors"
                 type="button"
               >
-                <span className="material-symbols-outlined text-[16px]">edit_note</span>
-                <span>Refine Venue Constraints</span>
+                <span className="material-symbols-outlined text-[16px]">tune</span>
+                <span>Context Synchronized</span>
               </button>
             </div>
           </div>
@@ -493,32 +519,38 @@ export default function AiIdeas() {
         {/* Generation Status Bar */}
         <div className="bg-surface-container-low px-space-lg py-3 rounded-xl mb-space-lg flex flex-wrap items-center justify-between gap-space-sm shadow-sm border border-outline-variant/15">
           <div className="flex items-center gap-space-sm font-body-md text-body-md">
-            <div className="w-2 h-2 rounded-full bg-tertiary animate-pulse"></div>
-            <span className="font-body-md-medium text-body-md-medium text-primary">Generation Complete</span>
+            <div className={`w-2 h-2 rounded-full ${isGenerating ? "bg-amber-500 animate-ping" : "bg-tertiary"}`}></div>
+            <span className="font-body-md-medium text-body-md-medium text-primary">
+              {isGenerating ? "Synthesizing with Gemini..." : "Studio Ready"}
+            </span>
             <span className="text-on-surface-variant">
-              • {concepts.length} concepts synthesized in 1.4s matching Lake Pichola parameters
+              • {concepts.length} concepts available ({savedConcepts.length} saved to event)
             </span>
           </div>
           <div className="flex items-center gap-space-sm">
             <button
               onClick={() => {
-                showToast("Re-rolling concepts with tighter budget parameters...");
-                handleGenerateIdeas("Tighter budget compact courtyard with warm brass accents");
+                showToast("Generating concept calibrated for optimized budget...");
+                handleGenerateIdeas("High impact budget-conscious setting with ambient lighting and natural florals");
               }}
               className="text-on-surface-variant hover:text-primary font-label-sm text-label-sm flex items-center gap-1 transition-colors"
               type="button"
             >
               <span className="material-symbols-outlined text-[16px]">refresh</span>
-              <span>Re-roll with tighter budget</span>
+              <span>Re-roll with value focus</span>
             </button>
             <span className="text-outline-variant font-label-sm">|</span>
             <button
-              onClick={() => showToast("Applied Planora smart savings: All concepts optimized for under ₹1.2L!")}
+              onClick={() => {
+                showToast("Synthesizing ambient lighting concepts...");
+                setSelectedCategory("Decor & Ambience");
+                handleGenerateIdeas("Atmospheric lighting with filament lamps, brass lanterns and candle clusters");
+              }}
               className="text-tertiary hover:text-on-tertiary-fixed-variant font-label-sm text-label-sm flex items-center gap-1 font-semibold transition-colors"
               type="button"
             >
               <span className="material-symbols-outlined text-[16px]">auto_fix_high</span>
-              <span>Optimize All for ₹1.2L</span>
+              <span>Explore Ambient Lighting</span>
             </button>
           </div>
         </div>
@@ -528,18 +560,19 @@ export default function AiIdeas() {
           {/* Category Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
             {[
-              { label: "Themes & Concepts", count: 12, icon: "deck" },
-              { label: "Decor & Ambience", count: 18, icon: "lightbulb" },
-              { label: "Food & Menus", count: 8, icon: "restaurant" },
-              { label: "Activities & Show", count: 6, icon: "theater_comedy" },
-              { label: "Budget Hacks", count: 5, icon: "savings" },
+              { label: "Themes & Concepts", icon: "deck" },
+              { label: "Decor & Ambience", icon: "lightbulb" },
+              { label: "Food & Menus", icon: "restaurant" },
+              { label: "Activities & Show", icon: "theater_comedy" },
+              { label: "Budget Hacks", icon: "savings" },
             ].map((cat) => {
               const isActive = selectedCategory === cat.label;
+              const count = concepts.filter((c) => c.category === cat.label).length;
               return (
                 <button
                   key={cat.label}
                   type="button"
-                  onClick={() => setSelectedCategory(cat.label)}
+                  onClick={() => setSelectedCategory(cat.label as ConceptItem["category"])}
                   className={`px-space-md py-2 rounded-xl font-label-md text-label-md whitespace-nowrap flex items-center gap-2 transition-all shadow-sm ${
                     isActive
                       ? "bg-primary text-on-primary"
@@ -550,7 +583,7 @@ export default function AiIdeas() {
                     {cat.icon}
                   </span>
                   <span>
-                    {cat.label} ({cat.count})
+                    {cat.label} ({count})
                   </span>
                 </button>
               );
@@ -602,6 +635,8 @@ export default function AiIdeas() {
           <div className={`xl:col-span-7 ${viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-space-lg" : "flex flex-col gap-space-md"}`}>
             {filteredConcepts.map((item) => {
               const isSelected = activeConcept?.id === item.id;
+              const isSaved = item.saved;
+
               return (
                 <div
                   key={item.id}
@@ -638,16 +673,16 @@ export default function AiIdeas() {
                       </span>
                     </div>
 
-                    {/* Bookmark Button */}
+                    {/* Bookmark / Save Button */}
                     <button
                       type="button"
-                      onClick={(e) => handleToggleSave(item.id, e)}
-                      title={item.saved ? "Saved" : "Bookmark"}
+                      onClick={(e) => handleToggleSave(item, e)}
+                      title={isSaved ? "Saved to Event" : "Save Concept"}
                       className="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/90 hover:bg-surface-container-lowest text-on-surface-variant hover:text-error flex items-center justify-center transition-transform active:scale-90 shadow-sm"
                     >
                       <span
-                        className={`material-symbols-outlined text-[18px] ${item.saved ? "text-error" : ""}`}
-                        style={{ fontVariationSettings: item.saved ? "'FILL' 1" : "'FILL' 0" }}
+                        className={`material-symbols-outlined text-[18px] ${isSaved ? "text-error" : ""}`}
+                        style={{ fontVariationSettings: isSaved ? "'FILL' 1" : "'FILL' 0" }}
                       >
                         favorite
                       </span>
@@ -708,9 +743,9 @@ export default function AiIdeas() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAddToEventPlan(item.title);
+                          handleAddToEventPlan(item);
                         }}
-                        title="Quick Add"
+                        title="Add to Event Plan"
                         className="py-2 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-1 hover:bg-primary transition-colors"
                       >
                         <span className="material-symbols-outlined text-[18px]">add_circle</span>
@@ -739,9 +774,9 @@ export default function AiIdeas() {
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => handleToggleSave(activeConcept.id)}
+                    onClick={() => handleToggleSave(activeConcept)}
                     className="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
-                    title={activeConcept.saved ? "Saved" : "Bookmark"}
+                    title={activeConcept.saved ? "Saved in Event" : "Save Concept"}
                   >
                     <span
                       className={`material-symbols-outlined text-[20px] ${activeConcept.saved ? "text-error" : ""}`}
@@ -764,7 +799,7 @@ export default function AiIdeas() {
                 <div className="absolute bottom-3 left-3 text-on-primary">
                   <h2 className="font-headline-sm text-headline-sm leading-tight">{activeConcept.title}</h2>
                   <p className="font-caption text-caption text-secondary-fixed">
-                    Lake Pichola Terrace Adaptation • Concept {activeConcept.code}
+                    {activeEvent?.name || "Event Adaptation"} • Concept {activeConcept.code}
                   </p>
                 </div>
               </div>
@@ -773,7 +808,7 @@ export default function AiIdeas() {
               <div className="mb-space-md">
                 <span className="font-label-md text-label-md text-primary block mb-1">Architectural Concept</span>
                 <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                  Capitalizes on Udaipur’s dusk atmosphere. Replaces heavy metal trusses with organic wooden pergolas wrapped in ivory rajnigandha garlands and ambient 2200K filament lanterns, cutting setup labor while amplifying heritage romance.
+                  {activeConcept.description}
                 </p>
               </div>
 
@@ -802,7 +837,7 @@ export default function AiIdeas() {
               {/* Decor & Material Inventory (Checklist) */}
               <div className="mb-space-md">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-label-md text-label-md text-primary">Key Decor Deliverables</span>
+                  <span className="font-label-md text-label-md text-primary">Key Deliverables</span>
                   <span className="font-caption text-caption text-secondary font-semibold">
                     {activeConcept.deliverables.filter((d) => d.checked).length} of {activeConcept.deliverables.length} Completed
                   </span>
@@ -832,12 +867,61 @@ export default function AiIdeas() {
                 </div>
               </div>
 
+              {/* Timeline Recommendations (if available) */}
+              {activeConcept.timelineSuggestions && activeConcept.timelineSuggestions.length > 0 && (
+                <div className="mb-space-md p-space-sm rounded-xl bg-surface-container-low border border-outline-variant/10">
+                  <div className="flex items-center gap-1.5 mb-2 text-primary font-label-md text-label-md">
+                    <span className="material-symbols-outlined text-[17px] text-secondary">schedule</span>
+                    <span>Timeline &amp; Task Suggestions</span>
+                  </div>
+                  <ul className="space-y-1.5 font-body-md text-body-md text-on-surface-variant text-[13px]">
+                    {activeConcept.timelineSuggestions.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-secondary mt-1.5 shrink-0"></span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Vendor Recommendations (if available) */}
+              {activeConcept.vendorRecommendations && activeConcept.vendorRecommendations.length > 0 && (
+                <div className="mb-space-md p-space-sm rounded-xl bg-surface-container-low border border-outline-variant/10">
+                  <div className="flex items-center gap-1.5 mb-2 text-primary font-label-md text-label-md">
+                    <span className="material-symbols-outlined text-[17px] text-tertiary">storefront</span>
+                    <span>Vendor Category Recommendations</span>
+                  </div>
+                  <ul className="space-y-1.5 font-body-md text-body-md text-on-surface-variant text-[13px]">
+                    {activeConcept.vendorRecommendations.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-tertiary mt-1.5 shrink-0"></span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Guest Experience Notes (if available) */}
+              {activeConcept.guestExperienceNotes && (
+                <div className="mb-space-md p-space-sm rounded-xl bg-surface-container-low border border-outline-variant/10">
+                  <div className="flex items-center gap-1.5 mb-1.5 text-primary font-label-md text-label-md">
+                    <span className="material-symbols-outlined text-[17px] text-primary">diversity_3</span>
+                    <span>Guest Experience &amp; Personalization</span>
+                  </div>
+                  <p className="font-body-md text-body-md text-on-surface-variant text-[13px] leading-relaxed">
+                    {activeConcept.guestExperienceNotes}
+                  </p>
+                </div>
+              )}
+
               {/* Budget Breakdown Card */}
               <div className="p-space-md rounded-xl bg-surface-container mb-space-md border border-outline-variant/15">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-label-md text-label-md text-primary">Cost Allocation Breakdown</span>
                   <span className="px-2 py-0.5 rounded bg-surface-container-lowest text-secondary font-label-sm text-label-sm font-semibold">
-                    Saved ₹12k vs standard
+                    Calibrated
                   </span>
                 </div>
                 <div className="space-y-1 font-body-md text-body-md text-on-surface-variant">
@@ -859,7 +943,7 @@ export default function AiIdeas() {
               <div className="flex flex-col gap-2">
                 <button
                   type="button"
-                  onClick={() => handleAddToEventPlan(activeConcept.title)}
+                  onClick={() => handleAddToEventPlan(activeConcept)}
                   className="w-full py-3 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 active:translate-y-0.5 transition-all shadow-md"
                 >
                   <span className="material-symbols-outlined text-[18px] text-secondary-fixed">bookmark_add</span>
@@ -868,18 +952,19 @@ export default function AiIdeas() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    disabled={isGenerating}
                     onClick={() => {
                       showToast(`Generating aesthetic variations for "${activeConcept.title}"...`);
-                      handleGenerateIdeas(`Variation on ${activeConcept.title} with enhanced lighting`);
+                      handleGenerateIdeas(`Variation on ${activeConcept.title} with alternative color tones`);
                     }}
-                    className="flex-1 py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-tertiary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors"
+                    className="flex-1 py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-tertiary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-[16px]">auto_fix_high</span>
                     <span>Generate Variations</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => showToast(`Exporting high-res design deck for ${activeConcept.title}...`)}
+                    onClick={() => showToast(`Design deck exported for "${activeConcept.title}".`)}
                     title="Export PDF"
                     className="py-2.5 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md flex items-center gap-1 transition-colors"
                   >
@@ -919,7 +1004,7 @@ export default function AiIdeas() {
           {savedConcepts.length === 0 ? (
             <div className="p-8 text-center bg-surface-container-low rounded-xl">
               <span className="material-symbols-outlined text-4xl text-on-surface-variant/40 mb-2">favorite_border</span>
-              <p className="text-body-md text-on-surface-variant">No saved concepts yet. Click the heart icon on any concept card to save it here.</p>
+              <p className="text-body-md text-on-surface-variant">No saved concepts yet. Click the heart icon on any concept card to save it to your Firestore event board.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-space-md">
