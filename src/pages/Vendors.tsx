@@ -1,12 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 import type { DetailedVendor } from "../types";
-
-
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 
 export default function Vendors() {
-  const { isDemo, events, activeEvent, vendors, addVendor } = useEventContext();
+  const { isDemo, events, activeEvent, vendors, addVendor, updateVendor, deleteVendor, formatCurrency, currencySymbol } = useEventContext();
   const vendorList = vendors;
 
   // Selected vendor for inspection in right drawer
@@ -14,15 +13,11 @@ export default function Vendors() {
     return vendors[0]?.id || "";
   });
 
-  // Filters & State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [eventFilter, setEventFilter] = useState("");
-  const [sortBy, setSortBy] = useState("Recommended");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [editingVendor, setEditingVendor] = useState<DetailedVendor | null>(null);
+  const [vendorToDelete, setVendorToDelete] = useState<string | null>(null);
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
 
-  // Modal
+  // Add Modal Form State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newVendorName, setNewVendorName] = useState("");
   const [newVendorCategory, setNewVendorCategory] = useState<DetailedVendor["category"]>("Venue");
@@ -35,12 +30,112 @@ export default function Vendors() {
   const [newStatus, setNewStatus] = useState<DetailedVendor["status"]>("Shortlisted");
   const [newNotes, setNewNotes] = useState("");
 
+  // Modal accessibility refs
+  const addModalRef = useRef<HTMLDivElement>(null);
+  const contractModalRef = useRef<HTMLDivElement>(null);
+  const deleteModalRef = useRef<HTMLDivElement>(null);
+
+  // Modal accessibility hooks
+  useModalAccessibility({
+    isOpen: isAddModalOpen,
+    onClose: () => {
+      setIsAddModalOpen(false);
+      setEditingVendor(null);
+    },
+    modalRef: addModalRef,
+  });
+
+  useModalAccessibility({
+    isOpen: isContractModalOpen,
+    onClose: () => setIsContractModalOpen(false),
+    modalRef: contractModalRef,
+  });
+
+  useModalAccessibility({
+    isOpen: Boolean(vendorToDelete),
+    onClose: () => setVendorToDelete(null),
+    modalRef: deleteModalRef,
+  });
+
+  // Filters & State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [eventFilter, setEventFilter] = useState("");
+  const [sortBy, setSortBy] = useState("Recommended");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [favoriteVendorIds, setFavoriteVendorIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("planora_fav_vendors") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleFavoriteVendor = (vendor: DetailedVendor) => {
+    setFavoriteVendorIds((prev) => {
+      const isFav = prev.includes(vendor.id);
+      const next = isFav ? prev.filter((id) => id !== vendor.id) : [...prev, vendor.id];
+      try {
+        localStorage.setItem("planora_fav_vendors", JSON.stringify(next));
+      } catch {
+        // ignore storage error
+      }
+      showToast(isFav ? `Removed ${vendor.name} from favorites` : `Saved ${vendor.name} to favorites`);
+      return next;
+    });
+  };
+
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Export Vendors to CSV
+  const handleExportVendorsCSV = () => {
+    const listToExport = sortedVendors.length > 0 ? sortedVendors : vendorList;
+    if (!listToExport.length) {
+      showToast("No vendors available to export.");
+      return;
+    }
+    const headers = ["ID", "Name", "Category", "Location", "Rating", "Reviews", "Event", "Cost (INR)", "Paid (INR)", "Status", "Contact Name", "Phone", "Email"];
+    const rows = listToExport.map((v) => [
+      `"${v.id}"`,
+      `"${(v.name || "").replace(/"/g, '""')}"`,
+      `"${v.category || ""}"`,
+      `"${(v.location || "").replace(/"/g, '""')}"`,
+      `"${v.rating || 0}"`,
+      `"${v.reviewCount || 0}"`,
+      `"${(v.event || "").replace(/"/g, '""')}"`,
+      `"${v.cost || 0}"`,
+      `"${v.paidAmount || 0}"`,
+      `"${v.status || ""}"`,
+      `"${(v.contactName || "").replace(/"/g, '""')}"`,
+      `"${(v.contactPhone || "").replace(/"/g, '""')}"`,
+      `"${(v.contactEmail || "").replace(/"/g, '""')}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `planora-vendor-directory-${(activeEvent?.name || "all").toLowerCase().replace(/[^a-z0-9]/g, "-")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Vendor directory exported to CSV successfully.");
+  };
+
+  // Delete Vendor
+  const handleDeleteVendor = async (id: string) => {
+    await deleteVendor(id);
+    setVendorToDelete(null);
+    if (selectedVendorId === id) {
+      setSelectedVendorId(vendors.find((v) => v.id !== id)?.id || "");
+    }
+    showToast("Vendor removed from directory");
   };
 
   // Inspecting Vendor
@@ -50,6 +145,7 @@ export default function Vendors() {
   const filteredVendors = vendorList.filter((v) => {
     if (activeCategory !== "All" && !v.category.toLowerCase().includes(activeCategory.toLowerCase())) return false;
     if (statusFilter !== "All") {
+      if (statusFilter === "Favorites" && !favoriteVendorIds.includes(v.id)) return false;
       if (statusFilter === "Booked" && !v.status.includes("Booked")) return false;
       if (statusFilter === "Shortlisted" && v.status !== "Shortlisted") return false;
       if (statusFilter === "Pending" && !v.status.includes("Pending")) return false;
@@ -80,11 +176,30 @@ export default function Vendors() {
   const bookedCount = vendorList.filter((v) => v.status.includes("Booked")).length;
   const pendingPayments = vendorList.reduce((acc, v) => acc + (v.cost - (v.paidAmount || 0)), 0);
 
-  // Add Vendor Handler
+  // Add or Edit Vendor Handler
   const handleSaveVendor = async (e: FormEvent) => {
     e.preventDefault();
     if (!newVendorName.trim()) {
       showToast("Please provide vendor name");
+      return;
+    }
+
+    if (editingVendor) {
+      await updateVendor(editingVendor.id, {
+        name: newVendorName.trim(),
+        category: newVendorCategory,
+        location: newCity || editingVendor.location,
+        event: activeEvent?.name || newEvent,
+        cost: newPrice,
+        status: newStatus,
+        contactName: newContactName || editingVendor.contactName,
+        contactPhone: newPhone || editingVendor.contactPhone,
+        contactEmail: newEmail || editingVendor.contactEmail,
+        notes: newNotes || editingVendor.notes
+      });
+      setIsAddModalOpen(false);
+      setEditingVendor(null);
+      showToast(`Vendor ${newVendorName.trim()} updated successfully!`);
       return;
     }
 
@@ -156,7 +271,7 @@ export default function Vendors() {
         <div className="flex items-center gap-space-sm self-start lg:self-auto">
           <button
             type="button"
-            onClick={() => showToast("Exported vendor directory to CSV / PDF")}
+            onClick={handleExportVendorsCSV}
             className="h-10 px-4 rounded-lg bg-surface-container-lowest text-on-surface font-label-md text-label-md flex items-center gap-2 hover:bg-surface-container transition-all shadow-sm border border-outline-variant/10"
           >
             <span className="material-symbols-outlined text-[18px] text-on-surface-variant">file_download</span>
@@ -238,7 +353,7 @@ export default function Vendors() {
             <div className="flex flex-col">
               <span className="font-label-md text-label-md text-on-surface-variant font-medium">Pending Payments</span>
               <span className="font-headline-xl text-headline-xl text-primary mt-1 font-bold">
-                ₹{pendingPayments.toLocaleString("en-IN")}
+                {formatCurrency(pendingPayments)}
               </span>
             </div>
             <div className="w-10 h-10 rounded-lg bg-error-container flex items-center justify-center text-on-error-container">
@@ -295,6 +410,7 @@ export default function Vendors() {
               className="w-full h-10 px-3 rounded-lg bg-surface text-body-md font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container border border-outline-variant/20"
             >
               <option value="All">All Statuses</option>
+              <option value="Favorites">Favorited Partners ({favoriteVendorIds.length})</option>
               <option value="Shortlisted">Shortlisted</option>
               <option value="Booked">Booked</option>
               <option value="Pending">Pending Contract</option>
@@ -438,11 +554,18 @@ export default function Vendors() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            showToast(`Saved ${vendor.name} to favorites`);
+                            toggleFavoriteVendor(vendor);
                           }}
-                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-surface-container-lowest/90 backdrop-blur-sm flex items-center justify-center text-secondary hover:scale-110 transition-transform"
+                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-surface-container-lowest/90 backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform shadow-xs"
+                          title={favoriteVendorIds.includes(vendor.id) ? "Remove from favorites" : "Save to favorites"}
                         >
-                          <span className="material-symbols-outlined text-[18px]">favorite</span>
+                          <span
+                            className={`material-symbols-outlined text-[18px] ${
+                              favoriteVendorIds.includes(vendor.id) ? "text-error" : "text-on-surface-variant"
+                            }`}
+                          >
+                            {favoriteVendorIds.includes(vendor.id) ? "favorite" : "favorite_border"}
+                          </span>
                         </button>
                       </div>
 
@@ -471,7 +594,7 @@ export default function Vendors() {
                       <div className="pt-2 bg-surface-container-lowest flex items-center justify-between border-t border-surface-container">
                         <div className="flex flex-col">
                           <span className="font-caption text-caption text-on-surface-variant">Estimated Total</span>
-                          <span className="font-title-md text-title-md text-primary font-bold">₹{vendor.cost.toLocaleString("en-IN")}</span>
+                          <span className="font-title-md text-title-md text-primary font-bold">{formatCurrency(vendor.cost)}</span>
                         </div>
                         <span
                           className={`px-2.5 py-1 rounded-full font-caption text-caption font-semibold ${
@@ -505,9 +628,11 @@ export default function Vendors() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          showToast(`Options menu for ${vendor.name}`);
+                          setSelectedVendorId(vendor.id);
+                          showToast(`Focused ${vendor.name} in inspection panel`);
                         }}
                         className="w-9 h-9 rounded-lg bg-surface flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                        title="Focus Vendor"
                       >
                         <span className="material-symbols-outlined text-[18px]">more_vert</span>
                       </button>
@@ -603,10 +728,10 @@ export default function Vendors() {
 
                 <div className="flex items-center justify-between text-caption font-caption mt-1">
                   <span className="text-on-surface-variant">
-                    Paid: <strong className="text-primary">₹{(inspectedVendor.paidAmount || 0).toLocaleString("en-IN")}</strong> (Advance)
+                    Paid: <strong className="text-primary">{formatCurrency(inspectedVendor.paidAmount || 0)}</strong> (Advance)
                   </span>
                   <span className="text-on-surface-variant">
-                    Total: <strong className="text-primary">₹{inspectedVendor.cost.toLocaleString("en-IN")}</strong>
+                    Total: <strong className="text-primary">{formatCurrency(inspectedVendor.cost)}</strong>
                   </span>
                 </div>
 
@@ -627,7 +752,7 @@ export default function Vendors() {
                 </div>
 
                 <div className="flex justify-between items-center text-[10px] text-on-surface-variant font-caption">
-                  <span>Remaining balance: ₹{(inspectedVendor.cost - (inspectedVendor.paidAmount || 0)).toLocaleString("en-IN")}</span>
+                  <span>Remaining balance: {formatCurrency(inspectedVendor.cost - (inspectedVendor.paidAmount || 0))}</span>
                   <span className="text-error font-semibold">Final due: 01 Dec 2026</span>
                 </div>
               </div>
@@ -699,23 +824,55 @@ export default function Vendors() {
               </div>
 
               {/* Bottom Action Bar for Inspection */}
-              <div className="pt-space-sm flex items-center gap-space-sm border-t border-surface-container">
-                <button
-                  type="button"
-                  onClick={() => showToast(`Calling ${inspectedVendor.contactName} at ${inspectedVendor.contactPhone}...`)}
-                  className="flex-1 h-10 px-3 rounded-lg bg-surface hover:bg-surface-container text-on-surface font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors border border-outline-variant/10"
-                >
-                  <span className="material-symbols-outlined text-[18px]">phone</span>
-                  <span>Contact Vendor</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => showToast(`Opening signed contract file for ${inspectedVendor.name}`)}
-                  className="flex-1 h-10 px-3 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-                >
-                  <span className="material-symbols-outlined text-[18px] text-secondary-fixed">assignment</span>
-                  <span>Manage Contract</span>
-                </button>
+              <div className="pt-space-sm flex flex-col gap-2 border-t border-surface-container">
+                <div className="flex items-center gap-space-sm">
+                  <a
+                    href={`tel:${inspectedVendor.contactPhone.replace(/[^0-9+]/g, "")}`}
+                    className="flex-1 h-10 px-3 rounded-lg bg-surface hover:bg-surface-container text-on-surface font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors border border-outline-variant/10 text-center"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">phone</span>
+                    <span>Call Contact</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsContractModalOpen(true)}
+                    className="flex-1 h-10 px-3 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-secondary-fixed">assignment</span>
+                    <span>Contract Vault</span>
+                  </button>
+                </div>
+                <div className="flex items-center gap-space-sm">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewVendorName(inspectedVendor.name);
+                      setNewVendorCategory(inspectedVendor.category);
+                      setNewContactName(inspectedVendor.contactName);
+                      setNewPhone(inspectedVendor.contactPhone);
+                      setNewEmail(inspectedVendor.contactEmail);
+                      setNewCity(inspectedVendor.location);
+                      setNewPrice(inspectedVendor.cost);
+                      setNewEvent(inspectedVendor.event);
+                      setNewStatus(inspectedVendor.status);
+                      setNewNotes(inspectedVendor.notes);
+                      setEditingVendor(inspectedVendor);
+                      setIsAddModalOpen(true);
+                    }}
+                    className="flex-1 h-9 rounded-lg bg-surface-container-low hover:bg-surface-container text-primary font-label-md text-caption flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                    <span>Edit Vendor</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVendorToDelete(inspectedVendor.id)}
+                    className="flex-1 h-9 rounded-lg bg-error-container/30 hover:bg-error-container text-error font-label-md text-caption flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                    <span>Remove</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -725,18 +882,31 @@ export default function Vendors() {
       {/* Add New Vendor Modal Dialog */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface-container-lowest rounded-xl shadow-xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-space-xl flex flex-col space-y-space-lg relative border border-outline-variant/20">
+          <div
+            ref={addModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-vendor-title"
+            tabIndex={-1}
+            className="bg-surface-container-lowest rounded-xl shadow-xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-space-xl flex flex-col space-y-space-lg relative border border-outline-variant/20 outline-none"
+          >
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2 border-b border-surface-container">
               <div className="flex flex-col">
-                <h3 className="font-headline-md text-headline-md text-primary font-bold">Add New Vendor</h3>
+                <h3 id="add-vendor-title" className="font-headline-md text-headline-md text-primary font-bold">
+                  {editingVendor ? "Edit Vendor Details" : "Add New Vendor"}
+                </h3>
                 <span className="font-body-md text-body-md text-on-surface-variant">
                   Add supplier or service provider details to your master event directory.
                 </span>
               </div>
               <button
                 type="button"
-                onClick={() => setIsAddModalOpen(false)}
+                aria-label="Close add vendor dialog"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setEditingVendor(null);
+                }}
                 className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-on-surface-variant hover:bg-surface-container"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
@@ -747,8 +917,9 @@ export default function Vendors() {
             <form onSubmit={handleSaveVendor} className="space-y-space-md">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-primary font-semibold">Vendor / Business Name *</label>
+                  <label htmlFor="vendor-name-input" className="font-label-md text-label-md text-primary font-semibold">Vendor / Business Name *</label>
                   <input
+                    id="vendor-name-input"
                     type="text"
                     required
                     value={newVendorName}
@@ -759,8 +930,9 @@ export default function Vendors() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-primary font-semibold">Service Category *</label>
+                  <label htmlFor="vendor-category-select" className="font-label-md text-label-md text-primary font-semibold">Service Category *</label>
                   <select
+                    id="vendor-category-select"
                     value={newVendorCategory}
                     onChange={(e) => setNewVendorCategory(e.target.value as DetailedVendor["category"])}
                     className="h-11 px-3 rounded-lg bg-surface text-body-md font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container border border-outline-variant/20"
@@ -779,8 +951,9 @@ export default function Vendors() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-primary font-semibold">Primary Contact Name</label>
+                  <label htmlFor="vendor-contact-input" className="font-label-md text-label-md text-primary font-semibold">Primary Contact Name</label>
                   <input
+                    id="vendor-contact-input"
                     type="text"
                     value={newContactName}
                     onChange={(e) => setNewContactName(e.target.value)}
@@ -790,8 +963,9 @@ export default function Vendors() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-primary font-semibold">Phone Number *</label>
+                  <label htmlFor="vendor-phone-input" className="font-label-md text-label-md text-primary font-semibold">Phone Number *</label>
                   <input
+                    id="vendor-phone-input"
                     type="tel"
                     required
                     value={newPhone}
@@ -804,8 +978,9 @@ export default function Vendors() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-primary font-semibold">Email Address</label>
+                  <label htmlFor="vendor-email-input" className="font-label-md text-label-md text-primary font-semibold">Email Address</label>
                   <input
+                    id="vendor-email-input"
                     type="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
@@ -815,8 +990,9 @@ export default function Vendors() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-primary font-semibold">City / Location</label>
+                  <label htmlFor="vendor-city-input" className="font-label-md text-label-md text-primary font-semibold">City / Location</label>
                   <input
+                    id="vendor-city-input"
                     type="text"
                     value={newCity}
                     onChange={(e) => setNewCity(e.target.value)}
@@ -828,8 +1004,9 @@ export default function Vendors() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-space-md">
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-primary font-semibold">Estimated Price (₹)</label>
+                  <label htmlFor="vendor-price-input" className="font-label-md text-label-md text-primary font-semibold">Estimated Price ({currencySymbol.trim()})</label>
                   <input
+                    id="vendor-price-input"
                     type="number"
                     value={newPrice}
                     onChange={(e) => setNewPrice(Number(e.target.value))}
@@ -838,8 +1015,9 @@ export default function Vendors() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-primary font-semibold">Associated Event</label>
+                  <label htmlFor="vendor-event-select" className="font-label-md text-label-md text-primary font-semibold">Associated Event</label>
                   <select
+                    id="vendor-event-select"
                     value={newEvent}
                     onChange={(e) => setNewEvent(e.target.value)}
                     className="h-11 px-3 rounded-lg bg-surface text-body-md font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container border border-outline-variant/20"
@@ -861,8 +1039,9 @@ export default function Vendors() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-md text-label-md text-primary font-semibold">Status</label>
+                  <label htmlFor="vendor-status-select" className="font-label-md text-label-md text-primary font-semibold">Status</label>
                   <select
+                    id="vendor-status-select"
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value as DetailedVendor["status"])}
                     className="h-11 px-3 rounded-lg bg-surface text-body-md font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container border border-outline-variant/20"
@@ -875,8 +1054,9 @@ export default function Vendors() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="font-label-md text-label-md text-primary font-semibold">Internal Notes & Scope Details</label>
+                <label htmlFor="vendor-notes-input" className="font-label-md text-label-md text-primary font-semibold">Internal Notes & Scope Details</label>
                 <textarea
+                  id="vendor-notes-input"
                   rows={3}
                   value={newNotes}
                   onChange={(e) => setNewNotes(e.target.value)}
@@ -888,7 +1068,10 @@ export default function Vendors() {
               <div className="flex items-center justify-end gap-space-sm pt-space-sm border-t border-surface-container">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={() => {
+                    setIsAddModalOpen(false);
+                    setEditingVendor(null);
+                  }}
                   className="h-10 px-4 rounded-lg bg-surface hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors"
                 >
                   Cancel
@@ -897,10 +1080,97 @@ export default function Vendors() {
                   type="submit"
                   className="h-10 px-6 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container transition-all shadow-xs"
                 >
-                  Save Vendor
+                  {editingVendor ? "Save Updates" : "Save Vendor"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Contract Overview Information Dialog */}
+      {isContractModalOpen && (
+        <div className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div
+            ref={contractModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contract-modal-title"
+            tabIndex={-1}
+            className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/20 outline-none"
+          >
+            <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-[26px]">description</span>
+            </div>
+            <div>
+              <h3 id="contract-modal-title" className="font-headline-sm text-headline-sm text-primary font-bold">Contract & Engagement Overview</h3>
+              <p className="font-body-md text-body-md text-on-surface-variant mt-1 leading-relaxed">
+                Direct PDF uploads and digital e-signatures for <strong>{inspectedVendor.name}</strong> require configured Cloud Storage (Firebase Storage or AWS S3). The currently tracked agreement terms are shown below:
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1 text-caption font-caption text-on-surface border border-outline-variant/15">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-primary">Agreed Scope:</span>
+                <span>{inspectedVendor.category}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-primary">Contract Value:</span>
+                <span>{formatCurrency(inspectedVendor.cost)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-primary">Status:</span>
+                <span>{inspectedVendor.status}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsContractModalOpen(false)}
+                className="h-10 px-4 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md transition-all shadow-sm"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Vendor Confirmation Dialog */}
+      {vendorToDelete && (
+        <div className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div
+            ref={deleteModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-vendor-title"
+            tabIndex={-1}
+            className="bg-surface-container-lowest rounded-2xl max-w-sm w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/20 outline-none"
+          >
+            <div className="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center">
+              <span className="material-symbols-outlined text-[24px]">delete</span>
+            </div>
+            <div>
+              <h3 id="delete-vendor-title" className="font-headline-sm text-headline-sm text-primary font-bold">Remove Vendor?</h3>
+              <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+                Are you sure you want to remove this vendor from your directory? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setVendorToDelete(null)}
+                className="h-10 px-4 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-md text-label-md transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteVendor(vendorToDelete)}
+                className="h-10 px-4 rounded-lg bg-error hover:bg-error/90 text-on-error font-label-md text-label-md transition-all shadow-sm"
+              >
+                Confirm Remove
+              </button>
+            </div>
           </div>
         </div>
       )}

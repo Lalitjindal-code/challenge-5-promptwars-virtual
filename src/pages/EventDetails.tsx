@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 
 export default function EventDetails() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
-  const { events, activeEventId, setActiveEventId, activeEvent, updateEvent, tasks, toggleTask, isDemo } = useEventContext();
+  const { events, activeEventId, setActiveEventId, activeEvent, createEvent, updateEvent, deleteEvent, tasks, toggleTask, guests, vendors, isDemo, currencySymbol, formatCurrency } = useEventContext();
 
   useEffect(() => {
     if (id && id !== activeEventId && events.some((e) => e.id === id)) {
@@ -19,7 +20,23 @@ export default function EventDetails() {
   const [activeTab, setActiveTab] = useState<string>("Overview");
   const [showDropdown, setShowDropdown] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const editModalRef = useRef<HTMLDivElement>(null);
+  const deleteModalRef = useRef<HTMLDivElement>(null);
+
+  useModalAccessibility({
+    isOpen: isEditModalOpen,
+    onClose: () => setIsEditModalOpen(false),
+    modalRef: editModalRef,
+  });
+
+  useModalAccessibility({
+    isOpen: isDeleteModalOpen,
+    onClose: () => setIsDeleteModalOpen(false),
+    modalRef: deleteModalRef,
+  });
 
   // Editable Form State
   const [editTitle, setEditTitle] = useState(currentEvent?.name || "Aarav & Priya Wedding");
@@ -50,6 +67,100 @@ export default function EventDetails() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleShareEvent = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(window.location.href);
+        showToast("Event share link copied to clipboard!");
+      } else {
+        showToast(`Share URL: ${window.location.href}`);
+      }
+    } catch {
+      showToast(`Share URL: ${window.location.href}`);
+    }
+  };
+
+  const handleExportRunOfShow = () => {
+    const evTasks = tasks.filter((t) => !t.eventId || t.eventId === currentEvent?.id || t.event === currentEvent?.name);
+    const headers = ["ID", "Title", "Subtitle/Notes", "Due Date", "Priority", "Status", "Assignee"];
+    const rows = evTasks.map((t) => [
+      `"${t.id}"`,
+      `"${(t.title || "").replace(/"/g, '""')}"`,
+      `"${(t.subtitle || t.description || "").replace(/"/g, '""')}"`,
+      `"${(t.dueDate || "").replace(/"/g, '""')}"`,
+      `"${t.priority || ""}"`,
+      `"${t.status || ""}"`,
+      `"${(t.assignee?.name || "").replace(/"/g, '""')}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${(currentEvent?.name || "event").toLowerCase().replace(/[^a-z0-9]/g, "-")}-run-of-show.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Event Run-of-Show exported to CSV successfully.");
+  };
+
+  const handleDuplicateEvent = async () => {
+    if (!currentEvent) return;
+    setShowDropdown(false);
+    try {
+      const cloned = await createEvent({
+        name: `${currentEvent.name} (Copy)`,
+        type: currentEvent.type,
+        date: currentEvent.date,
+        location: currentEvent.location,
+        budget: currentEvent.budget,
+        guestsCount: currentEvent.guestsCount,
+        description: currentEvent.description || "",
+        status: "Planning",
+        coverImage: currentEvent.coverImage
+      });
+      setActiveEventId(cloned.id);
+      navigate(`/events/${cloned.id}`);
+      showToast(`Event duplicated: "${cloned.name}"`);
+    } catch (err: any) {
+      showToast("Failed to duplicate event: " + (err?.message || "Unknown error"));
+    }
+  };
+
+  const handleExportDossier = () => {
+    setShowDropdown(false);
+    if (!currentEvent) return;
+    const dossier = {
+      event: currentEvent,
+      tasks: tasks.filter((t) => !t.eventId || t.eventId === currentEvent.id || t.event === currentEvent.name),
+      guests: guests.filter((g) => !g.eventId || g.eventId === currentEvent.id || g.event === currentEvent.name),
+      vendors: vendors.filter((v) => !v.eventId || v.eventId === currentEvent.id || v.event === currentEvent.name),
+      exportedAt: new Date().toISOString(),
+      platform: "Planora AI"
+    };
+    const jsonBlob = new Blob([JSON.stringify(dossier, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(jsonBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${currentEvent.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}-dossier.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("Event executive dossier exported as JSON.");
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!currentEvent) return;
+    setIsDeleteModalOpen(false);
+    try {
+      await deleteEvent(currentEvent.id);
+      showToast(`Event "${currentEvent.name}" deleted.`);
+      navigate("/events");
+    } catch (err: any) {
+      showToast("Error deleting event: " + (err?.message || "Unknown error"));
+    }
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -83,13 +194,7 @@ export default function EventDetails() {
       ? "A 3-day royal celebration celebrating heritage, sunset pheras on the palace terrace, and an intimate 180-guest dinner banquet under Udaipur starry skies."
       : "No description recorded yet for this event.");
 
-  const eventTasks = tasks.length > 0 ? tasks : [
-    { id: "demo-t1", title: "Confirm Lake Palace security & jetty permit", dueDate: "23 Oct 2026", completed: false, priority: "High Priority", tag: "Due Tomorrow", assignee: "PK" },
-    { id: "demo-t2", title: "Finalize Mewari royal dinner menu & dessert live stations", dueDate: "28 Oct 2026", completed: false, priority: "Medium", tag: "Scheduled", assignee: "AM" },
-    { id: "demo-t3", title: "Approve Sunset Mandap sits, sitar riser & jasmine florals", dueDate: "02 Nov 2026", completed: false, priority: "Normal", tag: "Under Review", assignee: "BT" },
-    { id: "demo-t4", title: "Confirm vintage car & luxury fleet for airport transfers", dueDate: "05 Nov 2026", completed: false, priority: "Medium", tag: "In Progress", assignee: "LL" },
-  ];
-
+  const eventTasks = tasks;
   const completedTasks = eventTasks.filter((t) => t.completed).length;
 
   return (
@@ -127,10 +232,7 @@ export default function EventDetails() {
           <div className="flex items-center gap-2 self-end md:self-auto relative">
             <button
               type="button"
-              onClick={() => {
-                navigator.clipboard?.writeText(window.location.href);
-                showToast("Event share link copied to clipboard!");
-              }}
+              onClick={handleShareEvent}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:bg-surface-container text-body-md-medium font-body-md-medium transition-colors shadow-sm border border-outline-variant/15"
             >
               <span className="material-symbols-outlined text-[18px]">share</span>
@@ -139,7 +241,7 @@ export default function EventDetails() {
 
             <button
               type="button"
-              onClick={() => showToast("Exporting official Run-of-Show dossier (PDF)...")}
+              onClick={handleExportRunOfShow}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:bg-surface-container text-body-md-medium font-body-md-medium transition-colors shadow-sm border border-outline-variant/15"
             >
               <span className="material-symbols-outlined text-[18px]">download</span>
@@ -172,10 +274,7 @@ export default function EventDetails() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowDropdown(false);
-                      showToast("Event duplicated as draft clone.");
-                    }}
+                    onClick={handleDuplicateEvent}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-md font-body-md hover:bg-surface-container text-on-surface text-left w-full transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">content_copy</span>
@@ -183,32 +282,29 @@ export default function EventDetails() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowDropdown(false);
-                      showToast("Exporting complete event executive dossier...");
-                    }}
+                    onClick={handleExportDossier}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-md font-body-md hover:bg-surface-container text-on-surface text-left w-full transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">description</span>
                     <span>Export Event Dossier</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDropdown(false);
+                      window.print();
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-md font-body-md hover:bg-surface-container text-on-surface text-left w-full transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">print</span>
+                    <span>Print Call Sheet</span>
                   </button>
                   <div className="h-[1px] bg-outline-variant/30 my-1"></div>
                   <button
                     type="button"
                     onClick={() => {
                       setShowDropdown(false);
-                      showToast("Event archived to storage.");
-                    }}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-md font-body-md hover:bg-surface-container text-on-surface text-left w-full transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">archive</span>
-                    <span>Archive Event</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowDropdown(false);
-                      showToast("Event marked for deletion.");
+                      setIsDeleteModalOpen(true);
                     }}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-md font-body-md hover:bg-error-container text-error text-left w-full transition-colors"
                   >
@@ -287,7 +383,7 @@ export default function EventDetails() {
                     <span className="material-symbols-outlined text-secondary-fixed text-[20px]">payments</span>
                     <div className="flex flex-col min-w-0">
                       <span className="font-caption text-caption uppercase tracking-wider text-primary-fixed-dim">Budget</span>
-                      <span className="font-body-md-medium text-body-md-medium truncate">₹{eventBudget.toLocaleString()} Total</span>
+                      <span className="font-body-md-medium text-body-md-medium truncate">{formatCurrency(eventBudget)} Total</span>
                     </div>
                   </div>
                 </div>
@@ -345,7 +441,7 @@ export default function EventDetails() {
           >
             <span>Budget</span>
             <span className="px-2 py-0.5 rounded-full bg-surface-container text-on-surface text-caption font-caption">
-              ₹{(eventSpent / 100000).toFixed(1)}L / ₹{(eventBudget / 100000).toFixed(1)}L
+              {formatCurrency(eventSpent)} / {formatCurrency(eventBudget)}
             </span>
           </button>
 
@@ -386,13 +482,13 @@ export default function EventDetails() {
 
         {/* 4. Key Performance Overview Metric Cards (4 Grid) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          {/* Metric 1: Tasks */}
+          {/* Metric 1: Tasks Progress */}
           <div className="p-6 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between border border-outline-variant/15">
             <div className="flex items-start justify-between mb-4">
               <div className="flex flex-col">
-                <span className="font-caption text-caption uppercase tracking-wider text-on-surface-variant">Checklist Progress</span>
+                <span className="font-caption text-caption uppercase tracking-wider text-on-surface-variant">Checklist Velocity</span>
                 <span className="font-headline-md text-headline-md text-primary font-bold mt-1">
-                  18 <span className="font-title-md text-title-md font-normal text-on-surface-variant">/ 22</span>
+                  {completedTasks} <span className="font-title-md text-title-md font-normal text-on-surface-variant">/ {eventTasks.length}</span>
                 </span>
               </div>
               <div className="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-primary">
@@ -401,11 +497,18 @@ export default function EventDetails() {
             </div>
             <div>
               <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mb-2.5">
-                <div className="bg-primary h-full rounded-full" style={{ width: "81.8%" }}></div>
+                <div
+                  className="bg-primary h-full rounded-full"
+                  style={{ width: `${eventTasks.length > 0 ? Math.round((completedTasks / eventTasks.length) * 100) : 0}%` }}
+                ></div>
               </div>
               <div className="flex items-center justify-between text-caption font-caption">
-                <span className="text-primary font-body-md-medium">81.8% Done</span>
-                <span className="text-error font-body-md-medium">4 pending high priority</span>
+                <span className="text-primary font-body-md-medium">
+                  {eventTasks.length > 0 ? Math.round((completedTasks / eventTasks.length) * 100) : 0}% Done
+                </span>
+                <span className="text-on-surface-variant font-body-md-medium">
+                  {eventTasks.filter((t) => !t.completed).length} pending
+                </span>
               </div>
             </div>
           </div>
@@ -416,7 +519,7 @@ export default function EventDetails() {
               <div className="flex flex-col">
                 <span className="font-caption text-caption uppercase tracking-wider text-on-surface-variant">Budget Utilized</span>
                 <span className="font-headline-md text-headline-md text-primary font-bold mt-1">
-                  ₹{eventSpent.toLocaleString()}
+                  {formatCurrency(eventSpent)}
                 </span>
               </div>
               <div className="w-11 h-11 rounded-xl bg-secondary-fixed/50 flex items-center justify-center text-secondary">
@@ -425,11 +528,18 @@ export default function EventDetails() {
             </div>
             <div>
               <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mb-2.5">
-                <div className="bg-secondary-fixed-dim h-full rounded-full" style={{ width: "80%" }}></div>
+                <div
+                  className="bg-secondary-fixed-dim h-full rounded-full"
+                  style={{ width: `${eventBudget > 0 ? Math.min(Math.round((eventSpent / eventBudget) * 100), 100) : 0}%` }}
+                ></div>
               </div>
               <div className="flex items-center justify-between text-caption font-caption">
-                <span className="text-on-surface-variant">80% of ₹1.5L</span>
-                <span className="text-secondary font-body-md-medium">₹30,000 reserve</span>
+                <span className="text-on-surface-variant">
+                  {eventBudget > 0 ? Math.min(Math.round((eventSpent / eventBudget) * 100), 100) : 0}% of {formatCurrency(eventBudget)}
+                </span>
+                <span className="text-secondary font-body-md-medium">
+                  {formatCurrency(Math.max(0, eventBudget - eventSpent))} reserve
+                </span>
               </div>
             </div>
           </div>
@@ -440,7 +550,8 @@ export default function EventDetails() {
               <div className="flex flex-col">
                 <span className="font-caption text-caption uppercase tracking-wider text-on-surface-variant">RSVP Responses</span>
                 <span className="font-headline-md text-headline-md text-primary font-bold mt-1">
-                  124 <span className="font-title-md text-title-md font-normal text-on-surface-variant">/ {eventGuests}</span>
+                  {currentEvent?.confirmedGuests || guests.filter((g) => g.status === "Confirmed").length}{" "}
+                  <span className="font-title-md text-title-md font-normal text-on-surface-variant">/ {eventGuests}</span>
                 </span>
               </div>
               <div className="w-11 h-11 rounded-xl bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
@@ -449,11 +560,38 @@ export default function EventDetails() {
             </div>
             <div>
               <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mb-2.5">
-                <div className="bg-tertiary-fixed-dim h-full rounded-full" style={{ width: "68.9%" }}></div>
+                <div
+                  className="bg-tertiary-fixed-dim h-full rounded-full"
+                  style={{
+                    width: `${
+                      eventGuests > 0
+                        ? Math.min(
+                            Math.round(
+                              ((currentEvent?.confirmedGuests || guests.filter((g) => g.status === "Confirmed").length) /
+                                eventGuests) *
+                                100
+                            ),
+                            100
+                          )
+                        : 0
+                    }%`
+                  }}
+                ></div>
               </div>
               <div className="flex items-center justify-between text-caption font-caption">
-                <span className="text-on-surface-variant">68.9% attending</span>
-                <span className="text-primary font-body-md-medium">+12 this week</span>
+                <span className="text-on-surface-variant">
+                  {eventGuests > 0
+                    ? Math.round(
+                        ((currentEvent?.confirmedGuests || guests.filter((g) => g.status === "Confirmed").length) /
+                          eventGuests) *
+                          100
+                      )
+                    : 0}
+                  % attending
+                </span>
+                <span className="text-primary font-body-md-medium">
+                  {guests.filter((g) => g.status === "Awaiting Response").length} pending
+                </span>
               </div>
             </div>
           </div>
@@ -463,7 +601,9 @@ export default function EventDetails() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex flex-col">
                 <span className="font-caption text-caption uppercase tracking-wider text-on-surface-variant">Vendors Secured</span>
-                <span className="font-headline-md text-headline-md text-primary font-bold mt-1">6 Booked</span>
+                <span className="font-headline-md text-headline-md text-primary font-bold mt-1">
+                  {vendors.length} {vendors.length === 1 ? "Vendor" : "Vendors"}
+                </span>
               </div>
               <div className="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-primary">
                 <span className="material-symbols-outlined text-[22px]">storefront</span>
@@ -471,11 +611,26 @@ export default function EventDetails() {
             </div>
             <div>
               <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mb-2.5">
-                <div className="bg-primary-container h-full rounded-full" style={{ width: "100%" }}></div>
+                <div
+                  className="bg-primary-container h-full rounded-full"
+                  style={{
+                    width: `${
+                      vendors.length > 0
+                        ? Math.round(
+                            (vendors.filter((v) => v.status?.includes("Booked")).length / vendors.length) * 100
+                          )
+                        : 0
+                    }%`
+                  }}
+                ></div>
               </div>
               <div className="flex items-center justify-between text-caption font-caption">
-                <span className="text-on-surface-variant">100% contracts signed</span>
-                <span className="text-on-surface-variant font-body-md-medium">2 pending tasting</span>
+                <span className="text-on-surface-variant">
+                  {vendors.filter((v) => v.status?.includes("Booked")).length} booked
+                </span>
+                <span className="text-on-surface-variant font-body-md-medium">
+                  {vendors.filter((v) => !v.status?.includes("Booked")).length} shortlisted
+                </span>
               </div>
             </div>
           </div>
@@ -520,51 +675,71 @@ export default function EventDetails() {
 
               {/* Task List Items */}
               <div className="flex flex-col gap-3.5">
-                {eventTasks.slice(0, 4).map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-surface-container-low/40 hover:bg-surface-container-low transition-colors group border border-outline-variant/10"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={task.completed}
-                        onChange={() => {
-                          toggleTask(task.id);
-                          showToast(`Task status toggled: "${task.title}"`);
-                        }}
-                        className="w-5 h-5 rounded text-primary focus:ring-primary cursor-pointer accent-primary"
-                      />
-                      <div className="flex flex-col min-w-0">
-                        <span
-                          className={`font-body-md-medium text-body-md-medium transition-colors truncate ${
-                            task.completed ? "line-through text-on-surface-variant" : "text-primary group-hover:text-secondary"
-                          }`}
-                        >
-                          {task.title}
-                        </span>
-                        <div className="flex items-center gap-2 mt-1">
+                {eventTasks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-8 rounded-xl bg-surface-container-low/40 border border-dashed border-outline-variant/30 text-center">
+                    <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary mb-3">
+                      <span className="material-symbols-outlined text-[24px]">checklist</span>
+                    </div>
+                    <h3 className="font-title-md text-title-md font-bold text-primary mb-1">No tasks created yet</h3>
+                    <p className="font-body-md text-body-md text-on-surface-variant max-w-sm mb-4 text-xs">
+                      Track planning milestones, vendor deliveries, and operational steps for this event.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/timeline")}
+                      className="px-4 py-2 rounded-lg bg-primary text-on-primary font-body-md-medium flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm text-xs"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">add</span>
+                      <span>Create First Task</span>
+                    </button>
+                  </div>
+                ) : (
+                  eventTasks.slice(0, 4).map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between p-4 rounded-xl bg-surface-container-low/40 hover:bg-surface-container-low transition-colors group border border-outline-variant/10"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => {
+                            toggleTask(task.id);
+                            showToast(`Task status toggled: "${task.title}"`);
+                          }}
+                          className="w-5 h-5 rounded text-primary focus:ring-primary cursor-pointer accent-primary"
+                        />
+                        <div className="flex flex-col min-w-0">
                           <span
-                            className={`px-2 py-0.5 rounded font-caption text-caption uppercase font-medium ${
-                              (task as any).tag === "Due Tomorrow" ? "bg-error-container text-on-error-container" : "bg-surface-container text-on-surface-variant"
+                            className={`font-body-md-medium text-body-md-medium transition-colors truncate ${
+                              task.completed ? "line-through text-on-surface-variant" : "text-primary group-hover:text-secondary"
                             }`}
                           >
-                            {(task as any).tag || "Scheduled"}
+                            {task.title}
                           </span>
-                          <span className="text-caption font-caption text-on-surface-variant">• {task.dueDate}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span
+                              className={`px-2 py-0.5 rounded font-caption text-caption uppercase font-medium ${
+                                (task as any).tag === "Due Tomorrow" ? "bg-error-container text-on-error-container" : "bg-surface-container text-on-surface-variant"
+                              }`}
+                            >
+                              {(task as any).tag || (task.completed ? "Done" : "Scheduled")}
+                            </span>
+                            <span className="text-caption font-caption text-on-surface-variant">• {task.dueDate || "No due date"}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption">
+                          {task.priority || "Normal"}
+                        </span>
+                        <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary font-caption text-caption flex items-center justify-center font-bold">
+                          {(task as any).assignee || "Host"}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption">
-                        {task.priority}
-                      </span>
-                      <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary font-caption text-caption flex items-center justify-center font-bold">
-                        {(task as any).assignee || "AM"}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -693,10 +868,10 @@ export default function EventDetails() {
               <div className="p-4 rounded-xl bg-surface-container-low mb-6 border border-outline-variant/10">
                 <div className="flex justify-between items-baseline mb-2">
                   <span className="font-headline-md text-headline-md text-primary font-bold">
-                    ₹{eventSpent.toLocaleString()}
+                    {formatCurrency(eventSpent)}
                   </span>
                   <span className="font-body-md text-body-md text-on-surface-variant font-medium">
-                    of ₹{eventBudget.toLocaleString()} Target
+                    of {formatCurrency(eventBudget)} Target
                   </span>
                 </div>
                 {/* Multi-segmented budget bar */}
@@ -707,7 +882,7 @@ export default function EventDetails() {
                   <div className="bg-outline h-full" style={{ width: "5.3%" }} title="Photography: 5.3%"></div>
                 </div>
                 <span className="font-caption text-caption text-emerald-700 font-medium">
-                  ₹{(eventBudget - eventSpent).toLocaleString()} unallocated buffer remaining
+                  {formatCurrency(eventBudget - eventSpent)} unallocated buffer remaining
                 </span>
               </div>
 
@@ -925,7 +1100,14 @@ export default function EventDetails() {
         {/* 6. Slide-Over / Modal: 'Edit Event Details' */}
         {isEditModalOpen && (
           <div className="fixed inset-0 z-50 overflow-hidden bg-primary/40 backdrop-blur-sm transition-opacity flex justify-end animate-fade-in">
-            <div className="w-screen max-w-xl bg-surface-container-lowest shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-outline-variant/20">
+            <div
+              ref={editModalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-event-title"
+              tabIndex={-1}
+              className="w-screen max-w-xl bg-surface-container-lowest shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-outline-variant/20 outline-none"
+            >
               {/* Modal Header */}
               <div className="px-6 py-5 bg-surface-container flex items-center justify-between border-b border-outline-variant/15">
                 <div className="flex items-center gap-2.5">
@@ -933,12 +1115,13 @@ export default function EventDetails() {
                     <span className="material-symbols-outlined text-[20px]">edit</span>
                   </div>
                   <div>
-                    <h3 className="font-headline-sm text-headline-sm text-primary font-semibold">Edit Event Details</h3>
+                    <h3 id="edit-event-title" className="font-headline-sm text-headline-sm text-primary font-semibold">Edit Event Details</h3>
                     <p className="font-caption text-caption text-on-surface-variant">Update core logistics and metadata</p>
                   </div>
                 </div>
                 <button
                   type="button"
+                  aria-label="Close edit event dialog"
                   onClick={() => setIsEditModalOpen(false)}
                   className="w-9 h-9 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors"
                 >
@@ -1037,10 +1220,10 @@ export default function EventDetails() {
 
                 <div>
                   <label className="block font-label-md text-label-md text-primary mb-1.5" htmlFor="planned-budget">
-                    Total Planned Budget (INR)
+                    Total Planned Budget
                   </label>
                   <div className="relative flex items-center">
-                    <span className="absolute left-3.5 font-body-md-medium text-body-md-medium text-on-surface-variant">₹</span>
+                    <span className="absolute left-3.5 font-body-md-medium text-body-md-medium text-on-surface-variant">{currencySymbol}</span>
                     <input
                       id="planned-budget"
                       type="number"
@@ -1107,6 +1290,45 @@ export default function EventDetails() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+        {/* Delete Event Confirmation Modal */}
+        {isDeleteModalOpen && currentEvent && (
+          <div className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+            <div
+              ref={deleteModalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-event-title"
+              tabIndex={-1}
+              className="bg-surface-container-lowest rounded-2xl max-w-sm w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/20 outline-none"
+            >
+              <div className="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center">
+                <span className="material-symbols-outlined text-[24px]">delete</span>
+              </div>
+              <div>
+                <h3 id="delete-event-title" className="font-headline-sm text-headline-sm text-primary font-bold">Delete Event?</h3>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1 leading-relaxed">
+                  Are you sure you want to permanently delete <strong>{currentEvent.name}</strong>? All associated timeline tasks and budget records will be removed.
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="h-10 px-4 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-md text-label-md transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteEvent}
+                  className="h-10 px-4 rounded-lg bg-error hover:bg-error/90 text-on-error font-label-md text-label-md transition-all shadow-sm"
+                >
+                  Confirm Delete
+                </button>
+              </div>
             </div>
           </div>
         )}

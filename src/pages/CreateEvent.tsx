@@ -49,25 +49,26 @@ const THEMES = [
 ];
 
 export default function CreateEvent() {
-  const { createEvent } = useEventContext();
+  const { createEvent, currency: workspaceCurrency } = useEventContext();
   const navigate = useNavigate();
 
-  // Active step
-  const [activeStep, setActiveStep] = useState(2);
+  // Active step (Starts cleanly on Step 1)
+  const [activeStep, setActiveStep] = useState(1);
 
-  // Form Fields
-  const [eventName, setEventName] = useState("Aarav & Priya Wedding");
+  // Form Fields - Clean initial defaults for real event planning
+  const [eventName, setEventName] = useState("");
   const [selectedArchetype, setSelectedArchetype] = useState("Wedding");
-  const [eventDate, setEventDate] = useState("15 Dec – 17 Dec 2026");
-  const [venueLocation, setVenueLocation] = useState("Lake Pichola Terraces, Udaipur");
+  const [eventDate, setEventDate] = useState("");
+  const [venueLocation, setVenueLocation] = useState("");
 
   // Step 2 Fields
-  const [currency, setCurrency] = useState<"INR" | "USD" | "EUR" | "AED">("INR");
-  const [budgetAmount, setBudgetAmount] = useState<number>(150000);
-  const [adultGuests, setAdultGuests] = useState<number>(155);
-  const [childGuests, setChildGuests] = useState<number>(25);
-  const [accommodationBlock, setAccommodationBlock] = useState(true);
-  const [transitAssistance, setTransitAssistance] = useState(true);
+  const [currency, setCurrency] = useState<"INR" | "USD" | "EUR" | "GBP" | "AED">(workspaceCurrency || "INR");
+  const currSymbol = currency === "INR" ? "₹" : currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "AED ";
+  const [budgetAmount, setBudgetAmount] = useState<number>(0);
+  const [adultGuests, setAdultGuests] = useState<number>(0);
+  const [childGuests, setChildGuests] = useState<number>(0);
+  const [accommodationBlock, setAccommodationBlock] = useState(false);
+  const [transitAssistance, setTransitAssistance] = useState(false);
 
   // Step 3 Fields
   const [selectedTheme, setSelectedTheme] = useState("royal");
@@ -93,8 +94,13 @@ export default function CreateEvent() {
   const photoAlloc = Math.round(budgetAmount * 0.10);
   const bufferAlloc = Math.round(budgetAmount * 0.09);
 
-  // Switch step with scroll
+  // Switch step with scroll and validation
   const handleSwitchStep = (stepNumber: number) => {
+    if (stepNumber > 1 && !eventName.trim()) {
+      showToast("Please enter an event name before proceeding.");
+      setActiveStep(1);
+      return;
+    }
     setActiveStep(stepNumber);
     const target = document.getElementById(`section-step-${stepNumber}`);
     if (target) {
@@ -104,13 +110,18 @@ export default function CreateEvent() {
 
   // Launch event creation
   const handleLaunchEvent = async () => {
+    if (!eventName.trim()) {
+      showToast("Please enter an event name before provisioning.");
+      handleSwitchStep(1);
+      return;
+    }
     const newEvt = await createEvent({
-      name: eventName,
-      type: selectedArchetype,
-      date: eventDate,
-      location: venueLocation,
-      budget: budgetAmount,
-      guestsCount: totalGuests,
+      name: eventName.trim(),
+      type: selectedArchetype || "Celebration",
+      date: eventDate.trim() || "Date TBD",
+      location: venueLocation.trim() || "Location TBD",
+      budget: budgetAmount || 0,
+      guestsCount: totalGuests || 0,
       status: "Planning",
       description: `Bespoke ${selectedArchetype} celebration organized with Planora AI.`
     });
@@ -139,10 +150,6 @@ export default function CreateEvent() {
           </Link>
           <span className="material-symbols-outlined text-[16px] text-outline-variant">chevron_right</span>
           <span className="font-label-md text-label-md text-primary font-semibold">Create a New Event</span>
-          <span className="ml-space-sm px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-caption text-caption flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
-            <span>Draft auto-saving...</span>
-          </span>
         </div>
         <div className="flex items-center gap-space-sm">
           <button
@@ -153,18 +160,17 @@ export default function CreateEvent() {
             <span className="material-symbols-outlined text-[16px]">close</span>
             <span>Discard</span>
           </button>
-          <button
-            type="button"
-            onClick={() => showToast("Draft saved to cloud")}
-            className="h-9 px-space-md rounded-lg bg-surface-container-lowest text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center gap-1.5 shadow-sm border border-outline-variant/10"
-          >
-            <span className="material-symbols-outlined text-[16px]">save</span>
-            <span>Save Draft</span>
-          </button>
           <div className="h-5 w-[1px] bg-outline-variant/30 mx-1"></div>
           <button
             type="button"
-            onClick={() => setShowSuccessModal(true)}
+            onClick={() => {
+              if (!eventName.trim()) {
+                showToast("Please enter an event name first.");
+                handleSwitchStep(1);
+                return;
+              }
+              setShowSuccessModal(true);
+            }}
             className="h-9 px-space-md rounded-lg bg-secondary text-on-primary font-label-md text-label-md hover:opacity-90 active:translate-y-0.5 transition-all shadow-sm flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-[16px]">bolt</span>
@@ -348,13 +354,14 @@ export default function CreateEvent() {
                     type="text"
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
+                    placeholder="e.g. Meera & Kabir Sangeet Gala"
                     className="w-full mt-1 px-2 py-1 bg-surface-container-lowest rounded text-sm font-medium text-primary border border-outline-variant/20 focus:outline-none"
                   />
                 ) : (
-                  <p className="font-body-md-medium text-body-md-medium text-primary mt-0.5 truncate">{eventName}</p>
+                  <p className="font-body-md-medium text-body-md-medium text-primary mt-0.5 truncate">{eventName || "Untitled Celebration"}</p>
                 )}
                 <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption">
-                  Royal Gala
+                  {selectedArchetype || "Celebration"}
                 </span>
               </div>
 
@@ -365,13 +372,14 @@ export default function CreateEvent() {
                     type="text"
                     value={eventDate}
                     onChange={(e) => setEventDate(e.target.value)}
+                    placeholder="e.g. 15 Dec 2026"
                     className="w-full mt-1 px-2 py-1 bg-surface-container-lowest rounded text-sm font-medium text-primary border border-outline-variant/20 focus:outline-none"
                   />
                 ) : (
-                  <p className="font-body-md-medium text-body-md-medium text-primary mt-0.5">{eventDate}</p>
+                  <p className="font-body-md-medium text-body-md-medium text-primary mt-0.5">{eventDate || "Date TBD"}</p>
                 )}
                 <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-caption text-caption">
-                  3 Full Days
+                  {eventDate ? "Confirmed Dates" : "Dates Pending"}
                 </span>
               </div>
 
@@ -382,13 +390,14 @@ export default function CreateEvent() {
                     type="text"
                     value={venueLocation}
                     onChange={(e) => setVenueLocation(e.target.value)}
+                    placeholder="e.g. The Grand Palace, Mumbai"
                     className="w-full mt-1 px-2 py-1 bg-surface-container-lowest rounded text-sm font-medium text-primary border border-outline-variant/20 focus:outline-none"
                   />
                 ) : (
-                  <p className="font-body-md-medium text-body-md-medium text-primary mt-0.5 truncate">{venueLocation}</p>
+                  <p className="font-body-md-medium text-body-md-medium text-primary mt-0.5 truncate">{venueLocation || "Location TBD"}</p>
                 )}
                 <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-caption text-caption">
-                  Udaipur, Rajasthan
+                  {venueLocation ? (venueLocation.includes(",") ? venueLocation.split(",")[1].trim() : venueLocation) : "Destination TBD"}
                 </span>
               </div>
             </div>
@@ -433,6 +442,19 @@ export default function CreateEvent() {
                 })}
               </div>
             </div>
+
+            {activeStep === 1 && (
+              <div className="mt-space-md pt-space-md border-t border-surface-container flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleSwitchStep(2)}
+                  className="h-10 px-4 rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center gap-1.5 hover:bg-primary-container transition-all shadow-sm font-medium"
+                >
+                  <span>Continue to Step 2: Budget & Guests</span>
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
+              </div>
+            )}
           </section>
 
           {/* STEP 2 CONTAINER: Budget & Guests (ACTIVE FOCUS) */}
@@ -456,7 +478,7 @@ export default function CreateEvent() {
 
               {/* Currency Selector Toggle */}
               <div className="flex items-center bg-surface-container-low p-1 rounded-lg">
-                {(["INR", "USD", "EUR", "AED"] as const).map((curr) => (
+                {(["INR", "USD", "EUR", "GBP", "AED"] as const).map((curr) => (
                   <button
                     key={curr}
                     type="button"
@@ -467,7 +489,7 @@ export default function CreateEvent() {
                         : "text-on-surface-variant hover:text-on-surface"
                     }`}
                   >
-                    {curr === "INR" ? "INR (₹)" : curr === "USD" ? "USD ($)" : curr === "EUR" ? "EUR (€)" : "AED"}
+                    {curr === "INR" ? "INR (₹)" : curr === "USD" ? "USD ($)" : curr === "EUR" ? "EUR (€)" : curr === "GBP" ? "GBP (£)" : "AED"}
                   </button>
                 ))}
               </div>
@@ -485,18 +507,18 @@ export default function CreateEvent() {
                   </span>
                 </div>
                 <div className="flex items-center gap-space-xs">
-                  <span className="font-headline-md text-headline-md text-primary font-bold">₹</span>
+                  <span className="font-headline-md text-headline-md text-primary font-bold">{currSymbol}</span>
                   <input
                     id="budget-input"
                     type="text"
-                    value={budgetAmount.toLocaleString("en-IN")}
+                    value={budgetAmount.toLocaleString()}
                     onChange={(e) => {
                       const val = Number(e.target.value.replace(/,/g, ""));
                       if (!isNaN(val)) setBudgetAmount(val);
                     }}
                     className="h-12 w-44 px-3 rounded-lg bg-surface-container-lowest font-headline-sm text-headline-sm text-primary font-bold focus:outline-none focus:bg-surface-container-lowest shadow-sm text-right"
                   />
-                  <span className="font-body-md text-body-md text-on-surface-variant pl-1">INR</span>
+                  <span className="font-body-md text-body-md text-on-surface-variant pl-1">{currency}</span>
                 </div>
               </div>
 
@@ -512,9 +534,9 @@ export default function CreateEvent() {
                   className="w-full h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-primary"
                 />
                 <div className="flex justify-between font-caption text-caption text-on-surface-variant mt-1.5">
-                  <span>₹50,000 (Intimate)</span>
-                  <span>₹1,50,000 (Target)</span>
-                  <span>₹10,00,000+ (Grand Sovereign)</span>
+                  <span>{currSymbol}50,000 (Intimate)</span>
+                  <span>{currSymbol}1,50,000 (Target)</span>
+                  <span>{currSymbol}10,00,000+ (Grand Sovereign)</span>
                 </div>
               </div>
 
@@ -532,7 +554,7 @@ export default function CreateEvent() {
                         : "bg-surface-container text-on-surface hover:bg-surface-container-high"
                     }`}
                   >
-                    ₹{preset.toLocaleString("en-IN")} {budgetAmount === preset ? "(Selected)" : ""}
+                    {currSymbol}{preset.toLocaleString()} {budgetAmount === preset ? "(Selected)" : ""}
                   </button>
                 ))}
               </div>
@@ -566,7 +588,7 @@ export default function CreateEvent() {
                     <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
                     <span className="font-caption text-caption text-on-surface font-semibold">Venue & Space</span>
                   </div>
-                  <span className="font-body-md-medium text-body-md-medium text-primary block">₹{venueAlloc.toLocaleString("en-IN")}</span>
+                  <span className="font-body-md-medium text-body-md-medium text-primary block">{currSymbol}{venueAlloc.toLocaleString()}</span>
                   <span className="font-caption text-caption text-on-surface-variant">35% Allocation</span>
                 </div>
 
@@ -575,7 +597,7 @@ export default function CreateEvent() {
                     <span className="w-2.5 h-2.5 rounded-full bg-secondary"></span>
                     <span className="font-caption text-caption text-on-surface font-semibold">Food & Catering</span>
                   </div>
-                  <span className="font-body-md-medium text-body-md-medium text-primary block">₹{cateringAlloc.toLocaleString("en-IN")}</span>
+                  <span className="font-body-md-medium text-body-md-medium text-primary block">{currSymbol}{cateringAlloc.toLocaleString()}</span>
                   <span className="font-caption text-caption text-on-surface-variant">28% Allocation</span>
                 </div>
 
@@ -584,7 +606,7 @@ export default function CreateEvent() {
                     <span className="w-2.5 h-2.5 rounded-full bg-tertiary-container"></span>
                     <span className="font-caption text-caption text-on-surface font-semibold">Decor & Lights</span>
                   </div>
-                  <span className="font-body-md-medium text-body-md-medium text-primary block">₹{decorAlloc.toLocaleString("en-IN")}</span>
+                  <span className="font-body-md-medium text-body-md-medium text-primary block">{currSymbol}{decorAlloc.toLocaleString()}</span>
                   <span className="font-caption text-caption text-on-surface-variant">18% Allocation</span>
                 </div>
 
@@ -593,7 +615,7 @@ export default function CreateEvent() {
                     <span className="w-2.5 h-2.5 rounded-full bg-inverse-primary"></span>
                     <span className="font-caption text-caption text-on-surface font-semibold">Photo & Cinema</span>
                   </div>
-                  <span className="font-body-md-medium text-body-md-medium text-primary block">₹{photoAlloc.toLocaleString("en-IN")}</span>
+                  <span className="font-body-md-medium text-body-md-medium text-primary block">{currSymbol}{photoAlloc.toLocaleString()}</span>
                   <span className="font-caption text-caption text-on-surface-variant">10% Allocation</span>
                 </div>
 
@@ -602,7 +624,7 @@ export default function CreateEvent() {
                     <span className="w-2.5 h-2.5 rounded-full bg-surface-dim"></span>
                     <span className="font-caption text-caption text-on-surface font-semibold">Safety Buffer</span>
                   </div>
-                  <span className="font-body-md-medium text-body-md-medium text-primary block">₹{bufferAlloc.toLocaleString("en-IN")}</span>
+                  <span className="font-body-md-medium text-body-md-medium text-primary block">{currSymbol}{bufferAlloc.toLocaleString()}</span>
                   <span className="font-caption text-caption text-on-surface-variant">9% Contingency</span>
                 </div>
               </div>
@@ -730,6 +752,27 @@ export default function CreateEvent() {
                 </div>
               </div>
             </div>
+
+            {activeStep === 2 && (
+              <div className="mt-space-md pt-space-md border-t border-surface-container flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => handleSwitchStep(1)}
+                  className="h-10 px-4 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high font-label-md text-label-md flex items-center gap-1.5 transition-all"
+                >
+                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                  <span>Back to Step 1</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchStep(3)}
+                  className="h-10 px-4 rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center gap-1.5 hover:bg-primary-container transition-all shadow-sm font-semibold"
+                >
+                  <span>Continue to Step 3: Style & Theme</span>
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
+              </div>
+            )}
           </section>
 
           {/* STEP 3 CONTAINER: Style & Aesthetics */}
@@ -867,6 +910,27 @@ export default function CreateEvent() {
                 <span>Suggest My Event Style</span>
               </button>
             </div>
+
+            {activeStep === 3 && (
+              <div className="mt-space-md pt-space-md border-t border-surface-container flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => handleSwitchStep(2)}
+                  className="h-10 px-4 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high font-label-md text-label-md flex items-center gap-1.5 transition-all"
+                >
+                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                  <span>Back to Step 2</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchStep(4)}
+                  className="h-10 px-4 rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center gap-1.5 hover:bg-primary-container transition-all shadow-sm font-semibold"
+                >
+                  <span>Continue to Step 4: Review & Finalize</span>
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
+              </div>
+            )}
           </section>
 
           {/* STEP 4 CONTAINER: Review & Finalize Card */}
@@ -916,15 +980,8 @@ export default function CreateEvent() {
               <div className="flex items-center gap-space-sm">
                 <button
                   type="button"
-                  onClick={() => showToast("Draft saved successfully")}
-                  className="h-11 px-space-lg rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high font-label-md text-label-md transition-colors"
-                >
-                  Save as Draft
-                </button>
-                <button
-                  type="button"
                   onClick={handleLaunchEvent}
-                  className="h-11 px-space-xl rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center gap-2 hover:bg-primary-container active:translate-y-0.5 transition-all shadow-md"
+                  className="h-11 px-space-xl rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center gap-2 hover:bg-primary-container active:translate-y-0.5 transition-all shadow-md font-semibold"
                 >
                   <span className="material-symbols-outlined text-[18px] text-secondary-fixed">auto_awesome</span>
                   <span>Create Event & Launch Studio →</span>
@@ -1014,7 +1071,7 @@ export default function CreateEvent() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
                     <span className="font-body-md-medium text-body-md-medium text-primary truncate">Budget Ledger & Deposit Escrow</span>
-                    <span className="font-caption text-caption text-primary font-bold">₹{budgetAmount.toLocaleString("en-IN")}</span>
+                    <span className="font-caption text-caption text-primary font-bold">{currSymbol}{budgetAmount.toLocaleString()}</span>
                   </div>
                   <p className="font-caption text-caption text-on-surface-variant">5 key category caps calculated</p>
                 </div>
@@ -1160,7 +1217,7 @@ export default function CreateEvent() {
               </div>
               <div className="flex justify-between items-center text-body-md font-body-md">
                 <span className="text-on-surface-variant">Total Target Budget</span>
-                <span className="font-body-md-medium text-primary font-bold">₹{budgetAmount.toLocaleString("en-IN")} INR</span>
+                <span className="font-body-md-medium text-primary font-bold">{currSymbol}{budgetAmount.toLocaleString()} {currency}</span>
               </div>
               <div className="flex justify-between items-center text-body-md font-body-md">
                 <span className="text-on-surface-variant">RSVP Capacity</span>
@@ -1185,7 +1242,7 @@ export default function CreateEvent() {
                 type="button"
                 onClick={() => {
                   setShowSuccessModal(false);
-                  navigate(createdEventId ? `/event-details` : "/dashboard");
+                  navigate(createdEventId ? `/events/${createdEventId}` : "/events");
                 }}
                 className="w-full sm:w-1/2 h-11 px-space-md rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md flex items-center justify-center gap-1.5 shadow-md transition-all"
               >

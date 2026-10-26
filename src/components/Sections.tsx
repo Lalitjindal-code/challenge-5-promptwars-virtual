@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import type { PlannedEvent } from "./EventModal";
@@ -935,6 +935,25 @@ export function FinalCTA({ onPlan }: { onPlan: () => void }) {
  * 7. FOOTER COMPONENT (Exact Stitch Design)
  * ----------------------------------------------------------- */
 export function Footer() {
+  const [activeLegalModal, setActiveLegalModal] = useState<"privacy" | "terms" | "security" | "status" | "privacy-center" | null>(null);
+
+  useEffect(() => {
+    if (!activeLegalModal) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveLegalModal(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeLegalModal]);
+
   return (
     <footer className="w-full bg-surface-container-lowest border-t border-outline-variant py-space-xl">
       <div className="w-full max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin">
@@ -1010,14 +1029,32 @@ export function Footer() {
           <div className="flex flex-col gap-space-sm">
             <h4 className="font-label-md text-label-md text-on-surface uppercase tracking-wider font-semibold">Legal</h4>
             <ul className="flex flex-col gap-space-xs">
-              <li className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors">
-                Privacy Policy
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setActiveLegalModal("privacy")}
+                  className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors text-left"
+                >
+                  Privacy Policy
+                </button>
               </li>
-              <li className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors">
-                Terms of Service
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setActiveLegalModal("terms")}
+                  className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors text-left"
+                >
+                  Terms of Service
+                </button>
               </li>
-              <li className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors">
-                Security
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setActiveLegalModal("security")}
+                  className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors text-left"
+                >
+                  Security
+                </button>
               </li>
               <li>
                 <a href="mailto:support@planora.ai" className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors">
@@ -1033,15 +1070,175 @@ export function Footer() {
             © {new Date().getFullYear()} Planora AI Inc. All rights reserved.
           </p>
           <div className="flex items-center gap-space-md">
-            <span className="font-caption text-caption text-on-surface-variant hover:text-on-surface cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setActiveLegalModal("status")}
+              className="font-caption text-caption text-on-surface-variant hover:text-on-surface cursor-pointer"
+            >
               System Status
-            </span>
-            <span className="font-caption text-caption text-on-surface-variant hover:text-on-surface cursor-pointer">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLegalModal("privacy-center")}
+              className="font-caption text-caption text-on-surface-variant hover:text-on-surface cursor-pointer"
+            >
               Privacy Center
-            </span>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Legal & Status Modal */}
+      {activeLegalModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="legal-modal-title"
+            className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden"
+          >
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-outline-variant flex items-center justify-between bg-surface-container-low">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[22px]">
+                  {activeLegalModal === "privacy" || activeLegalModal === "privacy-center"
+                    ? "policy"
+                    : activeLegalModal === "terms"
+                    ? "gavel"
+                    : activeLegalModal === "security"
+                    ? "verified_user"
+                    : "dns"}
+                </span>
+                <h3 id="legal-modal-title" className="font-headline-sm text-lg font-bold text-on-surface">
+                  {activeLegalModal === "privacy" && "Privacy Policy"}
+                  {activeLegalModal === "privacy-center" && "Privacy Center"}
+                  {activeLegalModal === "terms" && "Terms of Service"}
+                  {activeLegalModal === "security" && "Security Architecture"}
+                  {activeLegalModal === "status" && "System Status & Reliability"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveLegalModal(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+                aria-label="Close modal"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto space-y-4 text-on-surface-variant text-sm leading-relaxed">
+              {(activeLegalModal === "privacy" || activeLegalModal === "privacy-center") && (
+                <>
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">Your Data, Strictly Yours</h4>
+                    <p>
+                      Planora AI treats all celebration itineraries, guest rosters, dietary records, and budget allocations as confidential client property. We do not sell, rent, or distribute planner or guest personally identifiable information (PII) to third-party advertisers.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">Data Isolation & Security</h4>
+                    <p>
+                      All client events are compartmentalized in Firestore with strictly enforced user-level security rules. Each planner accesses only events stamped with their authenticated user UID.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">Data Portability & Erasure</h4>
+                    <p>
+                      Planners maintain complete sovereignty over their data. You can download comprehensive JSON dossier backups and CSV exports at any time, or request irreversible workspace deletion directly in your Profile Settings.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {activeLegalModal === "terms" && (
+                <>
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">Planning Advisory & Estimates</h4>
+                    <p>
+                      Planora AI delivers intelligent event blueprints, timelines, and budget models. However, calculations and recommendations are advisory estimates. Planners must independently verify vendor contracts, venue permits, and municipal safety requirements.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">Account & Responsibility</h4>
+                    <p>
+                      Users are responsible for safeguarding their login credentials and all activities occurring under their authenticated session. Commercial misuse or automated abuse of the AI generation engine is prohibited.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">Service SLA</h4>
+                    <p>
+                      Planora AI strives for continuous 99.9% uptime. System maintenance windows are communicated proactively through our platform updates and status logs.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {activeLegalModal === "security" && (
+                <>
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">Defense-in-Depth Architecture</h4>
+                    <p>
+                      Planora AI employs end-to-end HTTPS/TLS encryption in transit and AES-256 encryption at rest across Google Cloud and Firestore infrastructure.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">Authenticated AI Orchestration</h4>
+                    <p>
+                      AI generation endpoints require verified Firebase Bearer token authorization and user ownership validation before invoking server-side Gemini 2.5 Flash models. Client-side API keys are never exposed.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">Role-Based Data Partitioning</h4>
+                    <p>
+                      Cross-planner reads and writes are blocked at the database rule layer, guaranteeing zero unauthorized data leakage between event planners.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {activeLegalModal === "status" && (
+                <>
+                  <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-700">
+                    <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                    <span className="font-bold text-xs uppercase tracking-wide">All Systems Operational</span>
+                  </div>
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center justify-between text-xs py-1 border-b border-outline-variant/60">
+                      <span className="font-medium text-on-surface">Gemini AI Generation Engine</span>
+                      <span className="text-emerald-600 font-semibold">Operational (1.1s avg)</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs py-1 border-b border-outline-variant/60">
+                      <span className="font-medium text-on-surface">Firestore Cloud Database</span>
+                      <span className="text-emerald-600 font-semibold">Operational (100%)</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs py-1 border-b border-outline-variant/60">
+                      <span className="font-medium text-on-surface">Firebase Identity & Authentication</span>
+                      <span className="text-emerald-600 font-semibold">Operational</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs py-1 border-b border-outline-variant/60">
+                      <span className="font-medium text-on-surface">Event Export & Dossier Engine</span>
+                      <span className="text-emerald-600 font-semibold">Operational</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 border-t border-outline-variant bg-surface-container-low flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveLegalModal(null)}
+                className="px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 }

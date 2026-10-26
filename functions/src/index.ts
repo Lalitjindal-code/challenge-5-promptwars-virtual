@@ -100,21 +100,19 @@ export const generateEventIdeas = onRequest(
 
       // 5. Authorization: Verify Event Ownership in Firestore
       // Never trust user-supplied event ID without checking ownership
-      if (!decodedToken.isDemo) {
-        const eventDoc = await admin.firestore()
-          .collection("users")
-          .doc(uid)
-          .collection("events")
-          .doc(eventId)
-          .get();
+      const eventDoc = await admin.firestore()
+        .collection("users")
+        .doc(uid)
+        .collection("events")
+        .doc(eventId)
+        .get();
 
-        if (!eventDoc.exists) {
-          res.status(403).json({
-            error: "FORBIDDEN",
-            message: "Unauthorized: Event does not belong to the authenticated user."
-          });
-          return;
-        }
+      if (!eventDoc.exists) {
+        res.status(403).json({
+          error: "FORBIDDEN",
+          message: "Unauthorized: Event does not belong to the authenticated user."
+        });
+        return;
       }
 
       // 6. Check Server-Side Gemini API Key

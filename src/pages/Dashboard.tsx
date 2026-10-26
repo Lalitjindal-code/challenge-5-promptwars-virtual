@@ -17,7 +17,7 @@ const DEMO_IMAGES = {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { events, tasks, toggleTask, setActiveEventId, isDemo } = useEventContext();
+  const { events, tasks, toggleTask, setActiveEventId, isDemo, formatCurrency } = useEventContext();
 
   // Check if current user is on a demo workspace or actual user
   const isTest = isDemo;
@@ -106,8 +106,8 @@ export default function Dashboard() {
           {/* Stat 3: Total Planned Budget */}
           <DashboardStatCard
             label="Planned Budget"
-            value={`₹${totalBudget.toLocaleString("en-IN")}`}
-            subtext={`₹${totalSpent.toLocaleString("en-IN")} spent`}
+            value={formatCurrency(totalBudget)}
+            subtext={`${formatCurrency(totalSpent)} spent`}
             rightLabel={`${spentPct}%`}
             icon="account_balance_wallet"
             iconBg="bg-surface-container"
@@ -280,7 +280,7 @@ export default function Dashboard() {
                   </div>
                   <p className="font-body-md text-body-md text-on-surface text-[13px] leading-relaxed">
                     Pairing venue in-house fairy lighting can save approx{" "}
-                    <strong className="text-primary font-bold">₹14,500</strong> on external rental costs.
+                    <strong className="text-primary font-bold">{formatCurrency(14500)}</strong> on external rental costs.
                   </p>
                 </div>
 
@@ -325,7 +325,7 @@ export default function Dashboard() {
                   Total Planned Budget
                 </span>
                 <div className="font-headline-lg text-headline-lg text-primary tracking-tight leading-none font-bold">
-                  {isTest ? "₹2,40,000" : `₹${totalBudget.toLocaleString("en-IN")}`}
+                  {formatCurrency(totalBudget)}
                 </div>
                 <div className="flex items-center justify-between font-caption text-caption text-on-surface-variant pt-2">
                   <div className="flex items-center gap-1.5">
@@ -333,7 +333,7 @@ export default function Dashboard() {
                     <span>
                       Spent:{" "}
                       <strong className="text-primary font-bold">
-                        {isTest ? "₹1,45,000" : `₹${totalSpent.toLocaleString("en-IN")}`}
+                        {formatCurrency(totalSpent)}
                       </strong>
                     </span>
                   </div>
@@ -342,9 +342,7 @@ export default function Dashboard() {
                     <span>
                       Remaining:{" "}
                       <strong className="text-secondary font-bold">
-                        {isTest
-                          ? "₹95,000"
-                          : `₹${Math.max(0, totalBudget - totalSpent).toLocaleString("en-IN")}`}
+                        {formatCurrency(Math.max(0, totalBudget - totalSpent))}
                       </strong>
                     </span>
                   </div>
@@ -352,10 +350,10 @@ export default function Dashboard() {
 
                 {/* Color-Coded Progress Meter */}
                 <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden flex mt-1">
-                  <div className="h-full bg-primary" style={{ width: `${isTest ? 60.4 : spentPct}%` }}></div>
+                  <div className="h-full bg-primary" style={{ width: `${spentPct}%` }}></div>
                   <div
                     className="h-full bg-secondary-fixed-dim"
-                    style={{ width: `${isTest ? 39.6 : 100 - spentPct}%` }}
+                    style={{ width: `${100 - spentPct}%` }}
                   ></div>
                 </div>
               </div>
@@ -366,61 +364,69 @@ export default function Dashboard() {
                   Allocation by Category
                 </span>
 
-                {/* Venue */}
-                <div className="flex items-center justify-between font-body-md text-body-md text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-sm bg-primary shrink-0"></div>
-                    <span className="text-on-surface truncate font-medium">Venue</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-on-surface-variant font-caption text-caption">39.5%</span>
-                    <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
-                      {isTest ? "₹95,000" : `₹${Math.round(totalBudget * 0.395).toLocaleString("en-IN")}`}
-                    </span>
-                  </div>
-                </div>
+                {totalBudget === 0 ? (
+                  <p className="font-caption text-caption text-on-surface-variant italic py-2">
+                    Set a planned budget on your events to see category allocations.
+                  </p>
+                ) : (
+                  <>
+                    {/* Venue */}
+                    <div className="flex items-center justify-between font-body-md text-body-md text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-sm bg-primary shrink-0"></div>
+                        <span className="text-on-surface truncate font-medium">Venue & Hospitality</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-on-surface-variant font-caption text-caption">38.0%</span>
+                        <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
+                          {formatCurrency(Math.round(totalBudget * 0.38))}
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Catering */}
-                <div className="flex items-center justify-between font-body-md text-body-md text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-sm bg-secondary shrink-0"></div>
-                    <span className="text-on-surface truncate font-medium">Catering</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-on-surface-variant font-caption text-caption">27.1%</span>
-                    <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
-                      {isTest ? "₹65,000" : `₹${Math.round(totalBudget * 0.271).toLocaleString("en-IN")}`}
-                    </span>
-                  </div>
-                </div>
+                    {/* Catering */}
+                    <div className="flex items-center justify-between font-body-md text-body-md text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-sm bg-secondary shrink-0"></div>
+                        <span className="text-on-surface truncate font-medium">Catering & Feasts</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-on-surface-variant font-caption text-caption">28.0%</span>
+                        <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
+                          {formatCurrency(Math.round(totalBudget * 0.28))}
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Decoration */}
-                <div className="flex items-center justify-between font-body-md text-body-md text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-sm bg-secondary-fixed-dim shrink-0"></div>
-                    <span className="text-on-surface truncate font-medium">Decoration</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-on-surface-variant font-caption text-caption">20.0%</span>
-                    <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
-                      {isTest ? "₹48,000" : `₹${Math.round(totalBudget * 0.2).toLocaleString("en-IN")}`}
-                    </span>
-                  </div>
-                </div>
+                    {/* Decoration */}
+                    <div className="flex items-center justify-between font-body-md text-body-md text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-sm bg-secondary-fixed-dim shrink-0"></div>
+                        <span className="text-on-surface truncate font-medium">Production & Decor</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-on-surface-variant font-caption text-caption">20.0%</span>
+                        <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
+                          {formatCurrency(Math.round(totalBudget * 0.20))}
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Other & Contingency */}
-                <div className="flex items-center justify-between font-body-md text-body-md text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-sm bg-outline-variant shrink-0"></div>
-                    <span className="text-on-surface truncate font-medium">Other &amp; Contingency</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-on-surface-variant font-caption text-caption">13.4%</span>
-                    <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
-                      {isTest ? "₹32,000" : `₹${Math.round(totalBudget * 0.134).toLocaleString("en-IN")}`}
-                    </span>
-                  </div>
-                </div>
+                    {/* Other & Contingency */}
+                    <div className="flex items-center justify-between font-body-md text-body-md text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-sm bg-outline-variant shrink-0"></div>
+                        <span className="text-on-surface truncate font-medium">Contingency Reserve</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-on-surface-variant font-caption text-caption">14.0%</span>
+                        <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
+                          {formatCurrency(Math.round(totalBudget * 0.14))}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
@@ -429,62 +435,67 @@ export default function Dashboard() {
               <h2 className="font-headline-sm text-headline-sm text-primary tracking-tight font-bold">
                 Recent Activity
               </h2>
-              <div className="flex flex-col gap-space-md relative">
-                {/* Activity Line Connector */}
-                <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-surface-container"></div>
-
-                {/* Item 1 */}
-                <div className="flex items-start gap-space-sm relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center font-caption text-caption shrink-0 shadow-sm font-bold">
-                    PK
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <p className="font-body-md text-body-md text-on-surface leading-snug text-xs sm:text-sm">
-                      <strong>Priya K.</strong> confirmed Venue Contract with Villa Florists
-                    </p>
-                    <span className="font-caption text-caption text-on-surface-variant mt-0.5">25m ago</span>
-                  </div>
+              {tasks.length === 0 && events.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-6 text-center rounded-lg bg-surface-container-low/50 border border-dashed border-outline-variant/20">
+                  <span className="material-symbols-outlined text-[28px] text-on-surface-variant mb-2">history</span>
+                  <p className="font-body-md-medium text-body-md-medium text-primary">No recent activity yet</p>
+                  <p className="font-caption text-caption text-on-surface-variant mt-1 max-w-xs">
+                    Create an event or schedule tasks to track real-time planning updates here.
+                  </p>
+                  <Link
+                    to="/create-event"
+                    className="mt-3 text-xs font-semibold text-secondary hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>Create first event</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                  </Link>
                 </div>
+              ) : (
+                <div className="flex flex-col gap-space-md relative">
+                  {/* Activity Line Connector */}
+                  <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-surface-container"></div>
 
-                {/* Item 2 */}
-                <div className="flex items-start gap-space-sm relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-caption text-caption shrink-0 shadow-sm">
-                    <span className="material-symbols-outlined text-[16px]">tune</span>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <p className="font-body-md text-body-md text-on-surface leading-snug text-xs sm:text-sm">
-                      Budget adjusted: Added ₹8,000 contingency reserve
-                    </p>
-                    <span className="font-caption text-caption text-on-surface-variant mt-0.5">2h ago</span>
-                  </div>
-                </div>
+                  {/* Derived activities from tasks and events */}
+                  {tasks.slice(0, 3).map((t, idx) => (
+                    <div key={t.id || idx} className="flex items-start gap-space-sm relative z-10">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-caption text-caption shrink-0 shadow-sm ${
+                        t.completed
+                          ? "bg-secondary-fixed text-on-secondary-fixed font-bold"
+                          : "bg-primary-container text-on-primary"
+                      }`}>
+                        <span className="material-symbols-outlined text-[16px]">
+                          {t.completed ? "task_alt" : "schedule"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <p className="font-body-md text-body-md text-on-surface leading-snug text-xs sm:text-sm">
+                          <strong>{t.completed ? "Completed: " : "Action item: "}</strong>
+                          {t.title}
+                        </p>
+                        <span className="font-caption text-caption text-on-surface-variant mt-0.5">
+                          {t.dueDate ? `Due ${t.dueDate}` : "In Progress"} • {t.priority || "Normal Priority"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
 
-                {/* Item 3 */}
-                <div className="flex items-start gap-space-sm relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-surface-container text-primary flex items-center justify-center font-caption text-caption shrink-0 shadow-sm">
-                    <span className="material-symbols-outlined text-[16px]">groups</span>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <p className="font-body-md text-body-md text-on-surface leading-snug text-xs sm:text-sm">
-                      5 new RSVPs confirmed for TechFest 2026
-                    </p>
-                    <span className="font-caption text-caption text-on-surface-variant mt-0.5">4h ago</span>
-                  </div>
+                  {events.slice(0, 1).map((e) => (
+                    <div key={e.id} className="flex items-start gap-space-sm relative z-10">
+                      <div className="w-8 h-8 rounded-full bg-surface-container text-primary flex items-center justify-center font-caption text-caption shrink-0 shadow-sm">
+                        <span className="material-symbols-outlined text-[16px]">celebration</span>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <p className="font-body-md text-body-md text-on-surface leading-snug text-xs sm:text-sm">
+                          <strong>Active event:</strong> {e.name}
+                        </p>
+                        <span className="font-caption text-caption text-on-surface-variant mt-0.5">
+                          {e.date} • {e.location}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Item 4 */}
-                <div className="flex items-start gap-space-sm relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant flex items-center justify-center font-caption text-caption shrink-0 shadow-sm">
-                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <p className="font-body-md text-body-md text-on-surface leading-snug text-xs sm:text-sm">
-                      AI Copilot generated 4 acoustic music playlist suggestions
-                    </p>
-                    <span className="font-caption text-caption text-on-surface-variant mt-0.5">Yesterday</span>
-                  </div>
-                </div>
-              </div>
+              )}
             </section>
           </div>
         </div>

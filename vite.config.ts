@@ -176,8 +176,14 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes("node_modules/firebase")) {
-              return "vendor-firebase";
+            if (id.includes("node_modules/firebase") || id.includes("node_modules/@firebase")) {
+              if (id.includes("firestore") || id.includes("webchannel-wrapper")) {
+                return "vendor-firestore";
+              }
+              if (id.includes("auth")) {
+                return "vendor-firebase-auth";
+              }
+              return "vendor-firebase-core";
             }
             if (
               id.includes("node_modules/react") ||

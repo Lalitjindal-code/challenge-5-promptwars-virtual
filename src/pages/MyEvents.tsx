@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext, type EventItem } from "../context/EventContext";
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 
 export default function MyEvents() {
-  const { events, setActiveEventId, isDemo } = useEventContext();
+  const { events, setActiveEventId, formatCurrency } = useEventContext();
   const navigate = useNavigate();
 
-  const isTest = isDemo;
   const displayEvents = events;
 
   // Filter & Search states
@@ -16,12 +16,19 @@ export default function MyEvents() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortOption, setSortOption] = useState("Date: Soonest First");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [archivedCount] = useState(0);
 
   // Drawer & Toast state
   const [inspectingEvent, setInspectingEvent] = useState<EventItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  useModalAccessibility({
+    isOpen: drawerOpen && Boolean(inspectingEvent),
+    onClose: () => setDrawerOpen(false),
+    modalRef: drawerRef,
+  });
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -53,6 +60,33 @@ export default function MyEvents() {
       );
     }
     return true;
+  });
+
+  // Sorted List
+  const sortedEvents = [...filteredEvents].sort((a, b) => {
+    if (sortOption === "Date: Soonest First") {
+      const timeA = new Date(a.date).getTime() || 0;
+      const timeB = new Date(b.date).getTime() || 0;
+      return timeA - timeB;
+    }
+    if (sortOption === "Date: Latest First") {
+      const timeA = new Date(a.date).getTime() || 0;
+      const timeB = new Date(b.date).getTime() || 0;
+      return timeB - timeA;
+    }
+    if (sortOption === "Budget: High to Low") {
+      return (b.budget || 0) - (a.budget || 0);
+    }
+    if (sortOption === "Budget: Low to High") {
+      return (a.budget || 0) - (b.budget || 0);
+    }
+    if (sortOption === "Guest Volume") {
+      return (b.guestsCount || 0) - (a.guestsCount || 0);
+    }
+    if (sortOption === "Name: A to Z") {
+      return a.name.localeCompare(b.name);
+    }
+    return 0;
   });
 
   return (
@@ -170,10 +204,10 @@ export default function MyEvents() {
           {/* Filter Pills Group */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 xl:pb-0">
             {[
-              { id: "All", label: "All", count: isTest ? 8 : displayEvents.length },
-              { id: "Upcoming", label: "Upcoming", count: isTest ? 3 : displayEvents.filter((e) => e.status === "On Track").length },
-              { id: "In Progress", label: "In Progress", count: isTest ? 1 : displayEvents.filter((e) => e.status === "Planning").length },
-              { id: "Completed", label: "Completed", count: isTest ? 4 : displayEvents.filter((e) => e.status === "Completed").length }
+              { id: "All", label: "All", count: displayEvents.length },
+              { id: "Upcoming", label: "Upcoming", count: displayEvents.filter((e) => e.status === "On Track").length },
+              { id: "In Progress", label: "In Progress", count: displayEvents.filter((e) => e.status === "Planning").length },
+              { id: "Completed", label: "Completed", count: displayEvents.filter((e) => e.status === "Completed").length }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -231,8 +265,11 @@ export default function MyEvents() {
                 className="h-10 pl-3 pr-8 rounded-lg bg-surface-container-low text-body-md font-body-md-medium text-on-surface appearance-none focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer shadow-sm text-xs"
               >
                 <option>Date: Soonest First</option>
+                <option>Date: Latest First</option>
                 <option>Budget: High to Low</option>
+                <option>Budget: Low to High</option>
                 <option>Guest Volume</option>
+                <option>Name: A to Z</option>
               </select>
               <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px] pointer-events-none">
                 swap_vert
@@ -269,211 +306,343 @@ export default function MyEvents() {
                 <span className="material-symbols-outlined text-[18px]">view_agenda</span>
               </button>
             </div>
-
-            {/* Archived link */}
-            <button
-              type="button"
-              onClick={() => showToast(`Displaying ${archivedCount} archived past seasons`)}
-              className="text-on-surface-variant hover:text-primary font-caption text-caption flex items-center gap-1 pl-2"
-            >
-              <span className="material-symbols-outlined text-[16px]">inventory_2</span>
-              <span className="hidden md:inline">Archived</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-surface-container font-caption text-caption font-semibold">
-                {archivedCount}
-              </span>
-            </button>
           </div>
         </div>
 
-        {/* Section 3: Event Portfolio Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg mb-space-xl">
-          {filteredEvents.map((evt) => {
-            const spentRatio = evt.budget > 0 ? Math.min(Math.round((evt.spent / evt.budget) * 100), 100) : 0;
-            const taskVelocity =
-              evt.totalTasks > 0 ? Math.min(Math.round((evt.tasksCompleted / evt.totalTasks) * 100), 100) : 0;
-
-            return (
-              <div
-                key={evt.id}
-                onClick={() => openDrawer(evt)}
-                className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col group cursor-pointer border border-outline-variant/15"
-              >
-                {/* Image Visual */}
-                <div className="relative h-52 w-full overflow-hidden bg-surface-container">
-                  {evt.coverImage ? (
-                    <img
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      src={evt.coverImage}
-                      alt={evt.name}
-                      loading="lazy"
-                    />
+        {/* Section 3: Event Portfolio Grid / List View */}
+        {viewMode === "list" ? (
+          <div className="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden mb-space-xl border border-outline-variant/15">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[800px]">
+                <thead>
+                  <tr className="bg-surface-container-low text-on-surface-variant font-caption text-caption uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-4">Event Name</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Date & Location</th>
+                    <th className="py-3 px-4">Budget Committed</th>
+                    <th className="py-3 px-4">RSVP & Guests</th>
+                    <th className="py-3 px-4">Milestones</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-container/60 text-body-md font-body-md">
+                  {sortedEvents.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-on-surface-variant text-xs">
+                        No events matching your filter.
+                      </td>
+                    </tr>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-primary/40">
-                      <span className="material-symbols-outlined text-[48px]">celebration</span>
-                    </div>
+                    sortedEvents.map((evt) => {
+                      const spentRatio = evt.budget > 0 ? Math.min(Math.round((evt.spent / evt.budget) * 100), 100) : 0;
+                      const taskVelocity =
+                        evt.totalTasks > 0 ? Math.min(Math.round((evt.tasksCompleted / evt.totalTasks) * 100), 100) : 0;
+                      return (
+                        <tr
+                          key={evt.id}
+                          onClick={() => openDrawer(evt)}
+                          className="hover:bg-surface-container-low/50 transition-colors cursor-pointer group"
+                        >
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              {evt.coverImage ? (
+                                <img src={evt.coverImage} alt={evt.name} className="w-10 h-10 rounded-lg object-cover" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+                                  <span className="material-symbols-outlined text-[20px]">celebration</span>
+                                </div>
+                              )}
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold text-primary text-xs truncate max-w-[180px] group-hover:text-secondary transition-colors">
+                                  {evt.name}
+                                </span>
+                                <span className="text-[11px] text-on-surface-variant truncate max-w-[180px]">
+                                  {evt.description || "Planora AI Studio"}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption text-[11px] font-semibold">
+                              {evt.type}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-xs">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-on-surface flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px] text-secondary">calendar_today</span>
+                                {evt.date}
+                              </span>
+                              <span className="text-[11px] text-on-surface-variant truncate max-w-[160px] flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                {evt.location}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-xs">
+                            <div className="flex flex-col min-w-[120px]">
+                              <span className="font-bold text-primary">
+                                {formatCurrency(evt.spent)} / {formatCurrency(evt.budget)}
+                              </span>
+                              <div className="w-full h-1.5 rounded-full bg-surface-container overflow-hidden mt-1">
+                                <div className="h-full bg-primary" style={{ width: `${spentRatio}%` }}></div>
+                              </div>
+                              <span className="text-[10px] text-on-surface-variant mt-0.5">{spentRatio}% spent</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-xs">
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-primary">{evt.guestsCount} Expected</span>
+                              <span className="text-[11px] text-secondary font-medium">{evt.confirmedGuests} Confirmed</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-xs">
+                            <div className="flex flex-col min-w-[100px]">
+                              <span className="font-medium text-primary">
+                                {evt.tasksCompleted}/{evt.totalTasks}
+                              </span>
+                              <div className="w-full h-1.5 rounded-full bg-surface-container overflow-hidden mt-1">
+                                <div className="h-full bg-secondary" style={{ width: `${taskVelocity}%` }}></div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-0.5 rounded-full bg-primary-container text-on-primary font-caption text-caption text-[11px] font-medium flex items-center gap-1 w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-secondary-fixed animate-pulse"></span>
+                              {evt.status}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => openDrawer(evt)}
+                                className="px-2.5 py-1 rounded bg-primary text-on-primary font-caption text-caption font-semibold hover:bg-primary-container transition-colors shadow-xs"
+                              >
+                                Inspect
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveEventId(evt.id);
+                                  navigate("/budget");
+                                }}
+                                title="Budget"
+                                className="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">account_balance_wallet</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveEventId(evt.id);
+                                  navigate("/guests");
+                                }}
+                                title="Guests"
+                                className="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">badge</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-black/20"></div>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg mb-space-xl">
+            {sortedEvents.map((evt) => {
+              const spentRatio = evt.budget > 0 ? Math.min(Math.round((evt.spent / evt.budget) * 100), 100) : 0;
+              const taskVelocity =
+                evt.totalTasks > 0 ? Math.min(Math.round((evt.tasksCompleted / evt.totalTasks) * 100), 100) : 0;
 
-                  {/* Badges Floating */}
-                  <div className="absolute top-3 left-3 flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption shadow-sm uppercase tracking-wider font-semibold">
-                      {evt.type}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-primary-container text-on-primary font-caption text-caption shadow-sm flex items-center gap-1 font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full bg-secondary-fixed animate-pulse"></span>
-                      {evt.status}
-                    </span>
-                  </div>
+              return (
+                <div
+                  key={evt.id}
+                  onClick={() => openDrawer(evt)}
+                  className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col group cursor-pointer border border-outline-variant/15"
+                >
+                  {/* Image Visual */}
+                  <div className="relative h-52 w-full overflow-hidden bg-surface-container">
+                    {evt.coverImage ? (
+                      <img
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        src={evt.coverImage}
+                        alt={evt.name}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-primary/40">
+                        <span className="material-symbols-outlined text-[48px]">celebration</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-black/20"></div>
 
-                  {/* Favorite Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      showToast(`${evt.name} pinned to favorites!`);
-                    }}
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface/80 backdrop-blur text-primary flex items-center justify-center hover:bg-surface transition-colors shadow-sm"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">star</span>
-                  </button>
-
-                  {/* Bottom Meta */}
-                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-on-primary">
-                    <div className="flex items-center gap-1.5 font-caption text-caption">
-                      <span className="material-symbols-outlined text-[16px] text-secondary-fixed">calendar_today</span>
-                      <span>{evt.date}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 font-caption text-caption opacity-90 truncate max-w-[50%]">
-                      <span className="material-symbols-outlined text-[16px]">location_on</span>
-                      <span className="truncate">{evt.location}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Body */}
-                <div className="p-space-lg flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="font-headline-sm text-headline-sm text-primary group-hover:text-secondary transition-colors font-bold truncate">
-                        {evt.name}
-                      </h3>
-                      <span className="px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-caption text-caption uppercase shrink-0 font-semibold">
-                        AI Active
+                    {/* Badges Floating */}
+                    <div className="absolute top-3 left-3 flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-caption text-caption shadow-sm uppercase tracking-wider font-semibold">
+                        {evt.type}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-primary-container text-on-primary font-caption text-caption shadow-sm flex items-center gap-1 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-secondary-fixed animate-pulse"></span>
+                        {evt.status}
                       </span>
                     </div>
-                    <p className="font-body-md text-body-md text-on-surface-variant line-clamp-1 mb-4 text-xs">
-                      {evt.description || "Custom planned celebration on Planora AI Studio."}
-                    </p>
 
-                    {/* Metrics Panel */}
-                    <div className="bg-surface-container-low rounded-lg p-3 space-y-3 mb-4 border border-outline-variant/10">
-                      <div>
-                        <div className="flex items-center justify-between font-caption text-caption mb-1">
-                          <span className="text-on-surface-variant flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[15px] text-secondary">payments</span>
-                            Budget Allocated
-                          </span>
-                          <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
-                            ₹{evt.spent.toLocaleString("en-IN")} / ₹{evt.budget.toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden flex">
-                          <div className="h-full bg-primary" style={{ width: `${spentRatio}%` }}></div>
-                          <div className="h-full bg-secondary-fixed-dim" style={{ width: `15%` }}></div>
-                        </div>
-                        <div className="flex items-center justify-between font-caption text-caption text-on-surface-variant mt-1 text-[11px]">
-                          <span>{spentRatio}% spent</span>
-                          <span className="text-secondary font-medium">
-                            ₹{Math.max(0, evt.budget - evt.spent).toLocaleString("en-IN")} reserve left
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="pt-2">
-                        <div className="flex items-center justify-between font-caption text-caption mb-1">
-                          <span className="text-on-surface-variant flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[15px] text-tertiary">task_alt</span>
-                            Tasks Milestones
-                          </span>
-                          <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
-                            {evt.tasksCompleted} of {evt.totalTasks} Done ({taskVelocity}%)
-                          </span>
-                        </div>
-                        <div className="w-full h-1.5 rounded-full bg-surface-container overflow-hidden">
-                          <div className="h-full bg-secondary" style={{ width: `${taskVelocity}%` }}></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Guest Quorum */}
-                    <div className="flex items-center justify-between text-on-surface-variant font-caption text-caption py-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[16px] text-primary">groups</span>
-                        <span className="font-body-md-medium text-on-surface font-semibold">{evt.guestsCount} Guests</span>
-                        <span className="text-secondary font-medium">({evt.confirmedGuests} RSVP Confirmed)</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[14px]">timer</span>
-                        <span>Active</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Footer Action Strip */}
-                  <div className="pt-space-md mt-space-md flex items-center justify-between border-t border-outline-variant/15">
+                    {/* Favorite Button */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        openDrawer(evt);
+                        showToast(`${evt.name} pinned to favorites!`);
                       }}
-                      className="h-9 px-space-md rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container flex items-center gap-2 transition-all active:translate-y-0.5 shadow-sm font-semibold"
+                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface/80 backdrop-blur text-primary flex items-center justify-center hover:bg-surface transition-colors shadow-sm"
                     >
-                      <span>Inspect Event</span>
-                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                      <span className="material-symbols-outlined text-[18px]">star</span>
                     </button>
-                    <div className="flex items-center gap-1">
+
+                    {/* Bottom Meta */}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-on-primary">
+                      <div className="flex items-center gap-1.5 font-caption text-caption">
+                        <span className="material-symbols-outlined text-[16px] text-secondary-fixed">calendar_today</span>
+                        <span>{evt.date}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 font-caption text-caption opacity-90 truncate max-w-[50%]">
+                        <span className="material-symbols-outlined text-[16px]">location_on</span>
+                        <span className="truncate">{evt.location}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="p-space-lg flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="font-headline-sm text-headline-sm text-primary group-hover:text-secondary transition-colors font-bold truncate">
+                          {evt.name}
+                        </h3>
+                        <span className="px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-caption text-caption uppercase shrink-0 font-semibold">
+                          AI Active
+                        </span>
+                      </div>
+                      <p className="font-body-md text-body-md text-on-surface-variant line-clamp-1 mb-4 text-xs">
+                        {evt.description || "Custom planned celebration on Planora AI Studio."}
+                      </p>
+
+                      {/* Metrics Panel */}
+                      <div className="bg-surface-container-low rounded-lg p-3 space-y-3 mb-4 border border-outline-variant/10">
+                        <div>
+                          <div className="flex items-center justify-between font-caption text-caption mb-1">
+                            <span className="text-on-surface-variant flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[15px] text-secondary">payments</span>
+                              Budget Allocated
+                            </span>
+                            <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
+                              {formatCurrency(evt.spent)} / {formatCurrency(evt.budget)}
+                            </span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden flex">
+                            <div className="h-full bg-primary" style={{ width: `${spentRatio}%` }}></div>
+                            <div className="h-full bg-secondary-fixed-dim" style={{ width: `15%` }}></div>
+                          </div>
+                          <div className="flex items-center justify-between font-caption text-caption text-on-surface-variant mt-1 text-[11px]">
+                            <span>{spentRatio}% spent</span>
+                            <span className="text-secondary font-medium">
+                              {formatCurrency(Math.max(0, evt.budget - evt.spent))} reserve left
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <div className="flex items-center justify-between font-caption text-caption mb-1">
+                            <span className="text-on-surface-variant flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[15px] text-tertiary">task_alt</span>
+                              Tasks Milestones
+                            </span>
+                            <span className="font-body-md-medium text-body-md-medium text-primary font-semibold">
+                              {evt.tasksCompleted} of {evt.totalTasks} Done ({taskVelocity}%)
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-surface-container overflow-hidden">
+                            <div className="h-full bg-secondary" style={{ width: `${taskVelocity}%` }}></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Guest Quorum */}
+                      <div className="flex items-center justify-between text-on-surface-variant font-caption text-caption py-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-primary">groups</span>
+                          <span className="font-body-md-medium text-on-surface font-semibold">{evt.guestsCount} Guests</span>
+                          <span className="text-secondary font-medium">({evt.confirmedGuests} RSVP Confirmed)</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[14px]">timer</span>
+                          <span>Active</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Action Strip */}
+                    <div className="pt-space-md mt-space-md flex items-center justify-between border-t border-outline-variant/15">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveEventId(evt.id);
-                          navigate("/budget");
+                          openDrawer(evt);
                         }}
-                        className="w-8 h-8 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex items-center justify-center transition-colors"
-                        title="Budget Breakdown"
+                        className="h-9 px-space-md rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container flex items-center gap-2 transition-all active:translate-y-0.5 shadow-sm font-semibold"
                       >
-                        <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                        <span>Inspect Event</span>
+                        <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveEventId(evt.id);
-                          navigate("/guests");
-                        }}
-                        className="w-8 h-8 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex items-center justify-center transition-colors"
-                        title="Guest Directory"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">badge</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          showToast("Options: Export PDF, Duplicate, or Archive");
-                        }}
-                        className="w-8 h-8 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex items-center justify-center transition-colors"
-                        title="Options"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">more_vert</span>
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveEventId(evt.id);
+                            navigate("/budget");
+                          }}
+                          className="w-8 h-8 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex items-center justify-center transition-colors"
+                          title="Budget Breakdown"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveEventId(evt.id);
+                            navigate("/guests");
+                          }}
+                          className="w-8 h-8 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex items-center justify-center transition-colors"
+                          title="Guest Directory"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">badge</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            showToast("Options: Export PDF, Duplicate, or Archive");
+                          }}
+                          className="w-8 h-8 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-low flex items-center justify-center transition-colors"
+                          title="Options"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
           {/* Interactive Call to Action Card: Plan a New Celebration */}
           <Link
@@ -536,7 +705,7 @@ export default function MyEvents() {
                     Total Pipeline Outlay
                   </span>
                   <span className="font-title-md text-title-md text-primary font-bold">
-                    ₹{displayEvents.reduce((acc, e) => acc + e.budget, 0).toLocaleString("en-IN")}
+                    {formatCurrency(displayEvents.reduce((acc, e) => acc + e.budget, 0))}
                   </span>
                 </div>
                 <div className="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
@@ -574,6 +743,7 @@ export default function MyEvents() {
             </div>
           </div>
         </div>
+      )}
 
         {/* SECTION 4: SLIDE-OVER INSPECTION DRAWER */}
         {drawerOpen && inspectingEvent && (
@@ -585,7 +755,14 @@ export default function MyEvents() {
             ></div>
 
             {/* Drawer Body */}
-            <aside className="fixed top-0 right-0 h-full w-full max-w-xl bg-surface-container-lowest z-50 shadow-2xl flex flex-col justify-between transition-transform duration-300 overflow-hidden border-l border-outline-variant/20">
+            <aside
+              ref={drawerRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="inspecting-event-name"
+              tabIndex={-1}
+              className="fixed top-0 right-0 h-full w-full max-w-xl bg-surface-container-lowest z-50 shadow-2xl flex flex-col justify-between transition-transform duration-300 overflow-hidden border-l border-outline-variant/20 outline-none"
+            >
               {/* Header with Photo Banner */}
               <div className="relative">
                 <div className="h-44 w-full overflow-hidden relative bg-surface-container">
@@ -601,6 +778,7 @@ export default function MyEvents() {
                   {/* Close Button */}
                   <button
                     type="button"
+                    aria-label="Close event inspection drawer"
                     onClick={closeDrawer}
                     className="absolute top-4 right-4 w-9 h-9 rounded-full bg-surface-container-lowest/80 text-primary hover:bg-surface-container-lowest flex items-center justify-center transition-colors shadow-md"
                   >
@@ -619,7 +797,7 @@ export default function MyEvents() {
 
                   {/* Title in Banner */}
                   <div className="absolute bottom-4 left-6 right-6">
-                    <h2 className="font-headline-md text-headline-md text-on-primary tracking-tight font-bold">
+                    <h2 id="inspecting-event-name" className="font-headline-md text-headline-md text-on-primary tracking-tight font-bold">
                       {inspectingEvent.name}
                     </h2>
                     <p className="font-body-md text-body-md text-surface-container-high opacity-90 flex items-center gap-2 mt-0.5 text-xs">
@@ -644,7 +822,7 @@ export default function MyEvents() {
                         : "0%"}
                     </span>
                     <span className="font-caption text-caption text-secondary font-medium">
-                      ₹{(inspectingEvent.spent / 100000).toFixed(2)}L / ₹{(inspectingEvent.budget / 100000).toFixed(2)}L
+                      {formatCurrency(inspectingEvent.spent)} / {formatCurrency(inspectingEvent.budget)}
                     </span>
                   </div>
 
@@ -700,7 +878,7 @@ export default function MyEvents() {
                         </span>
                       </div>
                       <span className="font-caption text-caption text-secondary font-semibold">
-                        ₹{Math.max(0, inspectingEvent.budget - inspectingEvent.spent).toLocaleString("en-IN")} left
+                        {formatCurrency(Math.max(0, inspectingEvent.budget - inspectingEvent.spent))} left
                       </span>
                     </button>
 

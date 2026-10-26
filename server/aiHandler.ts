@@ -46,12 +46,6 @@ export async function verifyFirebaseIdToken(token: string, firebaseApiKey?: stri
     return { valid: false, error: "Missing or invalid authorization token" };
   }
 
-  // Allow explicit demo token for local testing / demo mode
-  if (token.startsWith("demo-token-")) {
-    const demoUid = token.replace("demo-token-", "");
-    return { valid: true, uid: demoUid || "demo-user", email: "test@planora.ai" };
-  }
-
   const apiKey = firebaseApiKey || process.env.VITE_FIREBASE_API_KEY;
   if (!apiKey) {
     return { valid: false, error: "Firebase API key not configured on server" };
@@ -342,11 +336,7 @@ export async function verifyEventOwnership(
   eventId: string,
   token: string
 ): Promise<boolean> {
-  if (token.startsWith("demo-token-") || eventId.startsWith("demo-") || uid === "demo-user") {
-    return true;
-  }
-
-  if (!projectId || !uid || !eventId) {
+  if (!projectId || !uid || !eventId || !token) {
     return false;
   }
 

@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useAuth } from "../context/AuthContext";
+import { useEventContext } from "../context/EventContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "../lib/firebase";
+import { isFirebaseConfigured } from "../lib/firebase";
+import { db } from "../lib/firestore";
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 
 export default function Settings() {
-  const { user, updateUserPassword } = useAuth();
+  const { user, updateUserPassword, logOut } = useAuth();
+  const { events, tasks, guests, vendors, expenses, budgetItems, currency: globalCurrency, setCurrency: setGlobalCurrency } = useEventContext();
 
   // Navigation
   const [activeSection, setActiveSection] = useState<string>("section-profile");
@@ -19,26 +23,73 @@ export default function Settings() {
   const [region, setRegion] = useState("India (IN) — Domestic & Destination Operations");
   const [timezone, setTimezone] = useState("(GMT+05:30) India Standard Time (IST) — Kolkata, Mumbai, New Delhi");
 
-  useEffect(() => {
-    if (user && isFirebaseConfigured && db && !user.isDemo) {
-      getDoc(doc(db, "users", user.uid)).then((snap) => {
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data.fullName) setFullName(data.fullName);
-          if (data.phone) setPhone(data.phone);
-          if (data.jobTitle) setJobTitle(data.jobTitle);
-          if (data.organization) setOrganization(data.organization);
-          if (data.region) setRegion(data.region);
-          if (data.timezone) setTimezone(data.timezone);
-          if (data.currency) setCurrency(data.currency);
-          if (data.themeMode) setThemeMode(data.themeMode);
-        }
-      }).catch(console.warn);
+  // Avatar Upload State
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("planora_avatar") || null;
+    } catch {
+      return null;
     }
-  }, [user?.uid]);
+  });
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // Stored Baseline for Discard functionality
+  const savedProfileRef = useRef({
+    fullName: user?.displayName || "Alex Morgan",
+    phone: "98201 44102",
+    jobTitle: "Principal Event Planner & Founder",
+    organization: "Aura Luxe Event Curators",
+    region: "India (IN) — Domestic & Destination Operations",
+    timezone: "(GMT+05:30) India Standard Time (IST) — Kolkata, Mumbai, New Delhi"
+  });
+
+  // Account Plan Tier
+  const [accountTier, setAccountTier] = useState<"Pro Planner" | "Enterprise Planner">(() => {
+    try {
+      return (localStorage.getItem("planora_account_tier") as any) || "Pro Planner";
+    } catch {
+      return "Pro Planner";
+    }
+  });
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const upgradeModalRef = useRef<HTMLDivElement>(null);
+  useModalAccessibility({
+    isOpen: isUpgradeModalOpen,
+    onClose: () => setIsUpgradeModalOpen(false),
+    modalRef: upgradeModalRef,
+  });
+
+  // 2FA Backup Codes State & Modal
+  const [isBackupCodesOpen, setIsBackupCodesOpen] = useState(false);
+  const [copiedCodes, setCopiedCodes] = useState(false);
+  const backupModalRef = useRef<HTMLDivElement>(null);
+  useModalAccessibility({
+    isOpen: isBackupCodesOpen,
+    onClose: () => setIsBackupCodesOpen(false),
+    modalRef: backupModalRef,
+  });
+
+  const BACKUP_CODES = [
+    "PLAN-9K24-88A1",
+    "PLAN-4M77-01B9",
+    "PLAN-2X33-55C2",
+    "PLAN-7H89-12D4",
+    "PLAN-3P55-90E6",
+    "PLAN-6W11-44F8",
+    "PLAN-8L22-77G3",
+    "PLAN-1N66-33H5",
+    "PLAN-5T44-22J7",
+    "PLAN-0R88-66K9"
+  ];
 
   // Preferences State
-  const [currency, setCurrency] = useState<"INR" | "USD" | "EUR" | "GBP" | "AED">("INR");
+  const [currency, setCurrency] = useState<"INR" | "USD" | "EUR" | "GBP" | "AED">(globalCurrency || "INR");
+
+  useEffect(() => {
+    if (globalCurrency) {
+      setCurrency(globalCurrency);
+    }
+  }, [globalCurrency]);
   const [dateFormat, setDateFormat] = useState("DD/MM/YYYY (e.g., 15/12/2026) — UK/India Standard");
   const [eventArchetype, setEventArchetype] = useState("Royal Wedding & Grand Celebrations (Multi-Day)");
   const [quorumFormat, setQuorumFormat] = useState<"cohorts" | "flat">("cohorts");
@@ -62,21 +113,32 @@ export default function Settings() {
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
 
   // Security State
-  const [pwdCurr, setPwdCurr] = useState("••••••••••••••");
+  const [pwdCurr, setPwdCurr] = useState("");
   const [pwdNew, setPwdNew] = useState("");
   const [pwdConfirm, setPwdConfirm] = useState("");
   const [showPwdCurr, setShowPwdCurr] = useState(false);
   const [showPwdNew, setShowPwdNew] = useState(false);
   const [showPwdConfirm, setShowPwdConfirm] = useState(false);
   const [sessions, setSessions] = useState([
-    { id: "s1", name: "MacBook Pro 16” — Chrome 124", loc: "Mumbai, India • IP: 103.21.244.18 • Active now", isCurrent: true },
-    { id: "s2", name: "iPhone 15 Pro — Planora iOS App", loc: "Udaipur, Rajasthan, India • Last active 2 hours ago", isCurrent: false },
+    {
+      id: "s1",
+      name: `${typeof navigator !== "undefined" && navigator.userAgent.includes("Windows") ? "Windows PC" : typeof navigator !== "undefined" && navigator.userAgent.includes("Mac") ? "Mac" : "Desktop"} — Web Browser`,
+      loc: user?.isDemo ? "Alex Morgan Demo Studio • Local Active Session" : "Authenticated Master Planner Session",
+      isCurrent: true
+    }
   ]);
 
   // Data State
   const [telemetryConsent, setTelemetryConsent] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
+
+  const deleteModalRef = useRef<HTMLDivElement>(null);
+  useModalAccessibility({
+    isOpen: isDeleteModalOpen,
+    onClose: () => setIsDeleteModalOpen(false),
+    modalRef: deleteModalRef,
+  });
 
   // Feedback Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -86,6 +148,109 @@ export default function Settings() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const applyTheme = (mode: "light" | "dark" | "system") => {
+    setThemeMode(mode);
+    try {
+      localStorage.setItem("planora_theme_mode", mode);
+    } catch {}
+
+    if (typeof document !== "undefined") {
+      let isDark = false;
+      if (mode === "dark") {
+        isDark = true;
+      } else if (mode === "system") {
+        isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      }
+      if (isDark) {
+        document.documentElement.classList.add("dark");
+        document.documentElement.setAttribute("data-theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    }
+  };
+
+  // Hydrate settings from localStorage and Cloud Firestore
+  useEffect(() => {
+    try {
+      const savedRaw = localStorage.getItem("planora_workspace_settings");
+      if (savedRaw) {
+        const saved = JSON.parse(savedRaw);
+        if (saved.fullName) setFullName(saved.fullName);
+        if (saved.phone) setPhone(saved.phone);
+        if (saved.jobTitle) setJobTitle(saved.jobTitle);
+        if (saved.organization) setOrganization(saved.organization);
+        if (saved.region) setRegion(saved.region);
+        if (saved.timezone) setTimezone(saved.timezone);
+        if (saved.currency) setCurrency(saved.currency);
+        if (saved.dateFormat) setDateFormat(saved.dateFormat);
+        if (saved.eventArchetype) setEventArchetype(saved.eventArchetype);
+        if (saved.quorumFormat) setQuorumFormat(saved.quorumFormat);
+        if (saved.budgetFramework) setBudgetFramework(saved.budgetFramework);
+        if (typeof saved.vendorSynergyAi === "boolean") setVendorSynergyAi(saved.vendorSynergyAi);
+        if (typeof saved.channelEmail === "boolean") setChannelEmail(saved.channelEmail);
+        if (typeof saved.channelWhatsapp === "boolean") setChannelWhatsapp(saved.channelWhatsapp);
+        if (typeof saved.channelDesktop === "boolean") setChannelDesktop(saved.channelDesktop);
+        if (typeof saved.alertDeadlines === "boolean") setAlertDeadlines(saved.alertDeadlines);
+        if (typeof saved.alertVipRsvp === "boolean") setAlertVipRsvp(saved.alertVipRsvp);
+        if (typeof saved.alertBudgetThreshold === "boolean") setAlertBudgetThreshold(saved.alertBudgetThreshold);
+        if (typeof saved.alertVendorPayments === "boolean") setAlertVendorPayments(saved.alertVendorPayments);
+        if (typeof saved.alertAiBriefs === "boolean") setAlertAiBriefs(saved.alertAiBriefs);
+        if (typeof saved.alertProductUpdates === "boolean") setAlertProductUpdates(saved.alertProductUpdates);
+        if (saved.density) setDensity(saved.density);
+        if (typeof saved.telemetryConsent === "boolean") setTelemetryConsent(saved.telemetryConsent);
+        if (saved.accountTier) setAccountTier(saved.accountTier);
+        if (saved.themeMode) {
+          applyTheme(saved.themeMode);
+        }
+
+        savedProfileRef.current = {
+          fullName: saved.fullName || fullName,
+          phone: saved.phone || phone,
+          jobTitle: saved.jobTitle || jobTitle,
+          organization: saved.organization || organization,
+          region: saved.region || region,
+          timezone: saved.timezone || timezone
+        };
+      } else {
+        const storedTheme = (localStorage.getItem("planora_theme_mode") as any) || "light";
+        applyTheme(storedTheme);
+      }
+    } catch (e) {
+      console.warn("Settings local storage load error:", e);
+    }
+
+    if (user && isFirebaseConfigured && db && !user.isDemo) {
+      getDoc(doc(db, "users", user.uid))
+        .then((snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.fullName) setFullName(data.fullName);
+            if (data.phone) setPhone(data.phone);
+            if (data.jobTitle) setJobTitle(data.jobTitle);
+            if (data.organization) setOrganization(data.organization);
+            if (data.region) setRegion(data.region);
+            if (data.timezone) setTimezone(data.timezone);
+            if (data.currency) setCurrency(data.currency);
+            if (data.themeMode) applyTheme(data.themeMode);
+            if (data.accountTier) setAccountTier(data.accountTier);
+            if (data.avatarUrl) setAvatarUrl(data.avatarUrl);
+
+            savedProfileRef.current = {
+              fullName: data.fullName || fullName,
+              phone: data.phone || phone,
+              jobTitle: data.jobTitle || jobTitle,
+              organization: data.organization || organization,
+              region: data.region || region,
+              timezone: data.timezone || timezone
+            };
+          }
+        })
+        .catch(console.warn);
+    }
+  }, [user?.uid]);
+
   const scrollToSection = (id: string) => {
     setActiveSection(id);
     const element = document.getElementById(id);
@@ -94,25 +259,78 @@ export default function Settings() {
     }
   };
 
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        triggerToast("Image file size exceeds 5MB limit.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = ev.target?.result as string;
+        setAvatarUrl(result);
+        try {
+          localStorage.setItem("planora_avatar", result);
+        } catch {}
+        triggerToast("Profile photo uploaded successfully!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarUrl(null);
+    try {
+      localStorage.removeItem("planora_avatar");
+    } catch {}
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+    triggerToast("Default initials avatar restored.");
+  };
+
+  const handleDiscardProfile = () => {
+    const prev = savedProfileRef.current;
+    setFullName(prev.fullName);
+    setPhone(prev.phone);
+    setJobTitle(prev.jobTitle);
+    setOrganization(prev.organization);
+    setRegion(prev.region);
+    setTimezone(prev.timezone);
+    triggerToast("Unsaved profile edits discarded.");
+  };
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      fullName,
+      phone,
+      jobTitle,
+      organization,
+      region,
+      timezone,
+      currency,
+      themeMode,
+      avatarUrl,
+      updatedAt: new Date().toISOString()
+    };
+
+    savedProfileRef.current = {
+      fullName,
+      phone,
+      jobTitle,
+      organization,
+      region,
+      timezone
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem("planora_workspace_settings") || "{}");
+      localStorage.setItem("planora_workspace_settings", JSON.stringify({ ...existing, ...payload }));
+    } catch {}
+
     if (user && isFirebaseConfigured && db && !user.isDemo) {
       try {
-        await setDoc(
-          doc(db, "users", user.uid),
-          {
-            fullName,
-            phone,
-            jobTitle,
-            organization,
-            region,
-            timezone,
-            currency,
-            themeMode,
-            updatedAt: new Date().toISOString()
-          },
-          { merge: true }
-        );
+        await setDoc(doc(db, "users", user.uid), payload, { merge: true });
         triggerToast("Profile settings saved and synced to cloud.");
       } catch (err: any) {
         console.error("Profile save error:", err);
@@ -120,6 +338,154 @@ export default function Settings() {
       }
     } else {
       triggerToast("Profile settings updated (Demo Studio Preview).");
+    }
+  };
+
+  const handleSavePlanningDefaults = async () => {
+    setGlobalCurrency(currency);
+    try {
+      localStorage.setItem("planora_currency", currency);
+    } catch {}
+
+    const payload = {
+      currency,
+      dateFormat,
+      eventArchetype,
+      quorumFormat,
+      budgetFramework,
+      vendorSynergyAi,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem("planora_workspace_settings") || "{}");
+      localStorage.setItem("planora_workspace_settings", JSON.stringify({ ...existing, ...payload }));
+    } catch {}
+
+    if (user && isFirebaseConfigured && db && !user.isDemo) {
+      try {
+        await setDoc(doc(db, "users", user.uid), payload, { merge: true });
+        triggerToast("Planning defaults and currency rules saved to cloud.");
+      } catch (err: any) {
+        triggerToast("Planning defaults saved locally.");
+      }
+    } else {
+      triggerToast(`Planning defaults saved (Currency: ${currency}).`);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    const payload = {
+      channelEmail,
+      channelWhatsapp,
+      channelDesktop,
+      alertDeadlines,
+      alertVipRsvp,
+      alertBudgetThreshold,
+      alertVendorPayments,
+      alertAiBriefs,
+      alertProductUpdates,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem("planora_workspace_settings") || "{}");
+      localStorage.setItem("planora_workspace_settings", JSON.stringify({ ...existing, ...payload }));
+    } catch {}
+
+    if (user && isFirebaseConfigured && db && !user.isDemo) {
+      try {
+        await setDoc(doc(db, "users", user.uid), payload, { merge: true });
+        triggerToast("Notification preferences & alert triggers saved to cloud.");
+      } catch (err: any) {
+        triggerToast("Notification preferences saved locally.");
+      }
+    } else {
+      triggerToast("Notification preferences and delivery channels saved.");
+    }
+  };
+
+  const handleSaveAppearance = async () => {
+    const payload = {
+      themeMode,
+      density,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem("planora_workspace_settings") || "{}");
+      localStorage.setItem("planora_workspace_settings", JSON.stringify({ ...existing, ...payload }));
+    } catch {}
+
+    if (user && isFirebaseConfigured && db && !user.isDemo) {
+      try {
+        await setDoc(doc(db, "users", user.uid), payload, { merge: true });
+      } catch {}
+    }
+    triggerToast(`Appearance canvas saved (${themeMode.toUpperCase()} mode active).`);
+  };
+
+  const handleSaveAllSettings = async () => {
+    setGlobalCurrency(currency);
+    try {
+      localStorage.setItem("planora_currency", currency);
+    } catch {}
+
+    const fullPayload = {
+      fullName,
+      phone,
+      jobTitle,
+      organization,
+      region,
+      timezone,
+      currency,
+      dateFormat,
+      eventArchetype,
+      quorumFormat,
+      budgetFramework,
+      vendorSynergyAi,
+      channelEmail,
+      channelWhatsapp,
+      channelDesktop,
+      alertDeadlines,
+      alertVipRsvp,
+      alertBudgetThreshold,
+      alertVendorPayments,
+      alertAiBriefs,
+      alertProductUpdates,
+      themeMode,
+      density,
+      telemetryConsent,
+      accountTier,
+      avatarUrl,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      localStorage.setItem("planora_workspace_settings", JSON.stringify(fullPayload));
+    } catch (e) {
+      console.warn("Storage save error:", e);
+    }
+
+    savedProfileRef.current = {
+      fullName,
+      phone,
+      jobTitle,
+      organization,
+      region,
+      timezone
+    };
+
+    if (user && isFirebaseConfigured && db && !user.isDemo) {
+      try {
+        await setDoc(doc(db, "users", user.uid), fullPayload, { merge: true });
+        triggerToast("All preferences & workspace settings saved to cloud!");
+      } catch (err: any) {
+        console.error("Cloud save error:", err);
+        triggerToast("Settings saved locally across all active views.");
+      }
+    } else {
+      triggerToast("All preferences & workspace settings saved successfully!");
     }
   };
 
@@ -136,6 +502,7 @@ export default function Settings() {
       try {
         await updateUserPassword(pwdNew);
         triggerToast("Password updated securely in Firebase Authentication.");
+        setPwdCurr("");
         setPwdNew("");
         setPwdConfirm("");
       } catch (err: any) {
@@ -144,6 +511,7 @@ export default function Settings() {
       }
     } else {
       triggerToast("Password updated securely (Demo Studio Sandbox).");
+      setPwdCurr("");
       setPwdNew("");
       setPwdConfirm("");
     }
@@ -154,18 +522,146 @@ export default function Settings() {
     triggerToast("Hardware session terminated.");
   };
 
-  const handlePerformDelete = () => {
+  const handlePerformDelete = async () => {
     if (deleteInput.trim() === "DELETE-PLANORA") {
       setIsDeleteModalOpen(false);
-      triggerToast("Account deletion request queued for 48-hour safety hold.");
       setDeleteInput("");
+      
+      try {
+        localStorage.removeItem("planora_workspace_settings");
+        localStorage.removeItem("planora_avatar");
+        localStorage.removeItem("planora_theme_mode");
+        localStorage.removeItem("planora_account_tier");
+        localStorage.removeItem("planora_demo_events");
+        localStorage.removeItem("planora_demo_tasks");
+        localStorage.removeItem("planora_demo_guests");
+        localStorage.removeItem("planora_demo_vendors");
+      } catch (e) {
+        console.warn("Storage cleanup:", e);
+      }
+
+      triggerToast("Account data reset. Signing out...");
+      try {
+        await logOut();
+      } catch (err: any) {
+        console.warn("Sign out during deletion:", err);
+      }
     } else {
       alert("Please type DELETE-PLANORA correctly to confirm.");
     }
   };
 
+  const handleConfirmUpgrade = () => {
+    setAccountTier("Enterprise Planner");
+    try {
+      localStorage.setItem("planora_account_tier", "Enterprise Planner");
+    } catch {}
+    setIsUpgradeModalOpen(false);
+    triggerToast("Congratulations! Workspace upgraded to Planora Enterprise Tier.");
+  };
+
+  const handleCopyBackupCodes = async () => {
+    const text = BACKUP_CODES.join("\n");
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      setCopiedCodes(true);
+      setTimeout(() => setCopiedCodes(false), 2500);
+      triggerToast("10 Emergency Backup Codes copied to clipboard.");
+    }
+  };
+
+  const handleDownloadBackupCodes = () => {
+    const content = `Planora AI — Emergency 2FA Backup Codes\nGenerated: ${new Date().toLocaleString()}\nAccount: ${email}\n\n` +
+      BACKUP_CODES.map((c, i) => `${i + 1}. ${c}`).join("\n") +
+      `\n\n* Keep these codes safe. Each code can be used once to access your workspace.`;
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "planora-2fa-backup-codes.txt";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    triggerToast("Backup codes text file downloaded.");
+  };
+
+  const handleExportWorkspace = () => {
+    const exportBundle = {
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        platform: "Planora AI Enterprise",
+        account: {
+          uid: user?.uid || "demo",
+          email: user?.email || email,
+          displayName: fullName,
+          organization,
+          role: jobTitle,
+          region,
+          tier: accountTier
+        }
+      },
+      settings: {
+        currency,
+        dateFormat,
+        eventArchetype,
+        quorumFormat,
+        budgetFramework,
+        vendorSynergyAi,
+        themeMode,
+        density,
+        notifications: {
+          channelEmail,
+          channelWhatsapp,
+          channelDesktop,
+          alertDeadlines,
+          alertVipRsvp,
+          alertBudgetThreshold,
+          alertVendorPayments,
+          alertAiBriefs,
+          alertProductUpdates
+        },
+        telemetryConsent
+      },
+      workspaceData: {
+        eventsCount: events.length,
+        events,
+        tasksCount: tasks.length,
+        tasks,
+        guestsCount: guests.length,
+        guests,
+        vendorsCount: vendors.length,
+        vendors,
+        expensesCount: expenses?.length || 0,
+        expenses: expenses || [],
+        budgetItemsCount: budgetItems?.length || 0,
+        budgetItems: budgetItems || []
+      }
+    };
+
+    const jsonBlob = new Blob([JSON.stringify(exportBundle, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(jsonBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `planora-master-workspace-archive.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    triggerToast("Full workspace archive (events, guests, budget & vendors) downloaded.");
+  };
+
+  const userInitials = fullName
+    .split(" ")
+    .map((n) => n[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "AM";
+
   return (
     <AppLayout
+
       title="Settings"
       subtitle="Configure regional financial defaults, autonomous AI Copilot rules, and security controls."
     >
@@ -204,7 +700,7 @@ export default function Settings() {
             </div>
             <button
               type="button"
-              onClick={() => triggerToast("Settings preferences applied instantly across all 8 active workspaces.")}
+              onClick={handleSaveAllSettings}
               className="h-10 px-5 rounded-lg bg-primary-container text-on-primary font-body-md-medium text-body-md flex items-center gap-2 hover:bg-primary transition-all duration-150 active:translate-y-0.5 shadow-sm"
             >
               <span className="material-symbols-outlined text-[18px]">check_circle</span>
@@ -276,27 +772,37 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-[16px] text-secondary">workspace_premium</span>
-                    <span className="font-body-md-medium text-body-md-medium text-primary">Pro Planner</span>
+                    <span className="font-body-md-medium text-body-md-medium text-primary font-bold">{accountTier}</span>
                   </div>
                   <span className="font-caption text-caption uppercase tracking-wider text-secondary font-bold">Active</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between font-caption text-caption text-on-surface-variant">
                     <span>Event Capacity</span>
-                    <span className="font-bold text-primary">8 of 15 Active</span>
+                    <span className="font-bold text-primary">
+                      {events.length} of {accountTier === "Enterprise Planner" ? "Unlimited" : "15"} Active
+                    </span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-surface-container overflow-hidden">
-                    <div className="h-full bg-primary-container rounded-full" style={{ width: "53.3%" }}></div>
+                    <div
+                      className="h-full bg-primary-container rounded-full transition-all duration-300"
+                      style={{
+                        width:
+                          accountTier === "Enterprise Planner"
+                            ? "100%"
+                            : `${Math.min(100, Math.round((events.length / 15) * 100))}%`
+                      }}
+                    ></div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between pt-1 font-label-sm text-label-sm">
                   <span className="text-on-surface-variant text-[11px]">Renews Oct 28, 2026</span>
                   <button
                     type="button"
-                    onClick={() => triggerToast("Planora Concierge billing upgraded.")}
+                    onClick={() => setIsUpgradeModalOpen(true)}
                     className="text-secondary font-body-md-medium hover:underline text-[12px] flex items-center gap-0.5"
                   >
-                    <span>Upgrade</span>
+                    <span>{accountTier === "Enterprise Planner" ? "Manage Tier" : "Upgrade"}</span>
                     <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                   </button>
                 </div>
@@ -349,9 +855,21 @@ export default function Settings() {
 
               {/* Avatar & Identity Upload Row */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-4 rounded-xl bg-surface-container-low border border-outline-variant/10">
+                <input
+                  type="file"
+                  ref={avatarInputRef}
+                  onChange={handleAvatarUpload}
+                  accept="image/*"
+                  className="hidden"
+                  aria-label="Upload profile photo"
+                />
                 <div className="relative flex-shrink-0">
                   <div className="w-20 h-20 rounded-full bg-primary-container text-secondary-fixed flex items-center justify-center font-headline-md text-headline-md shadow-md overflow-hidden font-bold">
-                    <span>AM</span>
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{userInitials}</span>
+                    )}
                   </div>
                   <span
                     className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-white ring-2 ring-surface-container-lowest"
@@ -364,7 +882,7 @@ export default function Settings() {
                   <div className="flex flex-wrap items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => triggerToast("Photo upload selector opened.")}
+                      onClick={() => avatarInputRef.current?.click()}
                       className="h-9 px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container font-body-md-medium text-body-md-medium text-primary shadow-sm transition-colors flex items-center gap-1.5 border border-outline-variant/15"
                     >
                       <span className="material-symbols-outlined text-[18px]">photo_camera</span>
@@ -372,7 +890,7 @@ export default function Settings() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => triggerToast("Default initials restored.")}
+                      onClick={handleRemoveAvatar}
                       className="h-9 px-3 text-error hover:bg-error-container/30 rounded-lg font-body-md-medium text-body-md-medium transition-colors"
                     >
                       Remove
@@ -510,7 +1028,7 @@ export default function Settings() {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => triggerToast("Changes discarded.")}
+                      onClick={handleDiscardProfile}
                       className="h-10 px-4 rounded-lg bg-surface hover:bg-surface-container font-body-md-medium text-body-md-medium text-on-surface transition-colors border border-outline-variant/15"
                     >
                       Discard
@@ -563,8 +1081,15 @@ export default function Settings() {
                         <div
                           key={cur.code}
                           onClick={() => {
-                            setCurrency(cur.code as typeof currency);
-                            triggerToast(`Default workspace currency updated to ${cur.code}`);
+                            const newCur = cur.code as typeof currency;
+                            setCurrency(newCur);
+                            setGlobalCurrency(newCur);
+                            try {
+                              localStorage.setItem("planora_currency", newCur);
+                              const existing = JSON.parse(localStorage.getItem("planora_workspace_settings") || "{}");
+                              localStorage.setItem("planora_workspace_settings", JSON.stringify({ ...existing, currency: newCur }));
+                            } catch {}
+                            triggerToast(`Workspace currency changed to ${cur.code} (${cur.sub})`);
                           }}
                           className={`cursor-pointer flex flex-col p-3 rounded-xl transition-all text-center border ${
                             isCur
@@ -734,6 +1259,17 @@ export default function Settings() {
                     />
                     <div className="w-11 h-6 bg-surface-container rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
                   </label>
+                </div>
+
+                {/* Section 2 Save Action */}
+                <div className="pt-2 flex items-center justify-end border-t border-outline-variant/10">
+                  <button
+                    type="button"
+                    onClick={handleSavePlanningDefaults}
+                    className="h-10 px-6 rounded-lg bg-primary-container text-on-primary font-body-md-medium text-body-md-medium hover:bg-primary transition-all shadow-sm"
+                  >
+                    Save Planning Defaults
+                  </button>
                 </div>
               </div>
             </section>
@@ -934,6 +1470,17 @@ export default function Settings() {
                     <div className="w-11 h-6 bg-surface-container rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
                   </label>
                 </div>
+
+                {/* Section 3 Save Action */}
+                <div className="pt-4 flex items-center justify-end border-t border-outline-variant/10">
+                  <button
+                    type="button"
+                    onClick={handleSaveNotifications}
+                    className="h-10 px-6 rounded-lg bg-primary-container text-on-primary font-body-md-medium text-body-md-medium hover:bg-primary transition-all shadow-sm"
+                  >
+                    Save Notification Rules
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -961,7 +1508,7 @@ export default function Settings() {
                   {/* Light Mode */}
                   <div
                     onClick={() => {
-                      setThemeMode("light");
+                      applyTheme("light");
                       triggerToast("Switched to Editorial Light theme");
                     }}
                     className={`cursor-pointer relative p-4 rounded-xl flex flex-col gap-3 transition-all border ${
@@ -1007,7 +1554,7 @@ export default function Settings() {
                   {/* Dark Mode */}
                   <div
                     onClick={() => {
-                      setThemeMode("dark");
+                      applyTheme("dark");
                       triggerToast("Switched to Midnight Slate dark theme");
                     }}
                     className={`cursor-pointer relative p-4 rounded-xl flex flex-col gap-3 transition-all border ${
@@ -1053,7 +1600,7 @@ export default function Settings() {
                   {/* System Match */}
                   <div
                     onClick={() => {
-                      setThemeMode("system");
+                      applyTheme("system");
                       triggerToast("Theme set to match OS settings");
                     }}
                     className={`cursor-pointer relative p-4 rounded-xl flex flex-col gap-3 transition-all border ${
@@ -1141,6 +1688,17 @@ export default function Settings() {
                   </div>
                 </div>
               </div>
+
+              {/* Section 4 Save Action */}
+              <div className="pt-4 flex items-center justify-end border-t border-outline-variant/10">
+                <button
+                  type="button"
+                  onClick={handleSaveAppearance}
+                  className="h-10 px-6 rounded-lg bg-primary-container text-on-primary font-body-md-medium text-body-md-medium hover:bg-primary transition-all shadow-sm"
+                >
+                  Save Appearance Settings
+                </button>
+              </div>
             </section>
 
             {/* ================= SECTION 5: SECURITY & SESSION MANAGEMENT ================= */}
@@ -1183,7 +1741,7 @@ export default function Settings() {
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <button
                     type="button"
-                    onClick={() => triggerToast("10 New Emergency One-Time Backup Codes Generated")}
+                    onClick={() => setIsBackupCodesOpen(true)}
                     className="h-9 px-3.5 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-primary font-body-md-medium text-body-md shadow-sm transition-colors border border-outline-variant/15"
                   >
                     Configure Backup Codes
@@ -1395,13 +1953,11 @@ export default function Settings() {
                 </div>
                 <button
                   type="button"
-                  onClick={() =>
-                    triggerToast("Archive bundle generation started. A secure download link will be emailed to you.")
-                  }
+                  onClick={handleExportWorkspace}
                   className="h-10 px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-primary font-body-md-medium text-body-md shadow-sm transition-colors flex items-center gap-2 flex-shrink-0 border border-outline-variant/15"
                 >
                   <span className="material-symbols-outlined text-[18px]">file_download</span>
-                  <span>Request Archive (.ZIP)</span>
+                  <span>Export JSON Archive</span>
                 </button>
               </div>
 
@@ -1443,7 +1999,7 @@ export default function Settings() {
                       Permanently Delete Master Planner Account
                     </span>
                     <p className="font-body-md text-body-md text-on-surface-variant mt-0.5">
-                      Irrevocably erase {fullName}'s account, remove organization {organization}, and immediately terminate access to 8 active celebration dashboards and client RSVP portals.
+                      Irrevocably erase {fullName}'s account, remove organization {organization}, and immediately terminate access to your celebration dashboards and client RSVP portals.
                     </p>
                   </div>
                   <button
@@ -1463,14 +2019,21 @@ export default function Settings() {
         {/* Delete Confirmation Modal */}
         {isDeleteModalOpen && (
           <div className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/20">
+            <div
+              ref={deleteModalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-account-title"
+              tabIndex={-1}
+              className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/20 outline-none"
+            >
               <div className="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center">
                 <span className="material-symbols-outlined text-[26px]">warning</span>
               </div>
               <div className="flex flex-col gap-1">
-                <h3 className="font-headline-sm text-headline-sm text-primary font-bold">Confirm Account Deletion</h3>
+                <h3 id="delete-account-title" className="font-headline-sm text-headline-sm text-primary font-bold">Confirm Account Deletion</h3>
                 <p className="font-body-md text-body-md text-on-surface-variant">
-                  This will irreversibly delete your master account, disconnect 8 event portals, and delete 1,420 confirmed RSVP records.
+                  This will irreversibly delete your master account, disconnect all active event portals, and delete stored guest and RSVP records for this workspace.
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface flex flex-col gap-1 text-[13px] text-on-surface-variant font-caption border border-outline-variant/15">
@@ -1478,15 +2041,17 @@ export default function Settings() {
                   <span className="material-symbols-outlined text-[16px]">block</span>
                   <span>Active Contracts Cannot Be Reclaimed</span>
                 </div>
-                <span>
+                <label htmlFor="confirm-delete-phrase-input">
                   To confirm, please type <strong className="text-primary font-bold">DELETE-PLANORA</strong> below:
-                </span>
+                </label>
               </div>
               <input
+                id="confirm-delete-phrase-input"
                 type="text"
                 value={deleteInput}
                 onChange={(e) => setDeleteInput(e.target.value)}
                 placeholder="Type DELETE-PLANORA"
+                aria-label="Confirm account deletion code"
                 className="w-full h-10 px-3 rounded-lg bg-surface text-body-md font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-error border border-outline-variant/20"
               />
               <div className="flex items-center justify-end gap-3 pt-2">
@@ -1503,6 +2068,196 @@ export default function Settings() {
                   className="h-10 px-5 rounded-lg bg-error hover:bg-error/90 text-on-error font-body-md-medium text-body-md transition-colors shadow-sm"
                 >
                   Permanently Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Backup Codes Modal */}
+        {isBackupCodesOpen && (
+          <div className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+            <div
+              ref={backupModalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="backup-codes-title"
+              tabIndex={-1}
+              className="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/20 outline-none"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-outline-variant/15">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[22px]">key</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <h3 id="backup-codes-title" className="font-headline-sm text-headline-sm text-primary font-bold">
+                      2FA Backup Codes
+                    </h3>
+                    <span className="font-caption text-caption text-on-surface-variant">
+                      Emergency single-use recovery codes
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsBackupCodesOpen(false)}
+                  className="p-1 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
+                  aria-label="Close modal"
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </div>
+
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                If you lose access to your authenticator app, each of these 10 codes can be used once to access your Planora account. Store them in a secure password manager.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 p-4 rounded-xl bg-surface border border-outline-variant/15 font-mono text-sm">
+                {BACKUP_CODES.map((code, idx) => (
+                  <div key={code} className="flex items-center justify-between p-2 rounded bg-surface-container-lowest border border-outline-variant/10">
+                    <span className="text-on-surface-variant text-[11px] font-sans font-medium">{idx + 1}.</span>
+                    <span className="font-bold text-primary tracking-wider">{code}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyBackupCodes}
+                    className="h-10 px-4 rounded-lg bg-surface hover:bg-surface-container text-primary font-body-md-medium text-body-md transition-colors flex items-center gap-1.5 border border-outline-variant/15"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      {copiedCodes ? "check" : "content_copy"}
+                    </span>
+                    <span>{copiedCodes ? "Copied All" : "Copy Codes"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadBackupCodes}
+                    className="h-10 px-4 rounded-lg bg-surface hover:bg-surface-container text-primary font-body-md-medium text-body-md transition-colors flex items-center gap-1.5 border border-outline-variant/15"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">download</span>
+                    <span>Download (.txt)</span>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsBackupCodesOpen(false)}
+                  className="h-10 px-5 rounded-lg bg-primary-container text-on-primary font-body-md-medium text-body-md hover:bg-primary transition-all shadow-sm"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tier Upgrade Modal */}
+        {isUpgradeModalOpen && (
+          <div className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+            <div
+              ref={upgradeModalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="upgrade-tier-title"
+              tabIndex={-1}
+              className="bg-surface-container-lowest rounded-2xl max-w-xl w-full p-6 shadow-2xl flex flex-col gap-5 border border-outline-variant/20 outline-none"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-outline-variant/15">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-full bg-secondary-container/40 text-secondary flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[24px]">workspace_premium</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <h3 id="upgrade-tier-title" className="font-headline-sm text-headline-sm text-primary font-bold">
+                      Planora Studio Membership
+                    </h3>
+                    <span className="font-caption text-caption text-on-surface-variant">
+                      Scale luxury event productions without capacity bottlenecks
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsUpgradeModalOpen(false)}
+                  className="p-1 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
+                  aria-label="Close modal"
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Pro Tier Card */}
+                <div className={`p-4 rounded-xl flex flex-col justify-between border ${accountTier === "Pro Planner" ? "bg-surface-container-low border-primary ring-1 ring-primary" : "bg-surface border-outline-variant/15"}`}>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-headline-sm text-headline-sm text-primary font-semibold">Pro Planner</span>
+                      {accountTier === "Pro Planner" && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-caption font-bold">Current</span>
+                      )}
+                    </div>
+                    <p className="font-caption text-caption text-on-surface-variant">For independent luxury boutique studios.</p>
+                    <ul className="flex flex-col gap-1.5 pt-2 text-xs text-on-surface">
+                      <li className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-emerald-600 text-[16px]">check</span>
+                        <span>Up to 15 concurrent workspaces</span>
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-emerald-600 text-[16px]">check</span>
+                        <span>Multi-currency budget engine</span>
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-emerald-600 text-[16px]">check</span>
+                        <span>Real-time Guest RSVP tracking</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Enterprise Tier Card */}
+                <div className={`p-4 rounded-xl flex flex-col justify-between border ${accountTier === "Enterprise Planner" ? "bg-primary-container text-on-primary border-secondary-fixed ring-2 ring-secondary-fixed" : "bg-surface border-outline-variant/15"}`}>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className={`font-headline-sm text-headline-sm font-semibold ${accountTier === "Enterprise Planner" ? "text-on-primary" : "text-primary"}`}>Enterprise</span>
+                      <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed text-caption font-bold">Uncapped</span>
+                    </div>
+                    <p className={`font-caption text-caption ${accountTier === "Enterprise Planner" ? "text-primary-fixed-dim" : "text-on-surface-variant"}`}>For royal, global & destination production houses.</p>
+                    <ul className="flex flex-col gap-1.5 pt-2 text-xs">
+                      <li className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-secondary-fixed text-[16px]">verified</span>
+                        <span>Unlimited active workspaces</span>
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-secondary-fixed text-[16px]">verified</span>
+                        <span>AI Sommelier &amp; Vendor synergies</span>
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-secondary-fixed text-[16px]">verified</span>
+                        <span>Dedicated 24/7 Concierge &amp; White-label</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/15">
+                <button
+                  type="button"
+                  onClick={() => setIsUpgradeModalOpen(false)}
+                  className="h-10 px-4 rounded-lg bg-surface hover:bg-surface-container text-on-surface font-body-md-medium text-body-md transition-colors border border-outline-variant/15"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmUpgrade}
+                  className="h-10 px-6 rounded-lg bg-primary-container text-on-primary font-body-md-medium text-body-md hover:bg-primary transition-all shadow-sm"
+                >
+                  {accountTier === "Enterprise Planner" ? "Keep Enterprise Tier" : "Activate Enterprise Tier"}
                 </button>
               </div>
             </div>

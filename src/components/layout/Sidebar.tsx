@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -10,6 +11,15 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const location = useLocation();
   const currentPath = location.pathname;
   const { user, logOut } = useAuth();
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen, onClose]);
 
   const navItems = [
     { name: "Dashboard", path: "/dashboard", icon: "dashboard" },
@@ -45,6 +55,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
 
       {/* Main Sidebar Element */}
       <aside
+        aria-label="Application Sidebar Navigation"
         className={`fixed left-0 top-0 h-full w-64 bg-surface-container-lowest z-50 flex flex-col justify-between border-r border-outline-variant/20 shadow-xl lg:shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-transform duration-300 ease-in-out ${
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
@@ -71,6 +82,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
               type="button"
               onClick={onClose}
               className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
+              aria-label="Close navigation sidebar"
               title="Close Navigation"
             >
               <span className="material-symbols-outlined text-[20px]">close</span>
@@ -79,7 +91,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
 
           {/* Navigation Links */}
           <div className="px-space-md py-space-sm">
-            <nav className="flex flex-col gap-1">
+            <nav aria-label="Main menu" className="flex flex-col gap-1">
               {navItems.map((item) => {
                 const isActive =
                   currentPath === item.path ||
@@ -127,6 +139,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
               type="button"
               onClick={logOut}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container transition-colors"
+              aria-label="Sign out of workspace"
               title="Log Out"
             >
               <span className="material-symbols-outlined text-[18px]">logout</span>

@@ -2,10 +2,25 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 import type { ExpenseTransaction } from "../types";
 
 export default function Budget() {
-  const { events, activeEventId, setActiveEventId, activeEvent, expenses, addExpense, isDemo } = useEventContext();
+  const {
+    events,
+    activeEventId,
+    setActiveEventId,
+    activeEvent,
+    expenses,
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    budgetItems,
+    updateBudgetItem,
+    currency,
+    currencySymbol,
+    formatCurrency
+  } = useEventContext();
 
   // States
   const [eventMenuOpen, setEventMenuOpen] = useState(false);
@@ -16,12 +31,21 @@ export default function Budget() {
 
   // Drawer / Add Expense state
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [deleteConfirmExpense, setDeleteConfirmExpense] = useState<ExpenseTransaction | null>(null);
+  const [adjustAllocationsModalOpen, setAdjustAllocationsModalOpen] = useState(false);
+  const [tempAllocations, setTempAllocations] = useState<Record<string, number>>({});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Accessible Modal Hooks (Focus trap, Escape key, Body scroll lock, Focus restore)
+  const expenseDrawerRef = useModalAccessibility(drawerOpen, () => setDrawerOpen(false));
+  const deleteModalRef = useModalAccessibility(Boolean(deleteConfirmExpense), () => setDeleteConfirmExpense(null));
+  const allocationsModalRef = useModalAccessibility<HTMLFormElement>(adjustAllocationsModalOpen, () => setAdjustAllocationsModalOpen(false));
 
   // Form states
   const [formName, setFormName] = useState("");
   const [formEvent, setFormEvent] = useState(
-    activeEvent?.name || events[0]?.name || "Wedding Event"
+    activeEvent?.name || events[0]?.name || ""
   );
 
   // Sync formEvent when activeEvent updates
@@ -42,11 +66,71 @@ export default function Budget() {
   };
 
   // Aggregated amounts scoped to active event / workspace
-  const computedTotalBudget = activeEvent?.budget || (isDemo ? 4500000 : 0);
+  const computedTotalBudget =
+    activeEvent?.budget ||
+    (budgetItems.length > 0 ? budgetItems.reduce((acc, b) => acc + (b.allocated || 0), 0) : 0);
   const currentTotalSpent = expenses.reduce((acc, tx) => acc + (tx.amount || 0), 0);
 
   const spentRatio = computedTotalBudget > 0 ? Math.min(Math.round((currentTotalSpent / computedTotalBudget) * 100), 100) : 0;
   const remainingBudget = Math.max(0, computedTotalBudget - currentTotalSpent);
+
+  // Derive dynamic categories from budget items or expense breakdown
+  const displayedCategories =
+    budgetItems.length > 0
+      ? budgetItems.map((b) => {
+          const catSpent =
+            expenses
+              .filter(
+                (e) =>
+                  e.category?.toLowerCase() === b.category.toLowerCase() ||
+                  b.category.toLowerCase().includes(e.category.toLowerCase()) ||
+                  e.category.toLowerCase().includes(b.category.toLowerCase().split(" ")[0])
+              )
+              .reduce((acc, e) => acc + (e.amount || 0), 0) || b.spent || 0;
+          const pct = b.allocated > 0 ? Math.min(Math.round((catSpent / b.allocated) * 100), 100) : 0;
+          const lower = b.category.toLowerCase();
+          return {
+            id: b.id,
+            name: b.category,
+            budget: b.allocated,
+            spent: catSpent,
+            pct,
+            icon: lower.includes("venue")
+              ? "location_city"
+              : lower.includes("cater") || lower.includes("feast") || lower.includes("lunch")
+              ? "restaurant"
+              : lower.includes("decor") || lower.includes("light") || lower.includes("style")
+              ? "palette"
+              : lower.includes("photo") || lower.includes("media") || lower.includes("cinema")
+              ? "photo_camera"
+              : lower.includes("stage") || lower.includes("av") || lower.includes("sound")
+              ? "speaker"
+              : "shield",
+            color: lower.includes("venue")
+              ? "bg-primary-container"
+              : lower.includes("cater")
+              ? "bg-secondary"
+              : lower.includes("decor")
+              ? "bg-[#7357DB]"
+              : lower.includes("photo")
+              ? "bg-[#3867B2]"
+              : "bg-outline-variant"
+          };
+        })
+      : Array.from(new Set(expenses.map((e) => e.category))).map((catName) => {
+          const catSpent = expenses
+            .filter((e) => e.category === catName)
+            .reduce((acc, e) => acc + (e.amount || 0), 0);
+          return {
+            id: catName,
+            name: catName,
+            budget: catSpent,
+            spent: catSpent,
+            pct: 100,
+            icon: catName.toLowerCase().includes("venue") ? "location_city" : "receipt_long",
+            color: "bg-primary"
+          };
+        });
 
   // Filtered transactions
   const filteredTransactions = expenses.filter((tx) => {
@@ -63,43 +147,136 @@ export default function Budget() {
     return true;
   });
 
+  const openCreateDrawer = () => {
+    setEditingExpenseId(null);
+    setFormName("");
+    setFormEvent(activeEvent?.name || events[0]?.name || "");
+    setFormCategory("Venue");
+    setFormAmount("");
+    setFormDate(new Date().toISOString().split("T")[0]);
+    setFormVendor("");
+    setFormStatus("Paid");
+    setDrawerOpen(true);
+  };
+
+  const openEditDrawer = (tx: ExpenseTransaction) => {
+    setEditingExpenseId(tx.id);
+    setFormName(tx.name);
+    setFormEvent(tx.event || activeEvent?.name || "");
+    setFormCategory(tx.category);
+    setFormAmount(String(tx.amount));
+    setFormDate(new Date().toISOString().split("T")[0]);
+    setFormVendor(tx.vendor || "");
+    setFormStatus(tx.status);
+    setDrawerOpen(true);
+  };
+
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(formAmount);
-    if (!formName || isNaN(parsedAmount) || parsedAmount <= 0) {
-      showToast("Please enter a valid expense name and amount.");
+    if (!formName.trim() || isNaN(parsedAmount) || parsedAmount <= 0) {
+      showToast("Please enter a valid expense name and a positive amount.");
       return;
     }
 
-    await addExpense({
-      name: formName,
-      event: formEvent,
-      category: formCategory,
-      date: new Date(formDate).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }),
-      amount: parsedAmount,
-      status: formStatus,
-      vendor: formVendor || "Direct Payment",
-      icon:
-        formCategory === "Venue"
-          ? "domain"
-          : formCategory === "Catering"
-          ? "dinner_dining"
-          : formCategory === "Decoration"
-          ? "local_florist"
-          : formCategory === "Photography"
-          ? "videocam"
-          : "receipt_long"
+    const icon =
+      formCategory === "Venue"
+        ? "domain"
+        : formCategory === "Catering"
+        ? "dinner_dining"
+        : formCategory === "Decoration"
+        ? "local_florist"
+        : formCategory === "Photography"
+        ? "videocam"
+        : "receipt_long";
+
+    const formattedDate = new Date(formDate).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
     });
 
+    if (editingExpenseId) {
+      await updateExpense(editingExpenseId, {
+        name: formName.trim(),
+        event: formEvent,
+        category: formCategory,
+        amount: parsedAmount,
+        status: formStatus,
+        vendor: formVendor.trim() || "Direct Payment",
+        icon
+      });
+      showToast(`Updated expense "${formName.trim()}" (₹${parsedAmount.toLocaleString("en-IN")})`);
+    } else {
+      await addExpense({
+        name: formName.trim(),
+        event: formEvent,
+        category: formCategory,
+        date: formattedDate,
+        amount: parsedAmount,
+        status: formStatus,
+        vendor: formVendor.trim() || "Direct Payment",
+        icon
+      });
+      showToast(`Logged expense "${formatCurrency(parsedAmount)}" for ${formName.trim()}!`);
+    }
+
     setDrawerOpen(false);
+    setEditingExpenseId(null);
     setFormName("");
     setFormAmount("");
     setFormVendor("");
-    showToast(`Logged expense "₹${parsedAmount.toLocaleString("en-IN")}" for ${formName}!`);
+  };
+
+  const handleExportCSV = () => {
+    if (expenses.length === 0) {
+      showToast("No expenses logged for this event to export.");
+      return;
+    }
+    const headers = ["Expense Name", "Event", "Category", "Date", `Amount (${currency})`, "Status", "Vendor"];
+    const rows = expenses.map((tx) => [
+      `"${tx.name.replace(/"/g, '""')}"`,
+      `"${(tx.event || "").replace(/"/g, '""')}"`,
+      `"${tx.category}"`,
+      `"${tx.date}"`,
+      tx.amount,
+      `"${tx.status}"`,
+      `"${(tx.vendor || "").replace(/"/g, '""')}"`
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `budget_report_${(activeEvent?.name || "event").replace(/[^a-zA-Z0-9_-]/g, "_")}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("Downloaded budget CSV export successfully.");
+  };
+
+  const openAdjustAllocations = () => {
+    const initAllocations: Record<string, number> = {};
+    budgetItems.forEach((b) => {
+      initAllocations[b.id] = b.allocated;
+    });
+    setTempAllocations(initAllocations);
+    setAdjustAllocationsModalOpen(true);
+  };
+
+  const handleSaveAllocations = async (e: React.FormEvent) => {
+    e.preventDefault();
+    for (const [id, val] of Object.entries(tempAllocations)) {
+      if (!isNaN(val) && val >= 0) {
+        await updateBudgetItem(id, { allocated: val });
+      }
+    }
+    setAdjustAllocationsModalOpen(false);
+    showToast("Category allocations successfully updated and persisted.");
   };
 
   return (
@@ -167,15 +344,25 @@ export default function Budget() {
           <div className="flex items-center gap-space-sm flex-wrap">
             <button
               type="button"
-              onClick={() => showToast("Exporting comprehensive fiscal report (PDF/CSV)...")}
+              onClick={handleExportCSV}
               className="h-11 px-space-md rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center gap-2 transition-all font-semibold"
+              title="Export all logged expenses to CSV format"
             >
               <span className="material-symbols-outlined text-[18px]">download</span>
-              <span>Export Report</span>
+              <span>Export CSV</span>
             </button>
             <button
               type="button"
-              onClick={() => setDrawerOpen(true)}
+              onClick={() => window.print()}
+              className="h-11 px-space-md rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center gap-2 transition-all font-semibold"
+              title="Print budget overview or save as PDF"
+            >
+              <span className="material-symbols-outlined text-[18px]">print</span>
+              <span>Print (PDF)</span>
+            </button>
+            <button
+              type="button"
+              onClick={openCreateDrawer}
               className="h-11 px-space-lg rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-2 shadow-sm transition-all active:translate-y-0.5 font-semibold"
             >
               <span className="material-symbols-outlined text-secondary-fixed text-[18px]">add</span>
@@ -195,7 +382,7 @@ export default function Budget() {
                   Total Budget
                 </span>
                 <span className="font-headline-lg text-headline-lg text-primary tracking-tight mt-1 font-bold">
-                  ₹{computedTotalBudget.toLocaleString("en-IN")}
+                  {formatCurrency(computedTotalBudget)}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary">
@@ -219,7 +406,7 @@ export default function Budget() {
                   Total Spent
                 </span>
                 <span className="font-headline-lg text-headline-lg text-primary tracking-tight mt-1 font-bold">
-                  ₹{currentTotalSpent.toLocaleString("en-IN")}
+                  {formatCurrency(currentTotalSpent)}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-secondary-fixed/50 flex items-center justify-center text-secondary">
@@ -243,7 +430,7 @@ export default function Budget() {
                   Remaining Budget
                 </span>
                 <span className="font-headline-lg text-headline-lg text-primary tracking-tight mt-1 font-bold">
-                  ₹{remainingBudget.toLocaleString("en-IN")}
+                  {formatCurrency(remainingBudget)}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface">
@@ -373,7 +560,7 @@ export default function Budget() {
                       Total Spent
                     </span>
                     <span className="font-title-md text-title-md text-primary font-bold tracking-tight">
-                      ₹{currentTotalSpent.toLocaleString("en-IN")}
+                      {formatCurrency(currentTotalSpent)}
                     </span>
                     <span className="text-[11px] font-semibold text-secondary mt-0.5">{spentRatio}% Committed</span>
                   </div>
@@ -389,7 +576,7 @@ export default function Budget() {
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">₹68,000</span>
+                      <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">{formatCurrency(68000)}</span>
                       <span className="font-caption text-caption text-on-surface-variant block text-[10px]">46.9%</span>
                     </div>
                   </div>
@@ -402,7 +589,7 @@ export default function Budget() {
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">₹38,000</span>
+                      <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">{formatCurrency(38000)}</span>
                       <span className="font-caption text-caption text-on-surface-variant block text-[10px]">26.2%</span>
                     </div>
                   </div>
@@ -415,7 +602,7 @@ export default function Budget() {
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">₹24,000</span>
+                      <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">{formatCurrency(24000)}</span>
                       <span className="font-caption text-caption text-on-surface-variant block text-[10px]">16.6%</span>
                     </div>
                   </div>
@@ -428,7 +615,7 @@ export default function Budget() {
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">₹15,000</span>
+                      <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">{formatCurrency(15000)}</span>
                       <span className="font-caption text-caption text-on-surface-variant block text-[10px]">10.3%</span>
                     </div>
                   </div>
@@ -449,7 +636,7 @@ export default function Budget() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => showToast("Adjust target allocations in event settings")}
+                  onClick={openAdjustAllocations}
                   className="font-label-md text-label-md text-secondary hover:text-on-secondary-fixed-variant transition-colors flex items-center gap-1 font-semibold text-xs"
                 >
                   <span>Adjust Allocations</span>
@@ -458,83 +645,61 @@ export default function Budget() {
               </div>
 
               <div className="flex flex-col gap-space-md pt-2">
-                {[
-                  {
-                    name: "Venue & Facilities",
-                    budget: 95000,
-                    spent: 68000,
-                    pct: 71.6,
-                    color: "bg-primary-container",
-                    icon: "location_city"
-                  },
-                  {
-                    name: "Catering & Feasts",
-                    budget: 65000,
-                    spent: 38000,
-                    pct: 58.5,
-                    color: "bg-secondary",
-                    icon: "restaurant"
-                  },
-                  {
-                    name: "Decoration & Styling",
-                    budget: 48000,
-                    spent: 24000,
-                    pct: 50.0,
-                    color: "bg-[#7357DB]",
-                    icon: "palette"
-                  },
-                  {
-                    name: "Photography & Media",
-                    budget: 20000,
-                    spent: 15000,
-                    pct: 75.0,
-                    color: "bg-[#3867B2]",
-                    icon: "photo_camera"
-                  },
-                  {
-                    name: "Other & Contingency Reserve",
-                    budget: 12000,
-                    spent: 0,
-                    pct: 0,
-                    color: "bg-outline-variant",
-                    icon: "shield"
-                  }
-                ].map((cat) => (
-                  <div
-                    key={cat.name}
-                    className="flex flex-col gap-2 p-3 rounded-lg hover:bg-surface-container-low transition-colors border border-outline-variant/10"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
-                          <span className="material-symbols-outlined text-[18px]">{cat.icon}</span>
-                        </div>
-                        <div>
-                          <span className="font-body-md-medium text-body-md-medium text-primary block leading-snug font-bold text-xs">
-                            {cat.name}
-                          </span>
-                          <span className="font-caption text-caption text-on-surface-variant text-[11px]">
-                            ₹{cat.budget.toLocaleString("en-IN")} budget • ₹
-                            {Math.max(0, cat.budget - cat.spent).toLocaleString("en-IN")} remaining
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">
-                            ₹{cat.spent.toLocaleString("en-IN")}
-                          </span>
-                          <span className="font-caption text-caption text-on-surface-variant block text-[11px]">
-                            {cat.pct}% used
-                          </span>
-                        </div>
-                      </div>
+                {displayedCategories.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-8 text-center rounded-xl bg-surface-container-low/40 border border-dashed border-outline-variant/30">
+                    <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary mb-3">
+                      <span className="material-symbols-outlined text-[24px]">pie_chart</span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden">
-                      <div className={`h-full rounded-full ${cat.color}`} style={{ width: `${cat.pct}%` }}></div>
-                    </div>
+                    <h3 className="font-title-md text-title-md font-bold text-primary mb-1">No Category Allocations Configured</h3>
+                    <p className="font-body-md text-body-md text-on-surface-variant max-w-sm mb-4 text-xs">
+                      Log expenses or configure category targets for this event to track real-time allocation vs actual spending.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setDrawerOpen(true)}
+                      className="px-4 py-2 rounded-lg bg-primary text-on-primary font-body-md-medium flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm text-xs"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">add</span>
+                      <span>Log First Expense</span>
+                    </button>
                   </div>
-                ))}
+                ) : (
+                  displayedCategories.map((cat) => (
+                    <div
+                      key={cat.id || cat.name}
+                      className="flex flex-col gap-2 p-3 rounded-lg hover:bg-surface-container-low transition-colors border border-outline-variant/10"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+                            <span className="material-symbols-outlined text-[18px]">{cat.icon}</span>
+                          </div>
+                          <div>
+                            <span className="font-body-md-medium text-body-md-medium text-primary block leading-snug font-bold text-xs">
+                              {cat.name}
+                            </span>
+                            <span className="font-caption text-caption text-on-surface-variant text-[11px]">
+                              {formatCurrency(cat.budget)} allocated • {formatCurrency(Math.max(0, cat.budget - cat.spent))} remaining
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <span className="font-body-md-medium text-body-md-medium text-primary font-bold text-xs">
+                              {formatCurrency(cat.spent)}
+                            </span>
+                            <span className="font-caption text-caption text-on-surface-variant block text-[11px]">
+                              {cat.pct}% used
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden">
+                        <div className={`h-full rounded-full ${cat.color}`} style={{ width: `${cat.pct}%` }}></div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -572,11 +737,11 @@ export default function Budget() {
                       <span className="material-symbols-outlined text-[14px]">savings</span>
                     </span>
                     <span className="font-label-md text-label-md text-primary font-bold text-xs">Cost-Saving Synergy</span>
-                    <span className="ml-auto font-caption text-caption text-secondary font-bold text-xs">Save ₹14,500</span>
+                    <span className="ml-auto font-caption text-caption text-secondary font-bold text-xs">Save {formatCurrency(14500)}</span>
                   </div>
                   <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed text-xs">
                     <strong>Venue &amp; Lighting Bundle:</strong> Bundling in-house lighting rather than external rental
-                    can save approx <span className="text-primary font-semibold">₹14,500</span>.
+                    can save approx <span className="text-primary font-semibold">{formatCurrency(14500)}</span>.
                   </p>
                 </div>
 
@@ -606,7 +771,7 @@ export default function Budget() {
                   </div>
                   <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed text-xs">
                     <strong>Upcoming Payout Milestone:</strong>{" "}
-                    <span className="text-primary font-semibold">₹32,000</span> scheduled in vendor balance payments.
+                    <span className="text-primary font-semibold">{formatCurrency(32000)}</span> scheduled in vendor balance payments.
                   </p>
                 </div>
               </div>
@@ -790,7 +955,7 @@ export default function Budget() {
                     </td>
                     <td className="py-3.5 px-4 text-on-surface-variant text-xs">{tx.date}</td>
                     <td className="py-3.5 px-4 font-body-md-medium text-primary font-bold text-xs">
-                      ₹{tx.amount.toLocaleString("en-IN")}
+                      {formatCurrency(tx.amount)}
                     </td>
                     <td className="py-3.5 px-4">
                       <span
@@ -809,13 +974,24 @@ export default function Budget() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => showToast(`Expense details for ${tx.name}`)}
-                        className="w-8 h-8 rounded hover:bg-surface-container text-on-surface-variant flex items-center justify-center ml-auto"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">more_horiz</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditDrawer(tx)}
+                          title="Edit expense"
+                          className="w-8 h-8 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmExpense(tx)}
+                          title="Delete expense"
+                          className="w-8 h-8 rounded hover:bg-error-container hover:text-error text-on-surface-variant flex items-center justify-center transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -831,8 +1007,15 @@ export default function Budget() {
           <div
             className="fixed inset-0 bg-primary/40 backdrop-blur-sm z-50 transition-opacity"
             onClick={() => setDrawerOpen(false)}
+            aria-hidden="true"
           ></div>
-          <div className="fixed top-0 right-0 h-full w-full max-w-lg bg-surface-container-lowest z-50 shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-outline-variant/20">
+          <div
+            ref={expenseDrawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="expense-drawer-title"
+            className="fixed top-0 right-0 h-full w-full max-w-lg bg-surface-container-lowest z-50 shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-outline-variant/20"
+          >
             {/* Drawer Header */}
             <div className="p-space-lg bg-surface-container-lowest sticky top-0 z-10 flex items-center justify-between border-b border-outline-variant/15">
               <div className="flex items-center gap-space-sm">
@@ -840,15 +1023,18 @@ export default function Budget() {
                   <span className="material-symbols-outlined text-[20px]">add_card</span>
                 </div>
                 <div>
-                  <h3 className="font-headline-sm text-headline-sm text-primary font-bold">Record New Expense</h3>
+                  <h3 id="expense-drawer-title" className="font-headline-sm text-headline-sm text-primary font-bold">
+                    {editingExpenseId ? "Edit Expense Entry" : "Record New Expense"}
+                  </h3>
                   <span className="font-caption text-caption text-on-surface-variant text-xs">
-                    Log an outlay against your event quotas
+                    {editingExpenseId ? "Modify transaction particulars and quota" : "Log an outlay against your event quotas"}
                   </span>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
+                aria-label="Close expense drawer"
                 className="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
@@ -859,10 +1045,11 @@ export default function Budget() {
             <form onSubmit={handleAddExpense} id="record-expense-form" className="p-space-lg flex flex-col gap-space-md">
               {/* Expense Name */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-label-md text-label-md text-primary font-semibold text-xs">
+                <label htmlFor="expense-name" className="font-label-md text-label-md text-primary font-semibold text-xs">
                   Expense Name <span className="text-error">*</span>
                 </label>
                 <input
+                  id="expense-name"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   className="h-11 px-3.5 rounded-lg bg-surface-container-low text-body-md font-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-primary text-xs"
@@ -874,11 +1061,12 @@ export default function Budget() {
 
               {/* Event Selection */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-label-md text-label-md text-primary font-semibold text-xs">
+                <label htmlFor="expense-event" className="font-label-md text-label-md text-primary font-semibold text-xs">
                   Select Event <span className="text-error">*</span>
                 </label>
                 <div className="relative">
                   <select
+                    id="expense-event"
                     value={formEvent}
                     onChange={(e) => setFormEvent(e.target.value)}
                     className="w-full h-11 px-3.5 rounded-lg bg-surface-container-low text-body-md font-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-xs"
@@ -889,11 +1077,7 @@ export default function Budget() {
                       </option>
                     ))}
                     {events.length === 0 && (
-                      <>
-                        <option>Aarav &amp; Priya Wedding (Nov 2026)</option>
-                        <option>TechFest 2026 (Dec 2026)</option>
-                        <option>Birthday Celebration (Oct 2026)</option>
-                      </>
+                      <option value="">No events configured yet</option>
                     )}
                   </select>
                   <span className="material-symbols-outlined absolute right-3 top-3 text-on-surface-variant pointer-events-none text-[18px]">
@@ -905,11 +1089,12 @@ export default function Budget() {
               {/* Category & Amount */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-label-md text-label-md text-primary font-semibold text-xs">
+                  <label htmlFor="expense-category" className="font-label-md text-label-md text-primary font-semibold text-xs">
                     Category <span className="text-error">*</span>
                   </label>
                   <div className="relative">
                     <select
+                      id="expense-category"
                       value={formCategory}
                       onChange={(e) => setFormCategory(e.target.value as ExpenseTransaction["category"])}
                       className="w-full h-11 px-3.5 rounded-lg bg-surface-container-low text-body-md font-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-xs"
@@ -928,14 +1113,15 @@ export default function Budget() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-label-md text-label-md text-primary font-semibold text-xs">
-                    Amount in INR <span className="text-error">*</span>
+                  <label htmlFor="expense-amount" className="font-label-md text-label-md text-primary font-semibold text-xs">
+                    Amount in {currency} <span className="text-error">*</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-2.5 font-body-md-medium text-body-md-medium text-on-surface-variant font-bold">
-                      ₹
+                      {currencySymbol}
                     </span>
                     <input
+                      id="expense-amount"
                       value={formAmount}
                       onChange={(e) => setFormAmount(e.target.value)}
                       className="w-full h-11 pl-8 pr-3.5 rounded-lg bg-surface-container-low text-body-md font-body-md text-primary font-semibold placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-primary text-xs"
@@ -950,10 +1136,11 @@ export default function Budget() {
               {/* Date & Vendor */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-label-md text-label-md text-primary font-semibold text-xs">
+                  <label htmlFor="expense-date" className="font-label-md text-label-md text-primary font-semibold text-xs">
                     Expense Date <span className="text-error">*</span>
                   </label>
                   <input
+                    id="expense-date"
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
                     className="h-11 px-3.5 rounded-lg bg-surface-container-low text-body-md font-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary text-xs"
@@ -962,9 +1149,10 @@ export default function Budget() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-label-md text-label-md text-primary font-semibold text-xs">Vendor</label>
+                  <label htmlFor="expense-vendor" className="font-label-md text-label-md text-primary font-semibold text-xs">Vendor</label>
                   <div className="relative">
                     <input
+                      id="expense-vendor"
                       value={formVendor}
                       onChange={(e) => setFormVendor(e.target.value)}
                       className="w-full h-11 pl-3.5 pr-8 rounded-lg bg-surface-container-low text-body-md font-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-primary text-xs"
@@ -1041,11 +1229,137 @@ export default function Budget() {
                 className="h-11 px-space-xl rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-2 shadow-sm transition-all active:translate-y-0.5 text-xs font-semibold"
               >
                 <span className="material-symbols-outlined text-secondary-fixed text-[18px]">check</span>
-                <span>Save Expense</span>
+                <span>{editingExpenseId ? "Update Expense" : "Save Expense"}</span>
               </button>
             </div>
           </div>
         </>
+      )}
+
+      {/* Delete Confirmation Modal Dialog */}
+      {deleteConfirmExpense && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/40 backdrop-blur-xs animate-fade-in">
+          <div
+            ref={deleteModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-expense-title"
+            className="w-full max-w-md bg-surface-container-lowest rounded-xl shadow-2xl p-space-lg flex flex-col gap-4 border border-outline-variant/20"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center">
+                <span className="material-symbols-outlined text-[24px]">delete</span>
+              </div>
+              <div>
+                <h3 id="delete-expense-title" className="font-title-md text-title-md text-primary font-bold">Delete Expense Record?</h3>
+                <span className="font-caption text-caption text-on-surface-variant">This action cannot be undone</span>
+              </div>
+            </div>
+
+            <p className="font-body-md text-body-md text-on-surface text-xs leading-relaxed">
+              Are you sure you want to delete <strong>"{deleteConfirmExpense.name}"</strong> (₹{deleteConfirmExpense.amount.toLocaleString("en-IN")})? This outlay will be permanently deducted from your ledger.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-container">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmExpense(null)}
+                className="h-10 px-4 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const target = deleteConfirmExpense;
+                  setDeleteConfirmExpense(null);
+                  await deleteExpense(target.id);
+                  showToast(`Expense "${target.name}" deleted.`);
+                }}
+                className="h-10 px-5 rounded-lg bg-error hover:bg-error/90 text-on-error text-xs font-semibold shadow-sm transition-colors"
+              >
+                Delete Expense
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Adjust Category Allocations Modal */}
+      {adjustAllocationsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/40 backdrop-blur-xs animate-fade-in">
+          <form
+            ref={allocationsModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="adjust-allocations-title"
+            onSubmit={handleSaveAllocations}
+            className="w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-2xl overflow-hidden flex flex-col border border-outline-variant/20 max-h-[90vh]"
+          >
+            <div className="p-space-lg border-b border-surface-container flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary text-[22px]">tune</span>
+                <h3 id="adjust-allocations-title" className="font-title-md text-title-md text-primary font-bold">Adjust Category Allocations</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdjustAllocationsModalOpen(false)}
+                aria-label="Close allocations modal"
+                className="w-8 h-8 rounded-lg hover:bg-surface-container text-on-surface-variant flex items-center justify-center"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            <div className="p-space-lg flex flex-col gap-3 overflow-y-auto">
+              <p className="text-xs text-on-surface-variant mb-2">
+                Calibrate {currency} quotas for each milestone category. These allocations are persisted to your active event model.
+              </p>
+              {budgetItems.length === 0 ? (
+                <div className="text-xs text-on-surface-variant py-4 text-center">
+                  No predefined category budgets exist for this event yet.
+                </div>
+              ) : (
+                budgetItems.map((b) => (
+                  <div key={b.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/10">
+                    <span className="font-body-md-medium text-primary text-xs font-semibold">{b.category}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-on-surface-variant font-bold">{currencySymbol}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1000"
+                        aria-label={`Allocation amount for ${b.category}`}
+                        value={tempAllocations[b.id] ?? b.allocated}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setTempAllocations((prev) => ({ ...prev, [b.id]: isNaN(val) ? 0 : val }));
+                        }}
+                        className="w-32 h-9 px-2.5 rounded bg-surface-container-lowest text-right font-bold text-xs text-primary border border-outline-variant/20 focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="p-space-md border-t border-surface-container bg-surface-container-low/40 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setAdjustAllocationsModalOpen(false)}
+                className="h-10 px-4 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="h-10 px-5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-xs font-semibold shadow-sm transition-all"
+              >
+                Save Allocations
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </AppLayout>
   );

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useEventContext } from "../../context/EventContext";
 
 export interface DashboardEventCardProps {
   id: string;
@@ -36,6 +37,7 @@ export default function DashboardEventCard({
   totalTasks,
   onSelect
 }: DashboardEventCardProps) {
+  const { formatCurrency } = useEventContext();
   const budgetPct = budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
   const taskPct = totalTasks > 0 ? Math.min(Math.round((tasksCompleted / totalTasks) * 100), 100) : 0;
   const badgeClass = defaultTypeBadgeColors[type] || "bg-secondary-fixed text-on-secondary-fixed";
@@ -98,7 +100,7 @@ export default function DashboardEventCard({
           <div>
             <div className="flex items-center justify-between font-caption text-caption mb-1">
               <span className="text-on-surface-variant">
-                Budget: ₹{spent.toLocaleString("en-IN")} / ₹{budget.toLocaleString("en-IN")}
+                Budget: {formatCurrency(spent)} / {formatCurrency(budget)}
               </span>
               <span className="font-label-sm text-label-sm text-primary font-semibold">{budgetPct}%</span>
             </div>

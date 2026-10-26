@@ -35,21 +35,35 @@ export async function generateEventIdea(
   },
   isDemoUser = false
 ): Promise<AiGenerationResponse> {
-  let token = "";
-
-  if (auth?.currentUser) {
-    token = await auth.currentUser.getIdToken();
-  } else if (isDemoUser) {
-    token = "demo-token-demo-user";
+  // Explicit client-side preview for Demo Mode (does not call server with fake tokens)
+  if (isDemoUser) {
+    const { DEMO_CONCEPTS } = await import("../data/demoConcepts");
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    const matching = DEMO_CONCEPTS.find((c) => c.category === category) || DEMO_CONCEPTS[0];
+    const previewConcept: ConceptItem = {
+      ...matching,
+      id: `demo-ai-${Date.now()}`,
+      code: `#DEMO-${Math.floor(100 + Math.random() * 900)}`,
+      title: userPrompt?.trim()
+        ? `${matching.title} (${userPrompt.slice(0, 25)})`
+        : `${matching.title} • ${eventContext.name || "Demo Studio"}`,
+      badge: "Demo Studio Preview",
+      badgeType: "featured",
+      saved: false,
+      createdAt: new Date().toISOString()
+    };
+    return { concept: previewConcept };
   }
 
-  if (!token) {
+  if (!auth?.currentUser) {
     throw new AiServiceError(
-      "You must be signed in to generate event concepts with Planora AI.",
+      "You must be signed in with an active account to generate event concepts with Planora AI.",
       "UNAUTHORIZED",
       401
     );
   }
+
+  const token = await auth.currentUser.getIdToken();
 
   // Determine endpoint URL: custom Cloud Function URL or local dev endpoint
   const endpoint = import.meta.env.VITE_AI_FUNCTION_URL || "/api/ai/generate";

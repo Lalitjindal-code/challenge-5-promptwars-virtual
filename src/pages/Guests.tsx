@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 import type { DetailedGuest } from "../types";
 
 export default function Guests() {
@@ -13,6 +14,8 @@ export default function Guests() {
   const [cohortFilter, setCohortFilter] = useState("");
   const [eventFilter, setEventFilter] = useState("");
   const [selectedGuests, setSelectedGuests] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [isInvitePreviewOpen, setIsInvitePreviewOpen] = useState(false);
 
   // Drawer
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -27,6 +30,14 @@ export default function Guests() {
   const [newCohort, setNewCohort] = useState<"VIP" | "Family" | "Friends" | "College Team" | "Vendors">("Family");
   const [newPartySize, setNewPartySize] = useState<number>(2);
   const [newEventTarget, setNewEventTarget] = useState("Aarav & Priya Wedding");
+  const [newStatus, setNewStatus] = useState<"Confirmed" | "Awaiting Response" | "Declined">("Confirmed");
+  const [newDietary, setNewDietary] = useState<string>("Vegetarian");
+  const [newTable, setNewTable] = useState<string>("Table 01 — Main Hall");
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+
+  // Accessible Modal Hooks (Focus trap, Escape key, Body scroll lock, Focus restore)
+  const addGuestModalRef = useModalAccessibility<HTMLFormElement>(isAddModalOpen, () => setIsAddModalOpen(false));
+  const batchModalRef = useModalAccessibility<HTMLDivElement>(isBatchModalOpen, () => setIsBatchModalOpen(false));
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -96,6 +107,38 @@ export default function Guests() {
     showToast(`Updated RSVP status to: ${nextStatus}`);
   };
 
+  // Export Guest Roster to CSV
+  const handleExportGuestsCSV = () => {
+    const listToExport = filteredGuests.length > 0 ? filteredGuests : guestList;
+    if (!listToExport.length) {
+      showToast("No guests available to export.");
+      return;
+    }
+    const headers = ["ID", "Name", "Email", "Phone", "Event", "Cohort", "Party Size", "RSVP Status", "Dietary", "Table", "VIP"];
+    const rows = listToExport.map((g) => [
+      `"${g.id}"`,
+      `"${(g.name || "").replace(/"/g, '""')}"`,
+      `"${(g.email || "").replace(/"/g, '""')}"`,
+      `"${(g.phone || "").replace(/"/g, '""')}"`,
+      `"${(g.event || "").replace(/"/g, '""')}"`,
+      `"${(g.cohort || "").replace(/"/g, '""')}"`,
+      `"${g.partySize || 1}"`,
+      `"${g.status || ""}"`,
+      `"${(g.dietary || "").replace(/"/g, '""')}"`,
+      `"${(g.table || "").replace(/"/g, '""')}"`,
+      `"${g.isVip ? "Yes" : "No"}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `planora-guest-roster-${(activeEvent?.name || "all").toLowerCase().replace(/[^a-z0-9]/g, "-")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Guest roster exported to CSV successfully.");
+  };
+
   // Save new guest
   const handleSaveNewGuest = async (e: FormEvent) => {
     e.preventDefault();
@@ -114,10 +157,10 @@ export default function Guests() {
       cohort: newCohort,
       event: activeEvent?.name || newEventTarget,
       partySize: newPartySize,
-      status: "Confirmed",
-      dispatchStatus: "Delivered",
-      dietary: "Vegetarian",
-      table: "Table 01 — Main Hall",
+      status: newStatus,
+      dispatchStatus: newStatus === "Confirmed" ? "Delivered" : "Pending",
+      dietary: newDietary,
+      table: newTable.trim() || "Table 01 — Main Hall",
       isVip: newCohort === "VIP"
     };
 
@@ -128,7 +171,8 @@ export default function Guests() {
     setNewLastName("");
     setNewEmail("");
     setNewPhone("");
-    showToast(`Guest ${fullName} added and invite dispatched!`);
+    setNewTable("Table 01 — Main Hall");
+    showToast(`Guest ${fullName} added to celebration roster`);
   };
 
   // Remove guest
@@ -211,15 +255,15 @@ export default function Guests() {
           <div className="flex flex-wrap items-center gap-space-sm">
             <button
               type="button"
-              onClick={() => showToast("Exported guest roster to CSV / PDF")}
+              onClick={handleExportGuestsCSV}
               className="h-11 px-4 rounded-lg bg-surface-container-lowest text-on-surface font-label-md text-label-md flex items-center gap-2 hover:bg-surface-container transition-all shadow-sm border border-outline-variant/10"
             >
               <span className="material-symbols-outlined text-[18px] text-on-surface-variant">ios_share</span>
-              <span>Export (CSV/PDF)</span>
+              <span>Export (CSV)</span>
             </button>
             <button
               type="button"
-              onClick={() => showToast("Dispatched 38 WhatsApp & Email digital invites")}
+              onClick={() => setIsBatchModalOpen(true)}
               className="h-11 px-4 rounded-lg bg-surface-container-lowest text-on-surface font-label-md text-label-md flex items-center gap-2 hover:bg-surface-container transition-all shadow-sm border border-outline-variant/10"
             >
               <span className="material-symbols-outlined text-[18px] text-on-surface-variant">send_time_extension</span>
@@ -605,7 +649,7 @@ export default function Guests() {
           <div className="mt-space-md flex flex-wrap items-center justify-between gap-space-sm pt-space-sm border-t border-surface-container">
             <button
               type="button"
-              onClick={() => showToast("Opening gold foil digital invitation preview...")}
+              onClick={() => setIsInvitePreviewOpen(true)}
               className="h-10 px-4 rounded-lg bg-surface-container-lowest text-primary font-label-md text-label-md flex items-center gap-1.5 hover:bg-surface-container transition-all shadow-sm border border-outline-variant/10"
             >
               <span className="material-symbols-outlined text-[18px]">visibility</span>
@@ -690,15 +734,24 @@ export default function Guests() {
               <div className="flex items-center p-1 bg-surface-container-low rounded-lg">
                 <button
                   type="button"
-                  className="w-8 h-8 rounded bg-surface-container-lowest text-primary flex items-center justify-center shadow-xs"
+                  onClick={() => setViewMode("table")}
+                  className={`w-8 h-8 rounded flex items-center justify-center transition-all ${
+                    viewMode === "table"
+                      ? "bg-surface-container-lowest text-primary shadow-xs font-bold"
+                      : "text-on-surface-variant hover:text-primary"
+                  }`}
                   title="Table View"
                 >
                   <span className="material-symbols-outlined text-[18px]">table_rows</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => showToast("Switched to mosaic card view")}
-                  className="w-8 h-8 rounded text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors"
+                  onClick={() => setViewMode("grid")}
+                  className={`w-8 h-8 rounded flex items-center justify-center transition-all ${
+                    viewMode === "grid"
+                      ? "bg-surface-container-lowest text-primary shadow-xs font-bold"
+                      : "text-on-surface-variant hover:text-primary"
+                  }`}
                   title="Grid View"
                 >
                   <span className="material-symbols-outlined text-[18px]">grid_view</span>
@@ -766,8 +819,9 @@ export default function Guests() {
           </div>
         </div>
 
-        {/* Data Table */}
-        <div className="overflow-x-auto w-full">
+        {/* Directory View: Table or Mosaic Grid */}
+        {viewMode === "table" ? (
+          <div className="overflow-x-auto w-full">
           <table className="w-full text-left border-collapse" id="guestTable">
             <thead>
               <tr className="bg-surface-container-low text-on-surface-variant font-caption text-caption uppercase tracking-wider">
@@ -945,6 +999,114 @@ export default function Guests() {
             </tbody>
           </table>
         </div>
+        ) : (
+          <div className="p-space-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-space-md">
+            {filteredGuests.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-on-surface-variant">
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-[32px] text-on-surface-variant/40">group_off</span>
+                  <span className="font-body-md-medium text-body-md">No guests matching current query</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="mt-2 px-4 py-1.5 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary-container transition-all"
+                  >
+                    + Add First Guest
+                  </button>
+                </div>
+              </div>
+            ) : (
+              filteredGuests.map((guest) => {
+                const isSelected = selectedGuests.includes(guest.id);
+                return (
+                  <div
+                    key={guest.id}
+                    onClick={() => openDrawer(guest)}
+                    className={`rounded-xl bg-surface-container-lowest p-space-md shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer border relative group ${
+                      isSelected
+                        ? "ring-2 ring-primary border-primary bg-primary/5"
+                        : "border-outline-variant/15 hover:border-primary/30"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-xs ${
+                            guest.isVip
+                              ? "bg-primary text-secondary-fixed ring-2 ring-secondary-fixed"
+                              : "bg-surface-container-high text-primary"
+                          }`}
+                        >
+                          {guest.avatar}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-primary text-sm truncate flex items-center gap-1">
+                            {guest.name}
+                            {guest.isVip && (
+                              <span className="material-symbols-outlined text-secondary text-[16px] shrink-0" title="VIP Guest">
+                                star
+                              </span>
+                            )}
+                          </h4>
+                          <span className="text-[11px] text-on-surface-variant truncate block">{guest.cohort}</span>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleSelectGuest(guest.id);
+                        }}
+                        className="w-4 h-4 rounded text-primary focus:ring-0 cursor-pointer mt-1"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 text-xs text-on-surface-variant mb-3">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="material-symbols-outlined text-[14px] text-secondary">mail</span>
+                        <span className="truncate">{guest.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="material-symbols-outlined text-[14px] text-secondary">call</span>
+                        <span className="truncate">{guest.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="material-symbols-outlined text-[14px] text-on-surface-variant">table_restaurant</span>
+                        <span className="truncate">{guest.table || "Unassigned"}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2.5 border-t border-surface-container flex items-center justify-between gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          guest.status === "Confirmed"
+                            ? "bg-primary/10 text-primary border border-primary/20"
+                            : guest.status === "Awaiting Response"
+                            ? "bg-secondary-fixed text-on-secondary-fixed"
+                            : "bg-error-container text-error"
+                        }`}
+                      >
+                        {guest.status} ({guest.partySize})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDrawer(guest);
+                        }}
+                        className="text-xs font-semibold text-primary hover:text-secondary flex items-center gap-0.5"
+                      >
+                        <span>Details</span>
+                        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
       {/* SLIDE-OVER GUEST DETAILS DRAWER */}
@@ -1170,17 +1332,22 @@ export default function Guests() {
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/40 backdrop-blur-xs animate-fade-in">
           <form
+            ref={addGuestModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-guest-title"
             onSubmit={handleSaveNewGuest}
             className="w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-2xl overflow-hidden flex flex-col border border-outline-variant/10"
           >
             <div className="p-space-lg border-b border-surface-container flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-[22px]">person_add</span>
-                <h3 className="font-title-md text-title-md text-primary font-bold">Add New Guest to Roster</h3>
+                <h3 id="add-guest-title" className="font-title-md text-title-md text-primary font-bold">Add New Guest to Roster</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
+                aria-label="Close add guest modal"
                 className="w-8 h-8 rounded-lg hover:bg-surface-container text-on-surface-variant flex items-center justify-center"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
@@ -1190,10 +1357,11 @@ export default function Guests() {
             <div className="p-space-lg flex flex-col gap-space-md">
               <div className="grid grid-cols-2 gap-space-sm">
                 <div>
-                  <label className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
-                    First Name
+                  <label htmlFor="guest-first-name" className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
+                    First Name <span className="text-error">*</span>
                   </label>
                   <input
+                    id="guest-first-name"
                     type="text"
                     required
                     value={newFirstName}
@@ -1203,10 +1371,11 @@ export default function Guests() {
                   />
                 </div>
                 <div>
-                  <label className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
+                  <label htmlFor="guest-last-name" className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
                     Last Name
                   </label>
                   <input
+                    id="guest-last-name"
                     type="text"
                     value={newLastName}
                     onChange={(e) => setNewLastName(e.target.value)}
@@ -1217,10 +1386,11 @@ export default function Guests() {
               </div>
 
               <div>
-                <label className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
+                <label htmlFor="guest-email" className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
                   Email Coordinates
                 </label>
                 <input
+                  id="guest-email"
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
@@ -1231,10 +1401,11 @@ export default function Guests() {
 
               <div className="grid grid-cols-2 gap-space-sm">
                 <div>
-                  <label className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
+                  <label htmlFor="guest-cohort" className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
                     Cohort / Group
                   </label>
                   <select
+                    id="guest-cohort"
                     value={newCohort}
                     onChange={(e) =>
                       setNewCohort(e.target.value as "VIP" | "Family" | "Friends" | "College Team" | "Vendors")
@@ -1249,10 +1420,11 @@ export default function Guests() {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
+                  <label htmlFor="guest-party-size" className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
                     Party Size (Total)
                   </label>
                   <select
+                    id="guest-party-size"
                     value={newPartySize}
                     onChange={(e) => setNewPartySize(Number(e.target.value))}
                     className="w-full h-10 px-3 rounded-lg bg-surface-container-low text-body-md font-body-md-medium text-on-surface border border-outline-variant/20"
@@ -1266,10 +1438,11 @@ export default function Guests() {
               </div>
 
               <div>
-                <label className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
+                <label htmlFor="guest-event-target" className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
                   Associated Event
                 </label>
                 <select
+                  id="guest-event-target"
                   value={newEventTarget}
                   onChange={(e) => setNewEventTarget(e.target.value)}
                   className="w-full h-10 px-3 rounded-lg bg-surface-container-low text-body-md font-body-md-medium text-on-surface border border-outline-variant/20"
@@ -1278,6 +1451,56 @@ export default function Guests() {
                   <option value="TechFest 2026">TechFest 2026</option>
                   <option value="Birthday Celebration">Birthday Celebration</option>
                 </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-space-sm">
+                <div>
+                  <label htmlFor="guest-status" className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
+                    RSVP Status
+                  </label>
+                  <select
+                    id="guest-status"
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value as "Confirmed" | "Awaiting Response" | "Declined")}
+                    className="w-full h-10 px-3 rounded-lg bg-surface-container-low text-body-md font-body-md-medium text-on-surface border border-outline-variant/20"
+                  >
+                    <option value="Confirmed">Confirmed</option>
+                    <option value="Awaiting Response">Awaiting Response</option>
+                    <option value="Declined">Declined</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="guest-dietary" className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
+                    Dietary Preference
+                  </label>
+                  <select
+                    id="guest-dietary"
+                    value={newDietary}
+                    onChange={(e) => setNewDietary(e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg bg-surface-container-low text-body-md font-body-md-medium text-on-surface border border-outline-variant/20"
+                  >
+                    <option value="Vegetarian">Vegetarian</option>
+                    <option value="Vegan">Vegan</option>
+                    <option value="Non-Vegetarian">Non-Vegetarian</option>
+                    <option value="Jain">Jain</option>
+                    <option value="Halal">Halal</option>
+                    <option value="Gluten-Free">Gluten-Free</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="guest-table" className="block font-caption text-caption text-on-surface-variant uppercase tracking-wider mb-1 font-semibold">
+                  Table / Seating Assignment
+                </label>
+                <input
+                  id="guest-table"
+                  type="text"
+                  value={newTable}
+                  onChange={(e) => setNewTable(e.target.value)}
+                  placeholder="e.g. Table 04 — Royal Pavillion"
+                  className="w-full h-10 px-3 rounded-lg bg-surface-container-low text-body-md font-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest border border-outline-variant/20"
+                />
               </div>
             </div>
 
@@ -1294,10 +1517,168 @@ export default function Guests() {
                 className="h-10 px-5 rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center gap-2 hover:bg-primary-container active:translate-y-0.5 transition-all shadow-md"
               >
                 <span className="material-symbols-outlined text-[18px] text-secondary-fixed">save</span>
-                <span>Save & Send Invite</span>
+                <span>Save Guest</span>
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Batch Send Invites Integration Dialog */}
+      {isBatchModalOpen && (
+        <div className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div
+            ref={batchModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="batch-dispatch-title"
+            className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/20"
+          >
+            <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-[26px]">forward_to_inbox</span>
+            </div>
+            <div>
+              <h3 id="batch-dispatch-title" className="font-headline-sm text-headline-sm text-primary font-bold">Batch Dispatch Service</h3>
+              <p className="font-body-md text-body-md text-on-surface-variant mt-1 leading-relaxed">
+                Automated multi-channel WhatsApp and email dispatch requires a configured delivery provider (e.g., SendGrid, Twilio, or AWS SES credentials).
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-surface-container-low flex items-center gap-2 text-caption font-caption text-on-surface border border-outline-variant/15">
+              <span className="material-symbols-outlined text-secondary text-[18px]">info</span>
+              <span>Currently running in local evaluation mode. You can export the broadcast roster to CSV for external mail merge.</span>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsBatchModalOpen(false)}
+                className="h-10 px-4 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-md text-label-md transition-all"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBatchModalOpen(false);
+                  handleExportGuestsCSV();
+                }}
+                className="h-10 px-4 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-1.5 shadow-sm hover:bg-primary transition-all"
+              >
+                <span className="material-symbols-outlined text-[16px]">file_download</span>
+                <span>Export for Mail Merge</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Digital Invitation Preview Modal */}
+      {isInvitePreviewOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Interactive Invitation Preview"
+            className="bg-surface-container-lowest rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border-2 border-secondary/40 flex flex-col"
+          >
+            {/* Gold foil ribbon top banner */}
+            <div className="bg-gradient-to-r from-secondary-fixed-dim via-secondary to-secondary-fixed text-primary px-6 py-4 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[22px]">workspace_premium</span>
+                <span className="font-title-md text-title-md font-bold tracking-wide uppercase text-xs">
+                  Planora Gold Digital Pass
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsInvitePreviewOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-primary transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Invitation Card Body */}
+            <div className="p-8 flex flex-col items-center text-center bg-gradient-to-b from-surface-container-lowest via-surface-container-low/40 to-surface-container-lowest">
+              <div className="w-16 h-16 rounded-full bg-secondary/15 border-2 border-secondary flex items-center justify-center text-secondary mb-4 shadow-inner">
+                <span className="material-symbols-outlined text-[32px]">favorite</span>
+              </div>
+
+              <span className="font-caption text-caption text-secondary font-bold uppercase tracking-[0.25em] text-[11px] mb-1">
+                You Are Cordially Invited To
+              </span>
+
+              <h2 className="font-headline-lg text-headline-lg text-primary font-bold my-2 tracking-tight">
+                {activeEvent?.name || "Aarav & Priya Wedding"}
+              </h2>
+
+              <p className="font-body-md text-body-md text-on-surface-variant max-w-sm mb-6 text-xs leading-relaxed">
+                Join us in celebrating this joyous milestone. An exquisite evening of dining, music, and cherished moments awaits your presence.
+              </p>
+
+              {/* Event Coordinates Card */}
+              <div className="w-full p-4 rounded-xl bg-surface-container-low border border-outline-variant/15 flex flex-col gap-2.5 text-left mb-6 text-xs">
+                <div className="flex items-center gap-2 text-primary font-medium">
+                  <span className="material-symbols-outlined text-secondary text-[18px]">calendar_month</span>
+                  <span>{activeEvent?.date || "24 October 2026 • 5:00 PM IST"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-primary font-medium">
+                  <span className="material-symbols-outlined text-secondary text-[18px]">location_on</span>
+                  <span>{activeEvent?.location || "The Taj Mahal Palace, Grand Ballroom, Mumbai"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-primary font-medium">
+                  <span className="material-symbols-outlined text-secondary text-[18px]">badge</span>
+                  <span>VIP Access Pass • Complimentary Valet &amp; Banquet</span>
+                </div>
+              </div>
+
+              {/* RSVP Action Preview Buttons */}
+              <div className="w-full flex flex-col sm:flex-row gap-3 mb-6">
+                <button
+                  type="button"
+                  onClick={() => showToast("Guest RSVP simulated: Attending with Pleasure!")}
+                  className="flex-1 h-11 rounded-xl bg-primary text-secondary-fixed hover:bg-primary-container font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                >
+                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                  <span>Accept with Pleasure</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => showToast("Guest RSVP simulated: Declining with Regret.")}
+                  className="h-11 px-4 rounded-xl bg-surface-container-high hover:bg-surface-container text-on-surface font-medium text-xs transition-colors"
+                >
+                  Regretfully Decline
+                </button>
+              </div>
+
+              {/* Share & Copy Link Footer */}
+              <div className="w-full pt-4 border-t border-surface-container flex flex-wrap items-center justify-between gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = `https://rsvp.planora.ai/v2/${(activeEvent?.name || "aarav-priya").toLowerCase().replace(/[^a-z0-9]/g, "-")}/vip-access`;
+                    navigator.clipboard?.writeText(link);
+                    showToast("VIP Invitation link copied to clipboard!");
+                  }}
+                  className="px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                  <span>Copy VIP Link</span>
+                </button>
+
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                    `You are invited to ${activeEvent?.name || "our celebration"}! RSVP here: https://rsvp.planora.ai/v2/invite`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 rounded-lg bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#128C7E] font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">send</span>
+                  <span>Share via WhatsApp</span>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </AppLayout>

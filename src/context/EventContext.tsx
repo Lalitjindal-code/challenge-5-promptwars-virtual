@@ -7,7 +7,8 @@ import {
   deleteDoc,
   onSnapshot
 } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "../lib/firebase";
+import { isFirebaseConfigured } from "../lib/firebase";
+import { db } from "../lib/firestore";
 import { useAuth } from "./AuthContext";
 import type {
   EventItem,
@@ -65,17 +66,32 @@ interface EventContextType {
   // Expenses & Budget
   expenses: ExpenseTransaction[];
   addExpense: (expense: Omit<ExpenseTransaction, "id" | "eventId">) => Promise<void>;
+  updateExpense: (expenseId: string, updates: Partial<ExpenseTransaction>) => Promise<void>;
   deleteExpense: (expenseId: string) => Promise<void>;
 
   budgetItems: BudgetItem[];
   addBudgetItem: (item: Omit<BudgetItem, "id" | "eventId">) => Promise<void>;
   updateBudgetItem: (budgetId: string, updates: Partial<BudgetItem>) => Promise<void>;
 
+  // Currency & Formatting
+  currency: "INR" | "USD" | "EUR" | "GBP" | "AED";
+  setCurrency: (cur: "INR" | "USD" | "EUR" | "GBP" | "AED") => void;
+  currencySymbol: string;
+  formatCurrency: (amount: number) => string;
+
   // Saved AI Concepts
   savedAiConcepts: ConceptItem[];
   saveAiConcept: (concept: ConceptItem) => Promise<void>;
   removeAiConcept: (conceptId: string) => Promise<void>;
 }
+
+export const CURRENCY_CONFIG: Record<"INR" | "USD" | "EUR" | "GBP" | "AED", { symbol: string; locale: string; name: string }> = {
+  INR: { symbol: "₹", locale: "en-IN", name: "Indian Rupee" },
+  USD: { symbol: "$", locale: "en-US", name: "US Dollar" },
+  EUR: { symbol: "€", locale: "de-DE", name: "Euro" },
+  GBP: { symbol: "£", locale: "en-GB", name: "British Pound" },
+  AED: { symbol: "AED ", locale: "en-AE", name: "UAE Dirham" }
+};
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
@@ -181,6 +197,32 @@ const DEMO_TASKS: DetailedTask[] = [
     completed: true,
     assignee: { name: "Priya K.", initials: "PK", bg: "bg-secondary-fixed", text: "text-on-secondary-fixed" },
     category: "Decor & Production"
+  },
+  {
+    id: "dt-4",
+    eventId: "demo-evt-2",
+    title: "Finalize keynote AV & livestream stage",
+    subtitle: "Coordinate multi-camera 4K switcher rig",
+    event: "TechFest 2026",
+    dueDate: "10 Nov 2026",
+    priority: "High",
+    status: "In Progress",
+    completed: false,
+    assignee: { name: "Rohan M.", initials: "RM", bg: "bg-primary-container", text: "text-on-primary" },
+    category: "AV & Technology"
+  },
+  {
+    id: "dt-5",
+    eventId: "demo-evt-3",
+    title: "Order custom neon installation & photo backdrop",
+    subtitle: "Retro arcade neon aesthetic with floral base",
+    event: "Meera's 30th",
+    dueDate: "18 Nov 2026",
+    priority: "Medium",
+    status: "Completed",
+    completed: true,
+    assignee: { name: "Priya K.", initials: "PK", bg: "bg-secondary-fixed", text: "text-on-secondary-fixed" },
+    category: "Decor & Styling"
   }
 ];
 
@@ -232,6 +274,37 @@ const DEMO_GUESTS: DetailedGuest[] = [
     dispatchStatus: "Delivered & Opened",
     dietary: "Vegetarian",
     table: "Table 01 — Family"
+  },
+  {
+    id: "dg-4",
+    eventId: "demo-evt-2",
+    name: "Dr. Vikram Sen",
+    avatar: "VS",
+    isVip: true,
+    email: "vikram.sen@techsummit.example",
+    phone: "+91 98110 33445",
+    cohort: "VIP",
+    event: "TechFest Global Summit 2026",
+    partySize: 1,
+    status: "Confirmed",
+    dispatchStatus: "Delivered & Opened",
+    dietary: "Vegan",
+    table: "Stage Panel A"
+  },
+  {
+    id: "dg-5",
+    eventId: "demo-evt-3",
+    name: "Ananya Roy",
+    avatar: "AR",
+    email: "ananya.roy@example.com",
+    phone: "+91 98450 11223",
+    cohort: "Friends",
+    event: "Meera's 30th Birthday Gala",
+    partySize: 2,
+    status: "Confirmed",
+    dispatchStatus: "Delivered",
+    dietary: "Standard Catering",
+    table: "Lounge Booth 02"
   }
 ];
 
@@ -279,6 +352,50 @@ const DEMO_VENDORS: DetailedVendor[] = [
     inclusions: ["6-course royal banquet", "Live counters", "Mocktail bar"],
     advisoryText: "Schedule live chaat alongside cocktail hour.",
     notes: "Tasting approved by couple on Oct 18."
+  },
+  {
+    id: "dv-3",
+    eventId: "demo-evt-2",
+    name: "Bengaluru AV Solutions",
+    category: "Logistics & AV",
+    location: "Koramangala, Bengaluru",
+    rating: 4.9,
+    reviewCount: 56,
+    event: "TechFest Global Summit 2026",
+    tags: ["LED Wall", "Livestream", "4K Switching"],
+    cost: 400000,
+    paidAmount: 250000,
+    status: "Booked • Adv. Paid",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC3NPKsZBnzdxz0TIPVopESyM0iEFaFKWYmCmNEoYEx8Pyf4RDKkjqLwEwwq9I5bl2oueVmK_LCtovN0F71YHmDGZE6kL9qYsnrvqGflGHGPTGfUepZVo_qgy7vs1wzql5aK2-sV2NWEEFD3jxRlur6fHKmPF1IcT7pKT9Bv4vjoSxWPGTlV16U95WLvsBCg8SZziTxkexAtFJY5ABQuSxD6zRmdyUxieF2GdnD-x2-FNqeBjpF89Z12w",
+    contactName: "Manoj Nair",
+    contactRole: "Technical Director",
+    contactPhone: "+91 98450 67890",
+    contactEmail: "manoj@bengaluru-av.example",
+    inclusions: ["32x12ft P2.5 LED Display", "Line Array Audio Rig", "4K Robotic Cameras"],
+    advisoryText: "Complete staging check at 7:00 AM on summit day.",
+    notes: "Stage load-in scheduled for 09 Nov."
+  },
+  {
+    id: "dv-4",
+    eventId: "demo-evt-3",
+    name: "Neon Lights & Flora Studio",
+    category: "Decoration",
+    location: "Indiranagar, Bengaluru",
+    rating: 4.7,
+    reviewCount: 29,
+    event: "Meera's 30th Birthday Gala",
+    tags: ["Custom Neon", "Photobooth", "Floral Base"],
+    cost: 120000,
+    paidAmount: 60000,
+    status: "Shortlisted",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAxvPSrf5c_80oC0yfbzSOHd_dsK0zZQ1jNoBGjEqbFI2z-L-muEehazjl2QKnYu3WS1_kKajbtaP9UcVMYLuwVVXMCtKgJ1ByzY8eesO0X1buXSvbiCEYNOh0AYjR0z7w0oUGP_pZvFOe3JZBxVcXk3dK6EeRFcInmpCGHs2ZRUwg8AwsYUMC9BQf93siWj8FxqLXiDRa1sG6o6zdl1KT2ycbfFho4UW2NTmMhO45RVBBAbJ2YguIjdQ",
+    contactName: "Ayesha Khan",
+    contactRole: "Creative Lead",
+    contactPhone: "+91 98860 12345",
+    contactEmail: "ayesha@neonflora.example",
+    inclusions: ["Custom 'Meera @ 30' Neon sign", "Interactive photo booth", "Ambient floor lamps"],
+    advisoryText: "Photo backdrop requires dedicated 15A power socket.",
+    notes: "Color mockups approved."
   }
 ];
 
@@ -318,6 +435,30 @@ const DEMO_EXPENSES: ExpenseTransaction[] = [
     status: "Pending",
     vendor: "Bloom & Foliage Decor",
     icon: "local_florist"
+  },
+  {
+    id: "de-4",
+    eventId: "demo-evt-2",
+    name: "Convention Center Hall A Advance",
+    event: "TechFest Global Summit 2026",
+    category: "Venue",
+    date: "20 Oct 2026",
+    amount: 500000,
+    status: "Paid",
+    vendor: "Bengaluru Convention Centre",
+    icon: "domain"
+  },
+  {
+    id: "de-5",
+    eventId: "demo-evt-3",
+    name: "Rooftop Lounge Reservation Fee",
+    event: "Meera's 30th Birthday Gala",
+    category: "Venue",
+    date: "22 Oct 2026",
+    amount: 100000,
+    status: "Paid",
+    vendor: "Skyline Lounge Indiranagar",
+    icon: "domain"
   }
 ];
 
@@ -326,12 +467,25 @@ const DEMO_BUDGET: BudgetItem[] = [
   { id: "db-2", eventId: "demo-evt-1", category: "Catering & Bar", allocated: 1200000, spent: 900000, notes: "Multi-cuisine live counters" },
   { id: "db-3", eventId: "demo-evt-1", category: "Decor & Production", allocated: 700000, spent: 450000, notes: "Floral & ambient lighting" },
   { id: "db-4", eventId: "demo-evt-1", category: "Photo & Cinematography", allocated: 450000, spent: 250000, notes: "Candid & drone team" },
-  { id: "db-5", eventId: "demo-evt-1", category: "Contingency / Buffer", allocated: 350000, spent: 0, notes: "Emergency reserve" }
+  { id: "db-5", eventId: "demo-evt-1", category: "Contingency / Buffer", allocated: 350000, spent: 0, notes: "Emergency reserve" },
+  { id: "db-6", eventId: "demo-evt-2", category: "Stage, Rigging & AV", allocated: 600000, spent: 400000, notes: "Keynote presentation stage" },
+  { id: "db-7", eventId: "demo-evt-2", category: "Delegate Catering & Lunch", allocated: 400000, spent: 300000, notes: "Lunch buffet & coffee stations" },
+  { id: "db-8", eventId: "demo-evt-3", category: "Rooftop Booking & Cocktails", allocated: 200000, spent: 120000, notes: "Open bar and lounge seating" },
+  { id: "db-9", eventId: "demo-evt-3", category: "Styling, DJ & Sound", allocated: 150000, spent: 60000, notes: "Neon aesthetic and sound engineer" }
 ];
 
 export const EventProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const isDemo = Boolean(user?.isDemo);
+
+  // In-memory demo data stores to ensure true data isolation between demo events and sessions
+  const [demoEvents, setDemoEvents] = useState<EventItem[]>(DEMO_EVENTS);
+  const [demoTasks, setDemoTasks] = useState<DetailedTask[]>(DEMO_TASKS);
+  const [demoGuests, setDemoGuests] = useState<DetailedGuest[]>(DEMO_GUESTS);
+  const [demoVendors, setDemoVendors] = useState<DetailedVendor[]>(DEMO_VENDORS);
+  const [demoExpenses, setDemoExpenses] = useState<ExpenseTransaction[]>(DEMO_EXPENSES);
+  const [demoBudget, setDemoBudget] = useState<BudgetItem[]>(DEMO_BUDGET);
+  const [demoAiConcepts, setDemoAiConcepts] = useState<ConceptItem[]>(DEMO_CONCEPTS.filter((c) => c.saved));
 
   const [events, setEvents] = useState<EventItem[]>([]);
   const [activeEventId, setActiveEventId] = useState<string>("");
@@ -343,9 +497,43 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const [savedAiConcepts, setSavedAiConcepts] = useState<ConceptItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Global Workspace Currency State
+  const [currency, setCurrencyState] = useState<"INR" | "USD" | "EUR" | "GBP" | "AED">(() => {
+    try {
+      const saved = localStorage.getItem("planora_currency");
+      if (saved && ["INR", "USD", "EUR", "GBP", "AED"].includes(saved)) {
+        return saved as "INR" | "USD" | "EUR" | "GBP" | "AED";
+      }
+      const settingsRaw = localStorage.getItem("planora_workspace_settings");
+      if (settingsRaw) {
+        const parsed = JSON.parse(settingsRaw);
+        if (parsed.currency && ["INR", "USD", "EUR", "GBP", "AED"].includes(parsed.currency)) {
+          return parsed.currency;
+        }
+      }
+    } catch {}
+    return "INR";
+  });
+
+  const setCurrency = (cur: "INR" | "USD" | "EUR" | "GBP" | "AED") => {
+    setCurrencyState(cur);
+    try {
+      localStorage.setItem("planora_currency", cur);
+      const existing = JSON.parse(localStorage.getItem("planora_workspace_settings") || "{}");
+      localStorage.setItem("planora_workspace_settings", JSON.stringify({ ...existing, currency: cur }));
+    } catch {}
+  };
+
+  const currencySymbol = CURRENCY_CONFIG[currency]?.symbol || "₹";
+
+  const formatCurrency = (amount: number) => {
+    const conf = CURRENCY_CONFIG[currency] || CURRENCY_CONFIG.INR;
+    return `${conf.symbol}${Math.round(amount || 0).toLocaleString(conf.locale)}`;
+  };
+
   // 1. Sync User's Events on Login / Logout
   useEffect(() => {
-    // A. User logged out: PURGE all memory state immediately
+    // A. User logged out: PURGE all memory state immediately and reset demo stores
     if (!user) {
       setEvents([]);
       setActiveEventId("");
@@ -355,20 +543,21 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
       setExpenses([]);
       setBudgetItems([]);
       setSavedAiConcepts([]);
+      setDemoEvents(DEMO_EVENTS);
+      setDemoTasks(DEMO_TASKS);
+      setDemoGuests(DEMO_GUESTS);
+      setDemoVendors(DEMO_VENDORS);
+      setDemoExpenses(DEMO_EXPENSES);
+      setDemoBudget(DEMO_BUDGET);
+      setDemoAiConcepts(DEMO_CONCEPTS.filter((c) => c.saved));
       setIsLoading(false);
       return;
     }
 
     // B. Explicit Demo User Session: Load demo datasets
     if (isDemo) {
-      setEvents(DEMO_EVENTS);
-      setActiveEventId(DEMO_EVENTS[0]?.id || "");
-      setTasks(DEMO_TASKS);
-      setGuests(DEMO_GUESTS);
-      setVendors(DEMO_VENDORS);
-      setExpenses(DEMO_EXPENSES);
-      setBudgetItems(DEMO_BUDGET);
-      setSavedAiConcepts(DEMO_CONCEPTS.filter((c) => c.saved));
+      setEvents(demoEvents);
+      setActiveEventId((prev) => (prev && demoEvents.some((e) => e.id === prev) ? prev : demoEvents[0]?.id || ""));
       setIsLoading(false);
       return;
     }
@@ -409,18 +598,18 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user?.uid, isDemo]);
 
-  // 2. Sync Subcollections (tasks, guests, vendors, expenses, budgetItems) for Active Event
+  // 2. Sync Subcollections for Active Event (Strictly isolated by activeEventId)
   useEffect(() => {
     if (!user) return;
 
     if (isDemo) {
-      // Filter demo data by active event id if applicable
-      setTasks(DEMO_TASKS.filter((t) => t.eventId === activeEventId || t.eventId === "demo-evt-1"));
-      setGuests(DEMO_GUESTS.filter((g) => g.eventId === activeEventId || g.eventId === "demo-evt-1"));
-      setVendors(DEMO_VENDORS.filter((v) => v.eventId === activeEventId || v.eventId === "demo-evt-1"));
-      setExpenses(DEMO_EXPENSES.filter((e) => e.eventId === activeEventId || e.eventId === "demo-evt-1"));
-      setBudgetItems(DEMO_BUDGET.filter((b) => b.eventId === activeEventId || b.eventId === "demo-evt-1"));
-      setSavedAiConcepts(DEMO_CONCEPTS.filter((c) => c.saved));
+      // Filter demo data strictly by active event id - NO fallback/leakage of demo-evt-1 into other events!
+      setTasks(demoTasks.filter((t) => t.eventId === activeEventId));
+      setGuests(demoGuests.filter((g) => g.eventId === activeEventId));
+      setVendors(demoVendors.filter((v) => v.eventId === activeEventId));
+      setExpenses(demoExpenses.filter((e) => e.eventId === activeEventId));
+      setBudgetItems(demoBudget.filter((b) => b.eventId === activeEventId));
+      setSavedAiConcepts(demoAiConcepts.filter((c) => !c.eventId || c.eventId === activeEventId));
       return;
     }
 
@@ -487,7 +676,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
       unsubBudget();
       unsubAiConcepts();
     };
-  }, [user?.uid, activeEventId, isDemo]);
+  }, [user?.uid, activeEventId, isDemo, demoTasks, demoGuests, demoVendors, demoExpenses, demoBudget, demoAiConcepts]);
 
   const activeEvent = events.find((e) => e.id === activeEventId) || events[0];
 
@@ -505,6 +694,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     };
 
     if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setDemoEvents((prev) => [newEvent, ...prev]);
       setEvents((prev) => [newEvent, ...prev]);
       setActiveEventId(newId);
       return newEvent;
@@ -517,6 +707,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
 
   const updateEvent = async (id: string, updates: Partial<EventItem>) => {
     if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setDemoEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
       setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
       return;
     }
@@ -525,6 +716,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteEvent = async (id: string) => {
     if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setDemoEvents((prev) => prev.filter((e) => e.id !== id));
       setEvents((prev) => prev.filter((e) => e.id !== id));
       if (activeEventId === id) setActiveEventId(events.find((e) => e.id !== id)?.id || "");
       return;
@@ -546,6 +738,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     };
 
     if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setDemoTasks((prev) => [newTask, ...prev]);
       setTasks((prev) => [newTask, ...prev]);
       return;
     }
@@ -562,6 +755,9 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     const nextStatus: DetailedTask["status"] = nextCompleted ? "Completed" : "In Progress";
 
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, completed: nextCompleted, status: nextStatus } : t))
+      );
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, completed: nextCompleted, status: nextStatus } : t))
       );
@@ -577,6 +773,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const updateTask = async (taskId: string, updates: Partial<DetailedTask>) => {
     const targetEventId = activeEventId || events[0]?.id;
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
       return;
     }
@@ -586,6 +783,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const deleteTask = async (taskId: string) => {
     const targetEventId = activeEventId || events[0]?.id;
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoTasks((prev) => prev.filter((t) => t.id !== taskId));
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
       return;
     }
@@ -605,6 +803,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     };
 
     if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setDemoGuests((prev) => [newGuest, ...prev]);
       setGuests((prev) => [newGuest, ...prev]);
       return;
     }
@@ -615,6 +814,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const updateGuest = async (guestId: string, updates: Partial<DetailedGuest>) => {
     const targetEventId = activeEventId || events[0]?.id;
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoGuests((prev) => prev.map((g) => (g.id === guestId ? { ...g, ...updates } : g)));
       setGuests((prev) => prev.map((g) => (g.id === guestId ? { ...g, ...updates } : g)));
       return;
     }
@@ -624,6 +824,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const deleteGuest = async (guestId: string) => {
     const targetEventId = activeEventId || events[0]?.id;
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoGuests((prev) => prev.filter((g) => g.id !== guestId));
       setGuests((prev) => prev.filter((g) => g.id !== guestId));
       return;
     }
@@ -643,6 +844,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     };
 
     if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setDemoVendors((prev) => [newVendor, ...prev]);
       setVendors((prev) => [newVendor, ...prev]);
       return;
     }
@@ -653,6 +855,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const updateVendor = async (vendorId: string, updates: Partial<DetailedVendor>) => {
     const targetEventId = activeEventId || events[0]?.id;
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoVendors((prev) => prev.map((v) => (v.id === vendorId ? { ...v, ...updates } : v)));
       setVendors((prev) => prev.map((v) => (v.id === vendorId ? { ...v, ...updates } : v)));
       return;
     }
@@ -662,6 +865,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const deleteVendor = async (vendorId: string) => {
     const targetEventId = activeEventId || events[0]?.id;
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoVendors((prev) => prev.filter((v) => v.id !== vendorId));
       setVendors((prev) => prev.filter((v) => v.id !== vendorId));
       return;
     }
@@ -681,6 +885,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     };
 
     if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setDemoExpenses((prev) => [newExpense, ...prev]);
       setExpenses((prev) => [newExpense, ...prev]);
       return;
     }
@@ -688,9 +893,20 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     await setDoc(doc(db, "users", user.uid, "events", targetEventId, "expenses", newId), newExpense);
   };
 
+  const updateExpense = async (expenseId: string, updates: Partial<ExpenseTransaction>) => {
+    const targetEventId = activeEventId || events[0]?.id;
+    if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoExpenses((prev) => prev.map((e) => (e.id === expenseId ? { ...e, ...updates } : e)));
+      setExpenses((prev) => prev.map((e) => (e.id === expenseId ? { ...e, ...updates } : e)));
+      return;
+    }
+    await updateDoc(doc(db, "users", user.uid, "events", targetEventId, "expenses", expenseId), updates as any);
+  };
+
   const deleteExpense = async (expenseId: string) => {
     const targetEventId = activeEventId || events[0]?.id;
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoExpenses((prev) => prev.filter((e) => e.id !== expenseId));
       setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
       return;
     }
@@ -709,6 +925,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     };
 
     if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setDemoBudget((prev) => [newItem, ...prev]);
       setBudgetItems((prev) => [newItem, ...prev]);
       return;
     }
@@ -719,6 +936,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const updateBudgetItem = async (budgetId: string, updates: Partial<BudgetItem>) => {
     const targetEventId = activeEventId || events[0]?.id;
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoBudget((prev) => prev.map((b) => (b.id === budgetId ? { ...b, ...updates } : b)));
       setBudgetItems((prev) => prev.map((b) => (b.id === budgetId ? { ...b, ...updates } : b)));
       return;
     }
@@ -738,6 +956,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
     };
 
     if (isDemo || !isFirebaseConfigured || !db || !user) {
+      setDemoAiConcepts((prev) => [conceptToSave, ...prev.filter((c) => c.id !== concept.id)]);
       setSavedAiConcepts((prev) => [conceptToSave, ...prev.filter((c) => c.id !== concept.id)]);
       return;
     }
@@ -748,6 +967,7 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
   const removeAiConcept = async (conceptId: string) => {
     const targetEventId = activeEventId || events[0]?.id;
     if (isDemo || !isFirebaseConfigured || !db || !user || !targetEventId) {
+      setDemoAiConcepts((prev) => prev.filter((c) => c.id !== conceptId));
       setSavedAiConcepts((prev) => prev.filter((c) => c.id !== conceptId));
       return;
     }
@@ -781,13 +1001,18 @@ export const EventProvider = ({ children }: { children: ReactNode }) => {
         deleteVendor,
         expenses,
         addExpense,
+        updateExpense,
         deleteExpense,
         budgetItems,
         addBudgetItem,
         updateBudgetItem,
         savedAiConcepts,
         saveAiConcept,
-        removeAiConcept
+        removeAiConcept,
+        currency,
+        setCurrency,
+        currencySymbol,
+        formatCurrency
       }}
     >
       {children}

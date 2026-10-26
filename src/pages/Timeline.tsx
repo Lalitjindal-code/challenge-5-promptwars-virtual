@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
+import { useModalAccessibility } from "../hooks/useModalAccessibility";
 import type { DetailedTask } from "../types";
 
 export default function Timeline() {
-  const { isDemo, events, activeEventId, setActiveEventId, activeEvent, tasks, addTask, updateTask, toggleTask } = useEventContext();
+  const { isDemo, events, activeEventId, setActiveEventId, activeEvent, tasks, addTask, updateTask, toggleTask, deleteTask } = useEventContext();
   const taskList = tasks;
 
   // Filters & Views
@@ -23,6 +24,12 @@ export default function Timeline() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerTask, setDrawerTask] = useState<DetailedTask | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [isAlternativesModalOpen, setIsAlternativesModalOpen] = useState(false);
+
+  // Accessible Modal Hooks (Focus trap, Escape key, Body scroll lock, Focus restore)
+  const taskDrawerRef = useModalAccessibility(isDrawerOpen, () => setIsDrawerOpen(false));
+  const deleteTaskModalRef = useModalAccessibility(Boolean(taskToDelete), () => setTaskToDelete(null));
 
   // Drawer form inputs
   const [formTitle, setFormTitle] = useState("");
@@ -40,10 +47,20 @@ export default function Timeline() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Toggle single task completed status in table
+  // Toggle single task completed status
   const handleToggleCompleted = async (taskId: string) => {
     await toggleTask(taskId);
     showToast("Task status updated");
+  };
+
+  // Delete task
+  const handleDeleteTask = async (taskId: string) => {
+    await deleteTask(taskId);
+    setTaskToDelete(null);
+    if (isDrawerOpen && drawerTask?.id === taskId) {
+      setIsDrawerOpen(false);
+    }
+    showToast("Task deleted from timeline");
   };
 
   // Toggle selection checkbox
@@ -118,6 +135,52 @@ export default function Timeline() {
       showToast(`Task updated successfully`);
     }
     setIsDrawerOpen(false);
+  };
+
+  // Export Run-of-Show to CSV
+  const handleExportRunSheet = () => {
+    const tasksToExport = sortedTasks.length > 0 ? sortedTasks : taskList;
+    if (!tasksToExport.length) {
+      showToast("No tasks available to export.");
+      return;
+    }
+    const headers = ["ID", "Title", "Subtitle/Description", "Event", "Due Date", "Priority", "Status", "Assignee", "Category"];
+    const rows = tasksToExport.map((t) => [
+      `"${t.id}"`,
+      `"${(t.title || "").replace(/"/g, '""')}"`,
+      `"${(t.description || t.subtitle || "").replace(/"/g, '""')}"`,
+      `"${(t.event || "").replace(/"/g, '""')}"`,
+      `"${(t.dueDate || "").replace(/"/g, '""')}"`,
+      `"${t.priority || ""}"`,
+      `"${t.status || ""}"`,
+      `"${(t.assignee?.name || "").replace(/"/g, '""')}"`,
+      `"${(t.category || "").replace(/"/g, '""')}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `planora-run-of-show-${(activeEvent?.name || "all").toLowerCase().replace(/[^a-z0-9]/g, "-")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Run-of-Show exported to CSV successfully.");
+  };
+
+  // Apply suggested reschedule by moving overdue tasks forward
+  const handleApplySuggestedReschedule = async () => {
+    const overdueTasks = taskList.filter((t) => t.status === "Overdue");
+    if (overdueTasks.length === 0) {
+      showToast("No overdue tasks detected. All milestones on schedule!");
+      return;
+    }
+    for (const t of overdueTasks) {
+      await updateTask(t.id, {
+        dueDate: "28 Oct 2026, 6:00 PM",
+        status: "In Progress"
+      });
+    }
+    showToast(`Rescheduled ${overdueTasks.length} overdue task(s) to 28 Oct. Bottleneck cleared!`);
   };
 
   // KPI Calculations
@@ -302,7 +365,7 @@ export default function Timeline() {
 
           <button
             type="button"
-            onClick={() => showToast("Run-of-Show PDF & Schedule exported successfully!")}
+            onClick={handleExportRunSheet}
             className="h-10 px-space-md rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container-low transition-all flex items-center gap-2 font-label-md text-label-md shadow-sm border border-outline-variant/10"
           >
             <span className="material-symbols-outlined text-[18px] text-on-surface-variant">ios_share</span>
@@ -633,6 +696,186 @@ export default function Timeline() {
               </div>
             </div>
 
+            {/* Render View Mode */}
+            {activeView === "Board" ? (
+              /* KANBAN BOARD VIEW */
+              <div className="p-space-md overflow-x-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-md min-w-[760px]">
+                  {[
+                    {
+                      id: "not-started",
+                      label: "To Do / Pending",
+                      badgeBg: "bg-surface-container text-on-surface-variant",
+                      tasks: sortedTasks.filter((t) => t.status === "Not Started" || t.status === "Pending")
+                    },
+                    {
+                      id: "in-progress",
+                      label: "In Progress",
+                      badgeBg: "bg-secondary-fixed text-on-secondary-fixed font-semibold",
+                      tasks: sortedTasks.filter((t) => t.status === "In Progress")
+                    },
+                    {
+                      id: "overdue",
+                      label: "Overdue",
+                      badgeBg: "bg-error text-on-error font-semibold",
+                      tasks: sortedTasks.filter((t) => t.status === "Overdue")
+                    },
+                    {
+                      id: "completed",
+                      label: "Completed",
+                      badgeBg: "bg-primary-container text-on-primary font-semibold",
+                      tasks: sortedTasks.filter((t) => t.status === "Completed")
+                    }
+                  ].map((col) => (
+                    <div key={col.id} className="flex flex-col gap-3 rounded-xl p-3 bg-surface-container-low/50 border border-outline-variant/15">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="font-label-md text-label-md text-primary font-semibold">{col.label}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-caption font-caption ${col.badgeBg}`}>
+                          {col.tasks.length}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2.5 min-h-[350px]">
+                        {col.tasks.length === 0 ? (
+                          <div className="flex-1 flex items-center justify-center p-4 border border-dashed border-outline-variant/20 rounded-lg text-caption font-caption text-on-surface-variant">
+                            No tasks in this lane
+                          </div>
+                        ) : (
+                          col.tasks.map((task) => (
+                            <div
+                              key={task.id}
+                              onClick={() => openEditDrawer(task)}
+                              className="p-3.5 bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/15 hover:border-secondary hover:shadow-sm transition-all cursor-pointer flex flex-col gap-2 group"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-body-md-medium text-body-md text-primary group-hover:text-secondary transition-colors">
+                                  {task.title}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[11px] font-caption shrink-0 font-semibold ${
+                                    task.priority === "High"
+                                      ? "bg-error-container text-error"
+                                      : task.priority === "Medium"
+                                      ? "bg-secondary-fixed text-on-secondary-fixed"
+                                      : "bg-surface-container text-on-surface-variant"
+                                  }`}
+                                >
+                                  {task.priority}
+                                </span>
+                              </div>
+                              {task.subtitle && (
+                                <p className="text-caption font-caption text-on-surface-variant line-clamp-2">
+                                  {task.subtitle}
+                                </p>
+                              )}
+                              <div className="flex items-center justify-between pt-1 border-t border-surface-container text-caption font-caption text-on-surface-variant">
+                                <span className="flex items-center gap-1 text-[11px] truncate max-w-[120px]">
+                                  <span className="material-symbols-outlined text-[13px]">event</span>
+                                  {task.dueDate.split(",")[0] || task.dueDate}
+                                </span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <div className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${task.assignee.bg} ${task.assignee.text}`}>
+                                    {task.assignee.initials}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleCompleted(task.id);
+                                    }}
+                                    className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
+                                      task.status === "Completed" ? "bg-secondary text-on-secondary" : "hover:bg-surface-container text-on-surface-variant"
+                                    }`}
+                                    title={task.status === "Completed" ? "Mark incomplete" : "Mark complete"}
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">
+                                      {task.status === "Completed" ? "check" : "radio_button_unchecked"}
+                                    </span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : activeView === "Timeline" ? (
+              /* CHRONOLOGICAL ROADMAP TIMELINE VIEW */
+              <div className="p-space-lg">
+                <div className="relative pl-6 space-y-6 before:absolute before:left-3 before:top-3 before:bottom-3 before:w-0.5 before:bg-surface-container">
+                  {sortedTasks.map((task) => {
+                    const isDone = task.status === "Completed";
+                    const isOverdue = task.status === "Overdue";
+                    return (
+                      <div
+                        key={task.id}
+                        onClick={() => openEditDrawer(task)}
+                        className="relative flex flex-col md:flex-row md:items-center justify-between p-4 bg-surface-container-low/40 rounded-xl hover:bg-surface-container-low transition-all cursor-pointer border border-outline-variant/15 gap-3"
+                      >
+                        <div
+                          className={`absolute -left-6 top-4 w-6 h-6 rounded-full flex items-center justify-center shadow-xs ${
+                            isDone
+                              ? "bg-secondary text-on-secondary"
+                              : isOverdue
+                              ? "bg-error text-on-error"
+                              : "bg-primary-container text-on-primary"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[13px]">
+                            {isDone ? "check" : isOverdue ? "priority_high" : "schedule"}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-1 min-w-0 pr-4">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-body-md-medium text-body-md text-primary font-semibold">
+                              {task.title}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-caption bg-surface-container text-on-surface-variant">
+                              {task.event}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-caption ${
+                                task.priority === "High"
+                                  ? "bg-error-container text-error"
+                                  : task.priority === "Medium"
+                                  ? "bg-secondary-fixed text-on-secondary-fixed"
+                                  : "bg-surface-container text-on-surface-variant"
+                              }`}
+                            >
+                              {task.priority}
+                            </span>
+                          </div>
+                          <p className="font-caption text-caption text-on-surface-variant">
+                            {task.subtitle || task.description || "Milestone deliverable"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0 text-caption font-caption text-on-surface-variant">
+                          <span className="flex items-center gap-1 font-body-md-medium text-primary">
+                            <span className="material-symbols-outlined text-[15px] text-secondary">calendar_clock</span>
+                            {task.dueDate}
+                          </span>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-caption font-caption font-semibold ${
+                              isDone
+                                ? "bg-secondary-fixed/40 text-secondary"
+                                : isOverdue
+                                ? "bg-error text-on-error"
+                                : "bg-primary-container text-on-primary"
+                            }`}
+                          >
+                            {task.status}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              /* DETAILED TABLE VIEW (Default) */
+              <>
             {/* Table Responsive Container */}
             <div className="w-full overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -847,6 +1090,8 @@ export default function Timeline() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
 
@@ -895,7 +1140,7 @@ export default function Timeline() {
             <div className="mt-4 flex flex-col gap-2">
               <button
                 type="button"
-                onClick={() => showToast("AI suggested reschedule applied! 2 calendar conflicts resolved.")}
+                onClick={handleApplySuggestedReschedule}
                 className="w-full h-10 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed-variant hover:bg-tertiary-fixed-dim font-label-md text-label-md flex items-center justify-center gap-2 transition-all shadow-sm"
               >
                 <span className="material-symbols-outlined text-[18px]">magic_button</span>
@@ -903,7 +1148,7 @@ export default function Timeline() {
               </button>
               <button
                 type="button"
-                onClick={() => showToast("AI Copilot is analyzing alternate staging slots...")}
+                onClick={() => setIsAlternativesModalOpen(true)}
                 className="w-full h-9 rounded-lg bg-surface-container-low text-on-surface-variant hover:text-on-surface font-label-md text-label-md flex items-center justify-center gap-2 transition-all"
               >
                 <span className="material-symbols-outlined text-[16px]">chat_bubble_outline</span>
@@ -1004,17 +1249,22 @@ export default function Timeline() {
         <div
           className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex justify-end transition-opacity duration-300"
           onClick={() => setIsDrawerOpen(false)}
+          aria-hidden="true"
         >
           <div
+            ref={taskDrawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="task-drawer-title"
             className="w-full max-w-xl bg-surface-container-lowest shadow-2xl flex flex-col h-full animate-slide-in-right"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drawer Header */}
             <div className="px-space-lg py-space-md bg-surface-container-low flex items-center justify-between border-b border-surface-container">
               <div className="flex items-center gap-space-sm">
-                <span className="font-headline-sm text-headline-sm text-primary">
+                <h3 id="task-drawer-title" className="font-headline-sm text-headline-sm text-primary font-bold">
                   {isCreatingNew ? "Add New Task" : "Task Details"}
-                </span>
+                </h3>
                 <span className="px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-caption text-caption">
                   {drawerTask?.id || "New"}
                 </span>
@@ -1025,6 +1275,7 @@ export default function Timeline() {
               <button
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
+                aria-label="Close task drawer"
                 className="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
@@ -1035,10 +1286,11 @@ export default function Timeline() {
             <form onSubmit={handleSaveDrawer} className="flex-1 overflow-y-auto p-space-lg flex flex-col gap-space-md">
               {/* Field: Task Title */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-label-md text-label-md text-on-surface flex items-center gap-1">
+                <label htmlFor="task-title" className="font-label-md text-label-md text-on-surface flex items-center gap-1 font-semibold">
                   Task Title <span className="text-error">*</span>
                 </label>
                 <input
+                  id="task-title"
                   type="text"
                   required
                   value={formTitle}
@@ -1050,8 +1302,9 @@ export default function Timeline() {
 
               {/* Field: Description */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-label-md text-label-md text-on-surface">Description</label>
+                <label htmlFor="task-desc" className="font-label-md text-label-md text-on-surface font-semibold">Description</label>
                 <textarea
+                  id="task-desc"
                   rows={3}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
@@ -1064,10 +1317,11 @@ export default function Timeline() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
                 {/* Event Association */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-label-md text-label-md text-on-surface">
+                  <label htmlFor="task-event" className="font-label-md text-label-md text-on-surface font-semibold">
                     Event Association <span className="text-error">*</span>
                   </label>
                   <select
+                    id="task-event"
                     value={formEvent}
                     onChange={(e) => setFormEvent(e.target.value)}
                     className="h-11 px-3 rounded-lg bg-surface-container-low text-body-md font-body-md text-on-surface focus:outline-none cursor-pointer"
@@ -1090,12 +1344,13 @@ export default function Timeline() {
 
                 {/* Due Date */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-label-md text-label-md text-on-surface">
+                  <label htmlFor="task-due-date" className="font-label-md text-label-md text-on-surface font-semibold">
                     Due Date & Time <span className="text-error">*</span>
                   </label>
                   <div className="relative flex items-center">
                     <span className="material-symbols-outlined absolute left-3 text-error text-[18px]">calendar_clock</span>
                     <input
+                      id="task-due-date"
                       type="text"
                       value={formDueDate}
                       onChange={(e) => setFormDueDate(e.target.value)}
@@ -1199,6 +1454,16 @@ export default function Timeline() {
 
               {/* Drawer Footer Actions */}
               <div className="pt-space-md border-t border-surface-container flex items-center justify-end gap-space-sm">
+                {!isCreatingNew && drawerTask && (
+                  <button
+                    type="button"
+                    onClick={() => setTaskToDelete(drawerTask.id)}
+                    className="h-11 px-space-md rounded-lg bg-error-container text-error hover:bg-error hover:text-on-error font-label-md text-label-md transition-all shadow-sm flex items-center gap-1.5 mr-auto"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                    <span>Delete</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setIsDrawerOpen(false)}
@@ -1214,6 +1479,144 @@ export default function Timeline() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Task Deletion Confirmation Dialog */}
+      {taskToDelete && (
+        <div className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div
+            ref={deleteTaskModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-task-title"
+            className="bg-surface-container-lowest rounded-2xl max-w-sm w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/20"
+          >
+            <div className="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center">
+              <span className="material-symbols-outlined text-[24px]">delete</span>
+            </div>
+            <div>
+              <h3 id="delete-task-title" className="font-headline-sm text-headline-sm text-primary font-bold">Delete Task?</h3>
+              <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+                Are you sure you want to remove this milestone from the timeline? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setTaskToDelete(null)}
+                className="h-10 px-4 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-md text-label-md transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteTask(taskToDelete)}
+                className="h-10 px-4 rounded-lg bg-error hover:bg-error/90 text-on-error font-label-md text-label-md transition-all shadow-sm"
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Copilot Staging Alternatives Modal */}
+      {isAlternativesModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-alternatives-title"
+            className="bg-surface-container-lowest rounded-2xl max-w-xl w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/20"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-surface-container">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
+                </div>
+                <div>
+                  <h3 id="ai-alternatives-title" className="font-headline-sm text-headline-sm text-primary font-bold">
+                    AI Copilot Schedule Alternatives
+                  </h3>
+                  <span className="text-caption text-on-surface-variant text-xs">3 Optimized Staging Buffers Available</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAlternativesModalOpen(false)}
+                className="w-8 h-8 rounded-lg hover:bg-surface-container text-on-surface-variant flex items-center justify-center"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+              {/* Option 1 */}
+              <div className="p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors border border-outline-variant/15 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-primary text-secondary-fixed text-[11px] font-bold uppercase">
+                      Option 1 • Recommended
+                    </span>
+                    <span className="font-semibold text-primary text-sm">Buffer-Protected Delivery Track</span>
+                  </div>
+                  <span className="text-xs text-secondary font-bold">+48h Safety Margin</span>
+                </div>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  Shift overdue sound rigging to 26 Oct morning and stagger electrician clearance 12 hours earlier to guarantee zero conflict with guest arrivals.
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleApplySuggestedReschedule();
+                    setIsAlternativesModalOpen(false);
+                    showToast("Option 1 applied: Buffer-Protected Schedule active!");
+                  }}
+                  className="mt-1 self-start px-3 py-1.5 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary-container transition-colors shadow-xs"
+                >
+                  Apply Option 1
+                </button>
+              </div>
+
+              {/* Option 2 */}
+              <div className="p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors border border-outline-variant/15 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed text-[11px] font-bold uppercase">
+                      Option 2
+                    </span>
+                    <span className="font-semibold text-primary text-sm">Concurrent Multi-Vendor Staging</span>
+                  </div>
+                  <span className="text-xs text-secondary font-bold">Fast-Track</span>
+                </div>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  Run floral decoration and lighting setup simultaneously in dual zones (East &amp; West Wings) with 2 dedicated site supervisors.
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleApplySuggestedReschedule();
+                    setIsAlternativesModalOpen(false);
+                    showToast("Option 2 applied: Multi-Vendor Staging configured!");
+                  }}
+                  className="mt-1 self-start px-3 py-1.5 rounded-lg bg-secondary text-on-secondary text-xs font-semibold hover:bg-secondary/90 transition-colors shadow-xs"
+                >
+                  Apply Option 2
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-2 border-t border-surface-container">
+              <button
+                type="button"
+                onClick={() => setIsAlternativesModalOpen(false)}
+                className="h-9 px-4 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-md text-label-md transition-all text-xs"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
