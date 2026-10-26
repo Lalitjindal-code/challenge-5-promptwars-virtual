@@ -35,8 +35,8 @@ export default function DashboardTaskItem({
             onChange={() => onToggle(id)}
           />
           <div
-            className={`w-4 h-4 rounded transition-colors flex items-center justify-center ${
-              completed ? "bg-primary text-on-primary" : "bg-surface-container hover:bg-surface-variant"
+            className={`w-4 h-4 rounded transition-all duration-200 transform active:scale-90 flex items-center justify-center ${
+              completed ? "bg-primary text-on-primary scale-100" : "bg-surface-container hover:bg-surface-variant hover:scale-110"
             }`}
           >
             <span

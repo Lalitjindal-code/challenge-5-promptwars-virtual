@@ -193,6 +193,15 @@ export default defineConfig(({ mode }) => {
             ) {
               return "vendor-react";
             }
+            if (id.includes("node_modules/gsap")) {
+              return "vendor-gsap";
+            }
+            if (id.includes("node_modules/lenis")) {
+              return "vendor-lenis";
+            }
+            if (id.includes("node_modules/framer-motion") || id.includes("node_modules/motion")) {
+              return "vendor-motion";
+            }
           }
         }
       }

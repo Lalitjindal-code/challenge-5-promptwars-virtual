@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import type { PlannedEvent } from "./EventModal";
+import { fadeInUpVariants, containerStaggerVariants } from "../lib/motion";
+import AmbientCanvas from "./motion/AmbientCanvas";
+import MagneticButton from "./motion/MagneticButton";
+import SpotlightCard from "./motion/SpotlightCard";
 
 const images = {
   logo: "https://lh3.googleusercontent.com/aida/AEtjO1Xd0Tz7ROZdBytLb48eKlwzOgT2MIhm7Yms4u_Rg1ur0LzNhU0AAXKo4dNj3XTbEEd1HXAoUIeS2xmEBD5IPUiv_H7e0IIrt_iy-nlVAm8EvD3995V9q1lxKeu2VQR6Gktq0mTeG2Y-kO7sYr0CbaOu7dDwuc8aGSMtETbtM80Vmzx6bEKZbsUNJM6oVnnS5SLKsL58iYNNhqyz38yndYxhxfCqU1mzKAWvY_8Zwoq7F0lfoGwmTGsV1CiH",
@@ -143,67 +148,111 @@ export function Header({ onPlan }: { onPlan: () => void }) {
 }
 
 /* -------------------------------------------------------------
- * 1. HERO SECTION (Exact Stitch Design)
+ * 1. HERO SECTION (Exact Stitch Design with Motion Upgrade)
  * ----------------------------------------------------------- */
 export function Hero({ onPlan }: { onPlan: () => void }) {
+  const [tasks, setTasks] = useState([
+    { id: 1, text: "Venue booking confirmed • Courtyard reserved", done: true },
+    { id: 2, text: "Curate acoustic quartet playlist", done: true },
+    { id: 3, text: "Finalize artisanal dinner tasting menu", done: false },
+  ]);
+
+  const toggleTask = (id: number) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+    );
+  };
+
   return (
-    <section className="w-full max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin pt-space-xl pb-16 lg:pb-24">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-center">
+    <section className="relative w-full max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin pt-space-xl pb-16 lg:pb-24 overflow-hidden">
+      {/* Background Ambient Light Canvas */}
+      <AmbientCanvas className="opacity-70" />
+
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-gutter items-center">
         {/* Left Column: Copy & Actions */}
-        <div className="lg:col-span-6 flex flex-col items-start pr-0 lg:pr-space-md">
-          <div className="inline-flex items-center gap-space-xs px-3.5 py-1.5 rounded-full bg-surface-container-high text-tertiary-container shadow-xs mb-space-md">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={containerStaggerVariants}
+          className="lg:col-span-6 flex flex-col items-start pr-0 lg:pr-space-md"
+        >
+          <motion.div
+            variants={fadeInUpVariants}
+            className="inline-flex items-center gap-space-xs px-3.5 py-1.5 rounded-full bg-surface-container-high text-tertiary-container shadow-xs mb-space-md border border-outline-variant/20"
+          >
             <span className="material-symbols-outlined text-[15px] text-tertiary-container">auto_awesome</span>
             <span className="font-label-sm text-label-sm tracking-wide uppercase font-semibold text-tertiary-container">
               Your Personal AI Event Planner
             </span>
-          </div>
+          </motion.div>
 
-          <h1 className="font-headline-xl text-[40px] md:text-[52px] lg:text-[58px] leading-[1.08] text-primary font-bold tracking-tight mb-space-md">
+          <motion.h1
+            variants={fadeInUpVariants}
+            className="font-headline-xl text-[40px] md:text-[52px] lg:text-[58px] leading-[1.08] text-primary font-bold tracking-tight mb-space-md"
+          >
             Plan Beautiful Events.
             <br className="hidden sm:inline" /> Without the Stress.
-          </h1>
+          </motion.h1>
 
-          <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed max-w-xl mb-space-lg">
+          <motion.p
+            variants={fadeInUpVariants}
+            className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed max-w-xl mb-space-lg"
+          >
             From intimate weddings to milestones and dinners, turn scattered ideas into a thoughtful, budget-aware event
             plan in minutes.
-          </p>
+          </motion.p>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-space-sm sm:gap-space-md w-full sm:w-auto mb-space-md">
-            <button
+          <motion.div
+            variants={fadeInUpVariants}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-space-sm sm:gap-space-md w-full sm:w-auto mb-space-md"
+          >
+            <MagneticButton
               type="button"
               onClick={onPlan}
-              className="inline-flex items-center justify-center gap-space-xs bg-primary-container text-on-primary font-body-md-medium text-body-md-medium px-7 py-3.5 rounded-xl shadow-[0_2px_4px_rgba(23,35,59,0.12)] hover:bg-primary transition-all active:translate-y-[1px]"
+              className="inline-flex items-center justify-center gap-space-xs bg-primary-container text-on-primary font-body-md-medium text-body-md-medium px-7 py-3.5 rounded-xl shadow-[0_4px_12px_rgba(23,35,59,0.18)] hover:bg-primary transition-all active:translate-y-[1px]"
             >
               <span>Plan My Event</span>
               <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-            </button>
+            </MagneticButton>
             <a
-              className="inline-flex items-center justify-center bg-surface-container-lowest text-on-surface border border-outline-variant/30 font-body-md-medium text-body-md-medium px-7 py-3.5 rounded-xl shadow-xs hover:bg-surface-container-low transition-all"
+              className="inline-flex items-center justify-center bg-surface-container-lowest text-on-surface border border-outline-variant/30 font-body-md-medium text-body-md-medium px-7 py-3.5 rounded-xl shadow-xs hover:bg-surface-container-low transition-all active:translate-y-[1px]"
               href="#features"
             >
               <span>Explore Features</span>
             </a>
-          </div>
+          </motion.div>
 
-          <div className="flex items-center gap-space-xs text-on-surface-variant font-caption text-body-md mt-1">
+          <motion.div
+            variants={fadeInUpVariants}
+            className="flex items-center gap-space-xs text-on-surface-variant font-caption text-body-md mt-1"
+          >
             <span className="material-symbols-outlined text-secondary text-[18px]">verified</span>
             <span>Your ideas. Your budget. A plan built effortlessly around you.</span>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Right Column: Visual Composition with Hero Photo & Floating Card */}
-        <div className="lg:col-span-6 relative mt-10 lg:mt-0 flex flex-col items-center">
-          <div className="w-full relative rounded-2xl overflow-hidden shadow-lg bg-surface-container-low border border-outline-variant/30">
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.65, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          className="lg:col-span-6 relative mt-10 lg:mt-0 flex flex-col items-center"
+        >
+          <div className="w-full relative rounded-2xl overflow-hidden shadow-xl bg-surface-container-low border border-outline-variant/30 group">
             <SafeImage
-              className="w-full h-[360px] md:h-[420px] object-cover transition-transform duration-700 hover:scale-[1.02]"
+              className="w-full h-[360px] md:h-[420px] object-cover transition-transform duration-700 group-hover:scale-[1.03]"
               alt="An elegant evening Tuscan outdoor wedding dinner with long rustic wooden tables, floral centerpieces of blush garden roses, glowing warm candles, crystal stemware, and overhead string fairy lights in front of a stone villa at dusk."
               src={images.hero}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/30 via-transparent to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/35 via-transparent to-transparent pointer-events-none"></div>
           </div>
 
-          {/* Refined Floating Event Plan Card */}
-          <div className="w-[92%] sm:w-[88%] lg:w-[94%] xl:w-[90%] -mt-20 md:-mt-24 relative z-10 bg-surface-container-lowest rounded-2xl p-space-md md:p-space-lg shadow-xl border border-outline-variant/30">
+          {/* Refined Floating Interactive Event Plan Card with Cursor Spotlight */}
+          <SpotlightCard
+            spotlightColor="rgba(214, 168, 95, 0.14)"
+            spotlightSize={400}
+            className="w-[92%] sm:w-[88%] lg:w-[94%] xl:w-[90%] -mt-20 md:-mt-24 relative z-10 bg-surface-container-lowest rounded-2xl p-space-md md:p-space-lg shadow-2xl border border-outline-variant/30 backdrop-blur-sm"
+          >
             <div className="flex flex-wrap items-center justify-between gap-space-xs mb-space-md pb-space-xs border-b border-outline-variant/30">
               <div>
                 <h3 className="font-title-md text-[18px] text-on-surface font-semibold">An Evening to Remember</h3>
@@ -231,40 +280,52 @@ export function Hero({ onPlan }: { onPlan: () => void }) {
                 </span>
               </div>
               <div className="w-full h-2.5 bg-surface-container rounded-full overflow-hidden flex">
-                <div className="bg-primary-container h-full w-[45%]"></div>
-                <div className="bg-secondary h-full w-[20%]"></div>
+                <div className="bg-primary-container h-full w-[45%] transition-all duration-500"></div>
+                <div className="bg-secondary h-full w-[20%] transition-all duration-500"></div>
                 <div className="bg-transparent h-full w-[35%]"></div>
               </div>
             </div>
 
+            {/* Interactive Tasks */}
             <div className="space-y-2.5 mb-space-md">
-              <div className="flex items-center gap-2.5 text-[14px] font-body-md">
-                <span className="material-symbols-outlined text-green-700 text-[18px]">check_circle</span>
-                <span className="text-on-surface font-medium">Venue booking confirmed • Courtyard reserved</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-[14px] font-body-md">
-                <span className="material-symbols-outlined text-green-700 text-[18px]">check_circle</span>
-                <span className="text-on-surface font-medium">Curate acoustic quartet playlist</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-[14px] font-body-md">
-                <span className="material-symbols-outlined text-outline-variant text-[18px]">radio_button_unchecked</span>
-                <span className="text-on-surface-variant">Finalize artisanal dinner tasting menu</span>
-              </div>
+              {tasks.map((task) => (
+                <button
+                  type="button"
+                  key={task.id}
+                  onClick={() => toggleTask(task.id)}
+                  className="w-full flex items-center gap-2.5 text-[14px] font-body-md text-left p-1 rounded-lg hover:bg-surface-container-low transition-colors"
+                >
+                  <span
+                    className={`material-symbols-outlined text-[18px] transition-colors ${
+                      task.done ? "text-green-700" : "text-outline-variant"
+                    }`}
+                  >
+                    {task.done ? "check_circle" : "radio_button_unchecked"}
+                  </span>
+                  <span
+                    className={`font-medium transition-all ${
+                      task.done ? "text-on-surface line-through opacity-85" : "text-on-surface-variant"
+                    }`}
+                  >
+                    {task.text}
+                  </span>
+                </button>
+              ))}
             </div>
 
-            <div className="flex items-center justify-between gap-space-xs p-3 rounded-xl bg-surface-container-high">
+            <div className="flex items-center justify-between gap-space-xs p-3 rounded-xl bg-surface-container-high border border-outline-variant/15">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="material-symbols-outlined text-tertiary-container text-[18px] shrink-0">auto_awesome</span>
+                <span className="material-symbols-outlined text-tertiary-container text-[18px] shrink-0 animate-pulse">auto_awesome</span>
                 <p className="font-caption text-tertiary-container truncate font-medium">
                   <strong>AI Recommendation:</strong> Curate Tuscan wine pairing &amp; outdoor heating
                 </p>
               </div>
-              <span className="font-caption text-tertiary-container shrink-0 text-[11px] font-semibold bg-surface-container-lowest px-2 py-0.5 rounded-full">
+              <span className="font-caption text-tertiary-container shrink-0 text-[11px] font-semibold bg-surface-container-lowest px-2 py-0.5 rounded-full shadow-2xs">
                 Ready
               </span>
             </div>
-          </div>
-        </div>
+          </SpotlightCard>
+        </motion.div>
       </div>
     </section>
   );
@@ -322,18 +383,20 @@ export function Events({ onPlan }: { onPlan: () => void }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
           {cards.map((card) => (
-            <div
+            <SpotlightCard
               key={card.title}
+              spotlightColor="rgba(214, 168, 95, 0.16)"
+              spotlightSize={320}
               onClick={onPlan}
-              className="group flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden shadow-xs hover:shadow-md border border-outline-variant/30 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              className="group flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden shadow-xs hover:shadow-xl border border-outline-variant/30 transition-all duration-300 hover:-translate-y-1.5 cursor-pointer"
             >
               <div className="relative aspect-[16/10] overflow-hidden bg-surface-container">
                 <SafeImage
                   alt={card.alt}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   src={card.img}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent pointer-events-none opacity-60"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/35 to-transparent pointer-events-none opacity-60 group-hover:opacity-40 transition-opacity"></div>
               </div>
               <div className="p-space-md flex flex-col flex-1 justify-between">
                 <div>
@@ -343,13 +406,13 @@ export function Events({ onPlan }: { onPlan: () => void }) {
                   <p className="text-[14px] leading-relaxed text-on-surface-variant mb-space-md">{card.desc}</p>
                 </div>
                 <div className="pt-space-sm border-t border-outline-variant/30 flex items-center justify-between text-on-surface-variant">
-                  <span className="font-caption text-on-surface-variant">{card.meta}</span>
+                  <span className="font-caption text-on-surface-variant font-medium">{card.meta}</span>
                   <span className="material-symbols-outlined text-[18px] text-primary group-hover:translate-x-1 transition-transform">
                     arrow_forward
                   </span>
                 </div>
               </div>
-            </div>
+            </SpotlightCard>
           ))}
         </div>
       </div>
@@ -376,9 +439,13 @@ export function Features({ onPlan: _onPlan }: { onPlan: () => void }) {
       {/* 2x2 Feature Bento */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
         {/* Card 1: Budget */}
-        <div className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-xs hover:shadow-md border border-outline-variant/30 transition-shadow flex flex-col justify-between">
+        <SpotlightCard
+          spotlightColor="rgba(214, 168, 95, 0.14)"
+          spotlightSize={380}
+          className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-xs hover:shadow-xl border border-outline-variant/30 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+        >
           <div>
-            <div className="w-12 h-12 rounded-xl bg-secondary-fixed flex items-center justify-center mb-space-md text-on-secondary-fixed">
+            <div className="w-12 h-12 rounded-xl bg-secondary-fixed flex items-center justify-center mb-space-md text-on-secondary-fixed shadow-2xs">
               <span className="material-symbols-outlined text-[24px]">account_balance_wallet</span>
             </div>
             <h3 className="font-title-md text-[20px] font-semibold text-primary mb-space-xs">Smart Budget Planning</h3>
@@ -414,12 +481,16 @@ export function Features({ onPlan: _onPlan }: { onPlan: () => void }) {
               </div>
             </div>
           </div>
-        </div>
+        </SpotlightCard>
 
         {/* Card 2: Timeline */}
-        <div className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-xs hover:shadow-md border border-outline-variant/30 transition-shadow flex flex-col justify-between">
+        <SpotlightCard
+          spotlightColor="rgba(115, 87, 219, 0.14)"
+          spotlightSize={380}
+          className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-xs hover:shadow-xl border border-outline-variant/30 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+        >
           <div>
-            <div className="w-12 h-12 rounded-xl bg-tertiary-fixed flex items-center justify-center mb-space-md text-on-tertiary-fixed">
+            <div className="w-12 h-12 rounded-xl bg-tertiary-fixed flex items-center justify-center mb-space-md text-on-tertiary-fixed shadow-2xs">
               <span className="material-symbols-outlined text-[24px]">calendar_month</span>
             </div>
             <h3 className="font-title-md text-[20px] font-semibold text-primary mb-space-xs">Intelligent Timelines</h3>
@@ -456,12 +527,16 @@ export function Features({ onPlan: _onPlan }: { onPlan: () => void }) {
               <span className="material-symbols-outlined text-outline-variant text-[18px]">radio_button_unchecked</span>
             </div>
           </div>
-        </div>
+        </SpotlightCard>
 
         {/* Card 3: Vendor */}
-        <div className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-xs hover:shadow-md border border-outline-variant/30 transition-shadow flex flex-col justify-between">
+        <SpotlightCard
+          spotlightColor="rgba(23, 35, 59, 0.12)"
+          spotlightSize={380}
+          className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-xs hover:shadow-xl border border-outline-variant/30 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+        >
           <div>
-            <div className="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center mb-space-md text-on-primary-fixed">
+            <div className="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center mb-space-md text-on-primary-fixed shadow-2xs">
               <span className="material-symbols-outlined text-[24px]">fact_check</span>
             </div>
             <h3 className="font-title-md text-[20px] font-semibold text-primary mb-space-xs">Vendor Checklists</h3>
@@ -485,12 +560,16 @@ export function Features({ onPlan: _onPlan }: { onPlan: () => void }) {
               </div>
             </div>
           </div>
-        </div>
+        </SpotlightCard>
 
         {/* Card 4: Ideas */}
-        <div className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-xs hover:shadow-md border border-outline-variant/30 transition-shadow flex flex-col justify-between">
+        <SpotlightCard
+          spotlightColor="rgba(115, 87, 219, 0.16)"
+          spotlightSize={380}
+          className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-xs hover:shadow-xl border border-outline-variant/30 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+        >
           <div>
-            <div className="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center mb-space-md text-tertiary-container">
+            <div className="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center mb-space-md text-tertiary-container shadow-2xs">
               <span className="material-symbols-outlined text-[24px]">palette</span>
             </div>
             <h3 className="font-title-md text-[20px] font-semibold text-primary mb-space-xs">Personalized Ideas</h3>
@@ -517,7 +596,7 @@ export function Features({ onPlan: _onPlan }: { onPlan: () => void }) {
               </span>
             </div>
           </div>
-        </div>
+        </SpotlightCard>
       </div>
     </section>
   );
@@ -911,14 +990,14 @@ export function FinalCTA({ onPlan }: { onPlan: () => void }) {
 
           {/* CTA Button */}
           <div className="flex flex-col sm:flex-row items-center gap-space-sm mb-space-md">
-            <button
+            <MagneticButton
               type="button"
               onClick={onPlan}
-              className="inline-flex items-center justify-center gap-space-xs bg-secondary-fixed text-on-secondary-fixed font-title-md text-[16px] font-bold px-9 py-4 rounded-xl shadow-lg hover:bg-secondary-fixed-dim transition-all active:translate-y-[1px]"
+              className="inline-flex items-center justify-center gap-space-xs bg-secondary-fixed text-on-secondary-fixed font-title-md text-[16px] font-bold px-9 py-4 rounded-xl shadow-[0_8px_25px_rgba(214,168,95,0.35)] hover:bg-secondary-fixed-dim transition-all active:translate-y-[1px]"
             >
               <span>Plan My Event</span>
               <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-            </button>
+            </MagneticButton>
           </div>
 
           {/* Micro-copy */}

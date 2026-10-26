@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
@@ -11,6 +12,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ title, subtitle, children }: AppLayoutProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <div className="bg-surface font-body text-on-surface antialiased min-h-screen flex overflow-x-hidden">
@@ -40,9 +42,15 @@ export default function AppLayout({ title, subtitle, children }: AppLayoutProps)
           tabIndex={-1}
           className="w-full pt-24 sm:pt-28 lg:pt-24 bg-surface flex-1 px-4 sm:px-6 lg:px-space-xl py-space-md lg:py-space-lg focus:outline-none"
         >
-          <div className="flex flex-col w-full gap-space-lg pb-space-xl max-w-full overflow-x-hidden">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col w-full gap-space-lg pb-space-xl max-w-full overflow-x-hidden"
+          >
             {children || <Outlet />}
-          </div>
+          </motion.div>
         </main>
       </div>
     </div>

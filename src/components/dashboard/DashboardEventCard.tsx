@@ -43,12 +43,12 @@ export default function DashboardEventCard({
   const badgeClass = defaultTypeBadgeColors[type] || "bg-secondary-fixed text-on-secondary-fixed";
 
   return (
-    <article className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-space-md items-start border border-outline-variant/15">
+    <article className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col sm:flex-row gap-space-md items-start border border-outline-variant/15 group">
       {/* Cover Image */}
       <div className="w-full sm:w-44 h-36 rounded-lg overflow-hidden shrink-0 relative bg-surface-container">
         {coverImage ? (
           <img
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             src={coverImage}
             alt={name}
             loading="lazy"

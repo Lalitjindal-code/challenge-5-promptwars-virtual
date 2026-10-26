@@ -1,3 +1,5 @@
+import SpotlightCard from "../motion/SpotlightCard";
+
 interface DashboardStatCardProps {
   label: string;
   value: string | number;
@@ -22,7 +24,11 @@ export default function DashboardStatCard({
   rightLabel
 }: DashboardStatCardProps) {
   return (
-    <div className="bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow border border-outline-variant/15">
+    <SpotlightCard
+      spotlightColor="rgba(115, 87, 219, 0.08)"
+      spotlightSize={260}
+      className="bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 border border-outline-variant/15"
+    >
       <div className="flex items-center justify-between">
         <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
           {label}
@@ -58,6 +64,6 @@ export default function DashboardStatCard({
           </div>
         )}
       </div>
-    </div>
+    </SpotlightCard>
   );
 }

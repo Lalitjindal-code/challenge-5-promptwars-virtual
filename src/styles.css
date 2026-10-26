@@ -62,6 +62,9 @@ textarea:focus-visible {
   .field-input {
     @apply w-full rounded-xl border border-planora-border bg-white px-3.5 py-3 text-sm font-normal text-planora-ink outline-none transition placeholder:text-slate-400 focus:border-planora-violet focus:ring-4 focus:ring-planora-violet/10;
   }
+  .interactive-card {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

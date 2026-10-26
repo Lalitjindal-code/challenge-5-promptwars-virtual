@@ -45,6 +45,9 @@ function formatINR(value: number): string {
   }).format(value);
 }
 
+import { AnimatePresence, motion } from "framer-motion";
+import { modalBackdropVariants, modalPanelVariants } from "../lib/motion";
+
 export default function EventModal({ open, onClose, onCreated }: EventModalProps) {
   const [name, setName] = useState("");
   const [type, setType] = useState<EventType>("Wedding");
@@ -70,8 +73,6 @@ export default function EventModal({ open, onClose, onCreated }: EventModalProps
       document.body.style.overflow = "";
     };
   }, [open, onClose]);
-
-  if (!open) return null;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -149,18 +150,30 @@ export default function EventModal({ open, onClose, onCreated }: EventModalProps
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-planora-navy/60 p-0 backdrop-blur-sm sm:items-center sm:p-5"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) closeAndReset();
-      }}
-    >
-      <section
-        aria-labelledby="event-modal-title"
-        aria-modal="true"
-        role="dialog"
-        className="max-h-[94dvh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
-      >
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="event-modal-backdrop"
+          variants={modalBackdropVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-planora-navy/60 p-0 backdrop-blur-sm sm:items-center sm:p-5"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeAndReset();
+          }}
+        >
+          <motion.section
+            key="event-modal-panel"
+            variants={modalPanelVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            aria-labelledby="event-modal-title"
+            aria-modal="true"
+            role="dialog"
+            className="max-h-[94dvh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
+          >
         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-planora-border bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
           <div>
             <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-planora-lavender px-2.5 py-1 text-xs font-semibold text-planora-violet">
@@ -260,7 +273,9 @@ export default function EventModal({ open, onClose, onCreated }: EventModalProps
             </button>
           </form>
         )}
-      </section>
-    </div>
+          </motion.section>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -8,3 +8,5 @@ dist
 functions/lib
 functions/node_modules
 .gemini
+
+.vercel
