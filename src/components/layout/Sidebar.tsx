@@ -63,10 +63,12 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
         <div className="flex flex-col">
           {/* Brand Header */}
           <div className="h-20 px-space-lg flex items-center justify-between border-b border-outline-variant/10">
-            <Link to="/" onClick={onClose} className="flex items-center gap-space-sm">
-              <div className="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center text-secondary-fixed shadow-[0_2px_0_0_#020d24]">
-                <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
-              </div>
+            <Link to="/" onClick={onClose} className="flex items-center gap-space-sm group">
+              <img
+                src="/logo.png"
+                alt="Planora AI Logo"
+                className="w-9 h-9 rounded-lg object-contain border border-outline-variant/15 shadow-xs group-hover:scale-105 transition-transform"
+              />
               <div className="flex flex-col">
                 <span className="font-heading font-bold text-lg tracking-tight text-primary leading-none">
                   Planora<span className="text-secondary font-heading">AI</span>

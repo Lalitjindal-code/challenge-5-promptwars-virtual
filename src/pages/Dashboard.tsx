@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import DashboardStatCard from "../components/dashboard/DashboardStatCard";
 import DashboardEventCard from "../components/dashboard/DashboardEventCard";
 import DashboardTaskItem from "../components/dashboard/DashboardTaskItem";
+import EventReadinessCard from "../components/dashboard/EventReadinessCard";
 
 const DEMO_IMAGES = {
   wedding:
@@ -17,7 +18,7 @@ const DEMO_IMAGES = {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { events, tasks, toggleTask, setActiveEventId, isDemo, formatCurrency } = useEventContext();
+  const { events, activeEvent, tasks, budgetItems, vendors, guests, toggleTask, setActiveEventId, isDemo, formatCurrency } = useEventContext();
 
   // Check if current user is on a demo workspace or actual user
   const isTest = isDemo;
@@ -134,6 +135,17 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg w-full items-start">
           {/* LEFT / PRIMARY COLUMN (8 cols) */}
           <div className="lg:col-span-8 flex flex-col gap-space-lg">
+            {/* Event Readiness Intelligence Cockpit */}
+            {(activeEvent || events[0]) && (
+              <EventReadinessCard
+                event={activeEvent || events[0]}
+                tasks={tasks}
+                budgetItems={budgetItems}
+                vendors={vendors}
+                guests={guests}
+              />
+            )}
+
             {/* A. Upcoming Events Section */}
             <section className="flex flex-col gap-space-md">
               <div className="flex items-center justify-between">

@@ -12,6 +12,8 @@ export default function AiIdeas() {
     savedAiConcepts,
     saveAiConcept,
     removeAiConcept,
+    tasks,
+    budgetItems,
     addTask,
     addBudgetItem,
     formatCurrency
@@ -213,36 +215,52 @@ export default function AiIdeas() {
 
   const handleAddToEventPlan = async (concept: ConceptItem) => {
     try {
-      // 1. Add top deliverables as actionable tasks
+      let tasksAddedCount = 0;
+      let budgetAddedCount = 0;
+
+      // 1. Add top deliverables as actionable tasks (preventing duplicate tasks)
       if (concept.deliverables && concept.deliverables.length > 0) {
         for (const del of concept.deliverables.slice(0, 3)) {
-          await addTask({
-            title: `${concept.title}: ${del.name}`,
-            subtitle: `Deliverable requirement: ${del.qty}`,
-            event: activeEvent?.name || "Active Event",
-            dueDate: activeEvent?.date || "TBA",
-            priority: "Medium",
-            status: "Pending",
-            assignee: {
-              name: "Creative Team",
-              initials: "CT",
-              bg: "bg-primary-container",
-              text: "text-on-primary"
-            },
-            category: concept.category
-          });
+          const taskTitle = `${concept.title}: ${del.name}`;
+          const isDuplicate = tasks.some(
+            (t) => t.title.toLowerCase() === taskTitle.toLowerCase() && (!t.eventId || t.eventId === activeEvent?.id)
+          );
+          if (!isDuplicate) {
+            await addTask({
+              title: taskTitle,
+              subtitle: `Deliverable requirement: ${del.qty}`,
+              event: activeEvent?.name || "Active Event",
+              dueDate: activeEvent?.date || "TBA",
+              priority: "Medium",
+              status: "Pending",
+              assignee: {
+                name: "Creative Team",
+                initials: "CT",
+                bg: "bg-primary-container",
+                text: "text-on-primary"
+              },
+              category: concept.category
+            });
+            tasksAddedCount++;
+          }
         }
       }
 
-      // 2. Add budget items from breakdown
+      // 2. Add budget items from breakdown (preventing duplicate categories)
       if (concept.breakdown && concept.breakdown.length > 0) {
         for (const item of concept.breakdown.slice(0, 2)) {
-          await addBudgetItem({
-            category: item.item,
-            allocated: item.cost,
-            spent: 0,
-            notes: `Synthesized via AI concept "${concept.title}"`
-          });
+          const isDuplicate = budgetItems.some(
+            (b) => b.category.toLowerCase() === item.item.toLowerCase() && (!b.eventId || b.eventId === activeEvent?.id)
+          );
+          if (!isDuplicate) {
+            await addBudgetItem({
+              category: item.item,
+              allocated: item.cost,
+              spent: 0,
+              notes: `Synthesized via AI concept "${concept.title}"`
+            });
+            budgetAddedCount++;
+          }
         }
       }
 
@@ -251,7 +269,11 @@ export default function AiIdeas() {
         await saveAiConcept(concept);
       }
 
-      showToast(`Added "${concept.title}" tasks and budget directly to ${activeEvent?.name || "event plan"}!`);
+      if (tasksAddedCount === 0 && budgetAddedCount === 0) {
+        showToast(`Deliverables and budget for "${concept.title}" are already applied to ${activeEvent?.name || "event plan"}!`);
+      } else {
+        showToast(`Added ${tasksAddedCount} task(s) and ${budgetAddedCount} budget allocation(s) for "${concept.title}" to ${activeEvent?.name || "event plan"}!`);
+      }
     } catch (err: any) {
       showToast(`Error adding to plan: ${err.message || "Failed to save"}`);
     }

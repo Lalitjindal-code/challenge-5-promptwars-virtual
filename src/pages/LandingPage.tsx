@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { DashboardPreview, Events, Features, FinalCTA, Footer, Header, Hero, HowItWorks } from "../components/Sections";
 import EventModal, { type PlannedEvent } from "../components/EventModal";
 import SmoothScrollProvider from "../components/motion/SmoothScrollProvider";
-
-gsap.registerPlugin(ScrollTrigger);
 
 const STORAGE_KEY = "planora.events.v1";
 
@@ -29,34 +25,45 @@ export default function LandingPage() {
     setLatestEvent(getLatestEvent());
   }, []);
 
-  // GSAP ScrollTrigger section reveals with clean lifecycle cleanup
+  // GSAP ScrollTrigger section reveals with deferred loading & lifecycle cleanup
   useEffect(() => {
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced) return;
 
-    const ctx = gsap.context(() => {
-      const revealElements = gsap.utils.toArray<HTMLElement>(".gsap-reveal");
-      revealElements.forEach((el) => {
-        gsap.fromTo(
-          el,
-          { opacity: 0, y: 24 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.75,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: el,
-              start: "top 88%",
-              toggleActions: "play none none none",
-            },
-          }
-        );
-      });
-    }, containerRef);
+    let ctx: any = null;
+    let isMounted = true;
+
+    Promise.all([import("gsap"), import("gsap/ScrollTrigger")]).then(
+      ([{ default: gsap }, { ScrollTrigger }]) => {
+        if (!isMounted) return;
+        gsap.registerPlugin(ScrollTrigger);
+
+        ctx = gsap.context(() => {
+          const revealElements = gsap.utils.toArray<HTMLElement>(".gsap-reveal");
+          revealElements.forEach((el) => {
+            gsap.fromTo(
+              el,
+              { opacity: 0, y: 24 },
+              {
+                opacity: 1,
+                y: 0,
+                duration: 0.75,
+                ease: "power2.out",
+                scrollTrigger: {
+                  trigger: el,
+                  start: "top 88%",
+                  toggleActions: "play none none none",
+                },
+              }
+            );
+          });
+        }, containerRef);
+      }
+    );
 
     return () => {
-      ctx.revert();
+      isMounted = false;
+      ctx?.revert();
     };
   }, []);
 

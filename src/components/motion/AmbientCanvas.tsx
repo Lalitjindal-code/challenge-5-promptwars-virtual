@@ -19,8 +19,6 @@ export const AmbientCanvas: React.FC<{ className?: string }> = ({ className = ""
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
-    let isVisible = true;
-    let animationFrameId: number;
     let width = (canvas.width = canvas.offsetWidth || window.innerWidth);
     let height = (canvas.height = canvas.offsetHeight || 600);
 
@@ -39,24 +37,12 @@ export const AmbientCanvas: React.FC<{ className?: string }> = ({ className = ""
       { x: width * 0.5, y: height * 0.6, r: 200, vx: 0.18, vy: -0.12, color: "rgba(23, 35, 59, 0.05)" },    // Navy
     ];
 
-    // IntersectionObserver to freeze canvas when user scrolls out of hero view
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          isVisible = entry.isIntersecting;
-        });
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(canvas);
-
+    let isRunning = false;
+    let animationFrameId: number;
     let lastTime = performance.now();
 
     const render = (time: number) => {
-      if (!isVisible || prefersReducedMotion) {
-        animationFrameId = requestAnimationFrame(render);
-        return;
-      }
+      if (!isRunning) return;
 
       const dt = Math.min((time - lastTime) / 1000, 0.1);
       lastTime = time;
@@ -87,10 +73,35 @@ export const AmbientCanvas: React.FC<{ className?: string }> = ({ className = ""
       animationFrameId = requestAnimationFrame(render);
     };
 
-    animationFrameId = requestAnimationFrame(render);
+    const startAnimation = () => {
+      if (isRunning || prefersReducedMotion) return;
+      isRunning = true;
+      lastTime = performance.now();
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    const stopAnimation = () => {
+      isRunning = false;
+      cancelAnimationFrame(animationFrameId);
+    };
+
+    // IntersectionObserver to completely freeze canvas when user scrolls out of hero view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            startAnimation();
+          } else {
+            stopAnimation();
+          }
+        });
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(canvas);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      stopAnimation();
       observer.disconnect();
       window.removeEventListener("resize", handleResize);
     };

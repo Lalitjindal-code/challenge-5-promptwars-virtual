@@ -28,6 +28,13 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!buttonRef.current) return;
+      if (
+        typeof window !== "undefined" &&
+        (window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+          window.matchMedia("(pointer: coarse)").matches)
+      ) {
+        return;
+      }
       const rect = buttonRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;

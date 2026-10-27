@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useCallback } from "react";
 
 interface SpotlightCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -20,27 +20,29 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({
   ...props
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [opacity, setOpacity] = useState(0);
+  const spotlightRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!cardRef.current) return;
+      if (!cardRef.current || !spotlightRef.current) return;
       const rect = cardRef.current.getBoundingClientRect();
-      setPosition({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      spotlightRef.current.style.background = `radial-gradient(${spotlightSize}px circle at ${x}px ${y}px, ${spotlightColor}, transparent 80%)`;
     },
-    []
+    [spotlightSize, spotlightColor]
   );
 
   const handleMouseEnter = useCallback(() => {
-    setOpacity(1);
+    if (spotlightRef.current) {
+      spotlightRef.current.style.opacity = "1";
+    }
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    setOpacity(0);
+    if (spotlightRef.current) {
+      spotlightRef.current.style.opacity = "0";
+    }
   }, []);
 
   return (
@@ -52,13 +54,10 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({
       className={`relative overflow-hidden transition-all duration-300 ${className}`}
       {...props}
     >
-      {/* Dynamic Cursor Spotlight Layer */}
+      {/* Dynamic Cursor Spotlight Layer - direct DOM style without React re-renders */}
       <div
-        className="pointer-events-none absolute -inset-px transition-opacity duration-300 ease-out"
-        style={{
-          opacity,
-          background: `radial-gradient(${spotlightSize}px circle at ${position.x}px ${position.y}px, ${spotlightColor}, transparent 80%)`,
-        }}
+        ref={spotlightRef}
+        className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 ease-out"
         aria-hidden="true"
       />
       {children}

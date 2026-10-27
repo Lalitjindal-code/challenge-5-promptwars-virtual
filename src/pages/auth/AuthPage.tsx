@@ -71,10 +71,12 @@ export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
       {/* Top Header */}
       <header className="w-full bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 shadow-sm">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-space-sm">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-on-primary">
-              <span className="material-symbols-outlined text-[18px] text-secondary-fixed">auto_awesome</span>
-            </div>
+          <Link to="/" className="flex items-center gap-space-sm group">
+            <img
+              src="/logo.png"
+              alt="Planora AI Logo"
+              className="w-8 h-8 rounded-lg object-contain border border-outline-variant/15 shadow-xs group-hover:scale-105 transition-transform"
+            />
             <span className="font-heading font-bold text-lg tracking-tight text-primary">
               Planora <span className="text-secondary">AI</span>
             </span>
@@ -150,8 +152,8 @@ export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
             {/* Left Editorial Visual */}
             <div className="lg:col-span-7 relative min-h-[460px] lg:min-h-[600px] flex flex-col justify-between p-8 md:p-12 text-white bg-gradient-to-br from-primary via-primary-container to-surface-tint">
               <div className="relative z-10 flex flex-col items-start gap-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md">
-                  <span className="material-symbols-outlined text-[16px] text-secondary-fixed">auto_awesome</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15">
+                  <img src="/logo.png" alt="Planora AI" className="w-5 h-5 rounded-md object-contain bg-white/20 p-0.5" />
                   <span className="text-[11px] uppercase tracking-wider font-bold">Planora AI Studio</span>
                 </div>
 

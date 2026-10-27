@@ -9,7 +9,7 @@ import MagneticButton from "./motion/MagneticButton";
 import SpotlightCard from "./motion/SpotlightCard";
 
 const images = {
-  logo: "https://lh3.googleusercontent.com/aida/AEtjO1Xd0Tz7ROZdBytLb48eKlwzOgT2MIhm7Yms4u_Rg1ur0LzNhU0AAXKo4dNj3XTbEEd1HXAoUIeS2xmEBD5IPUiv_H7e0IIrt_iy-nlVAm8EvD3995V9q1lxKeu2VQR6Gktq0mTeG2Y-kO7sYr0CbaOu7dDwuc8aGSMtETbtM80Vmzx6bEKZbsUNJM6oVnnS5SLKsL58iYNNhqyz38yndYxhxfCqU1mzKAWvY_8Zwoq7F0lfoGwmTGsV1CiH",
+  logo: "/logo.png",
   hero: "https://lh3.googleusercontent.com/aida-public/AB6AXuDihzOyFLz5dKPsCJ3dMYDNxJC9jF0nuF1RyMUrfQpgOemoM3evPJoLk2cInZofMXjuGH-u8oYU6cGrmiIRw-OzJnQSMq9KLQOo4XzPZ8fpZpSvK1gX-U44mbrg4qid-aQP1kabfAEff6l5JaQBDUQPygcc6QL-9X6-juK8rP9bGntMvHdBaylA9f0appdpsrS8xfu3avDN91Dmx0aqsLzjoGW0ui7NeMKt403lsWLEAcVu3v6PRsQgyg",
   wedding: "https://lh3.googleusercontent.com/aida-public/AB6AXuBe3rLirqrcUckwbxQ7kyj7z8nMjBLyrGkpBz8zynL2WVP2HdvljGwaNcE-9i-uAJC8jYl5K3y9dvBCgRkfswRpzmEe1KHTy1Uw-lIOcIkf-eaAp8ofbaVJt2nIDw8HkR5qOIzHKxB2cS1CZuxHrhsZYR62V7ldftGkrB3ypiQHM_wFfw38QBV9d68c6MXnjuQtxLdrlHtOujmmlUvyHVYjmtqtaUJknGAeokXgSSzJag8lzLcgwY4itQ",
   birthday: "https://lh3.googleusercontent.com/aida-public/AB6AXuDdrGQ5buh_Y88_xssyKqZPYKt2S2w9D3-JV1itMfO7oXVDcfLcIXAcuscYNTEiu5rSWjt8M7VOs4wzLzR6n4aYEUj08HxLLF9kKMUG39NEKPt0UW1OHmQ983ZWUkbuK4JpcyzwO2TKsqrkKrH2VdE8pQ2T6sVlzwo0z31zSjUOKWOeNYtJuuPKZgYakoGXUBtrieRsPSob_VB9QFg7Tl_3hXXhfcMtg1u8tbopOUWeURo_iNjXO9gY0Q",
@@ -45,9 +45,13 @@ export function Header({ onPlan }: { onPlan: () => void }) {
       <div className="h-[76px] w-full max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin flex items-center justify-between">
         {/* Brand */}
         <Link to="/" className="flex items-center gap-space-sm group">
-          <SafeImage alt="Planora AI Logo" className="h-8 w-auto object-contain" src={images.logo} />
-          <span className="font-headline-sm text-headline-sm text-on-surface tracking-tight group-hover:text-primary transition-colors">
-            Planora AI
+          <img
+            alt="Planora AI Logo"
+            className="h-10 w-10 object-contain rounded-lg shadow-sm border border-outline-variant/10 group-hover:scale-105 transition-transform"
+            src="/logo.png"
+          />
+          <span className="font-headline-sm text-headline-sm text-on-surface tracking-tight group-hover:text-primary transition-colors font-bold">
+            Planora <span className="text-secondary font-heading">AI</span>
           </span>
         </Link>
 
@@ -704,15 +708,45 @@ export function DashboardPreview({
 }) {
   const [copilotPrompt, setCopilotPrompt] = useState("");
   const [copilotResponses, setCopilotResponses] = useState<string[]>([]);
+  const [isCopilotLoading, setIsCopilotLoading] = useState(false);
 
-  const handleCopilotSubmit = (e: React.FormEvent) => {
+  const handleCopilotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!copilotPrompt.trim()) return;
+    const query = copilotPrompt.trim();
+    if (!query || isCopilotLoading) return;
+
+    setCopilotPrompt("");
+    setIsCopilotLoading(true);
+
+    const clientApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (clientApiKey) {
+      try {
+        const { GoogleGenerativeAI } = await import("@google/generative-ai");
+        const genAI = new GoogleGenerativeAI(clientApiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+        const res = await model.generateContent(
+          `You are Planora AI event assistant for ${eventName}. The user asked: "${query}". Provide a concise, highly creative 2-sentence actionable advice with specific recommendations.`
+        );
+        const advice = res.response.text();
+        if (advice && advice.trim()) {
+          setCopilotResponses((prev) => [
+            ...prev,
+            `💡 Planora AI: ${advice.trim()}`
+          ]);
+          setIsCopilotLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Copilot live call note:", err);
+      }
+    }
+
+    // Dynamic contextual fallback
     setCopilotResponses((prev) => [
       ...prev,
-      `Planora AI: Adjusted plan for "${copilotPrompt}". Real-time recommendations updated!`
+      `Planora AI: Adjusted plan for "${query}". Coordinated supplier recommendations and updated itinerary timings.`
     ]);
-    setCopilotPrompt("");
+    setIsCopilotLoading(false);
   };
 
   const eventName = latestEvent?.name ?? "Autumn Solstice Soirée";
@@ -949,8 +983,15 @@ export function DashboardPreview({
                   placeholder="Ask Copilot to adjust or add..."
                   type="text"
                 />
-                <button type="submit" className="absolute right-2 top-2 text-tertiary-container hover:opacity-80">
-                  <span className="material-symbols-outlined text-[20px]">arrow_circle_right</span>
+                <button
+                  type="submit"
+                  disabled={isCopilotLoading}
+                  className="absolute right-2 top-2 text-tertiary-container hover:opacity-80 disabled:opacity-50"
+                  aria-label="Send Copilot prompt"
+                >
+                  <span className={`material-symbols-outlined text-[20px] ${isCopilotLoading ? "animate-spin" : ""}`}>
+                    {isCopilotLoading ? "progress_activity" : "arrow_circle_right"}
+                  </span>
                 </button>
               </form>
             </div>
@@ -1039,6 +1080,11 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-gutter mb-space-xl">
           <div className="lg:col-span-2 flex flex-col gap-space-sm pr-space-lg">
             <div className="flex items-center gap-space-xs">
+              <img
+                src="/logo.png"
+                alt="Planora AI Logo"
+                className="w-8 h-8 rounded-lg object-contain border border-outline-variant/15 shadow-xs"
+              />
               <span className="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold">
                 Planora AI
               </span>

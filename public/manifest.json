@@ -1,0 +1,22 @@
+{
+  "short_name": "Planora AI",
+  "name": "Planora AI — GenAI-Powered Event Planning Studio",
+  "description": "Organize weddings, birthdays, and community events with budgets, timelines, vendor checklists, and personalized ideas.",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0d1b2a",
+  "theme_color": "#17233b",
+  "display": "standalone",
+  "orientation": "portrait"
+}

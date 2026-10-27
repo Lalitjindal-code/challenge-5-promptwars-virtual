@@ -3,11 +3,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
+import EventReadinessCard from "../components/dashboard/EventReadinessCard";
 
 export default function EventDetails() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
-  const { events, activeEventId, setActiveEventId, activeEvent, createEvent, updateEvent, deleteEvent, tasks, toggleTask, guests, vendors, isDemo, currencySymbol, formatCurrency } = useEventContext();
+  const { events, activeEventId, setActiveEventId, activeEvent, createEvent, updateEvent, deleteEvent, tasks, toggleTask, guests, vendors, budgetItems, isDemo, currencySymbol, formatCurrency } = useEventContext();
 
   useEffect(() => {
     if (id && id !== activeEventId && events.some((e) => e.id === id)) {
@@ -480,7 +481,17 @@ export default function EventDetails() {
           </button>
         </div>
 
-        {/* 4. Key Performance Overview Metric Cards (4 Grid) */}
+        {/* 4. Event Readiness Intelligence Cockpit (Phase 11 Stage D Differentiator) */}
+        <EventReadinessCard
+          event={currentEvent}
+          tasks={eventTasks}
+          budgetItems={budgetItems}
+          vendors={vendors}
+          guests={guests}
+          className="mb-8"
+        />
+
+        {/* 5. Key Performance Overview Metric Cards (4 Grid) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           {/* Metric 1: Tasks Progress */}
           <div className="p-6 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between border border-outline-variant/15">

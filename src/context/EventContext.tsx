@@ -115,8 +115,8 @@ const DEMO_EVENTS: EventItem[] = [
   },
   {
     id: "demo-evt-2",
-    name: "TechNova Annual Gala 2025",
-    type: "Corporate",
+    name: "TechNova Community Gala 2026",
+    type: "Community Event",
     date: "08 Dec 2026",
     location: "JW Marriott, Bengaluru",
     budget: 1500000,
@@ -127,7 +127,7 @@ const DEMO_EVENTS: EventItem[] = [
     totalTasks: 20,
     status: "Planning",
     coverImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuAEbW2_bi2tIAq74DJ-AHa35uso9KWd_h6rAVdACkot8Gj3-qdhdq5FCF7ZmUVrDls71iLUrqPNAqmCqLn9WNGadIpjsR8cX66FsWbIemu9LFPV0x8eWI-QNxZTEZlaV0yA-97FOtxXmoHP6kwA5qC7nKlsA0aSLOipB4W-BBKXO_8OBdvdh2PgKpAStQxDfhbAuUtxzBzTh_ycOAcbrphlNKJfCIZ4YEX6Ed4jOieoimmDSeRLXJsk6A",
-    description: "High-energy tech summit gala, keynote sessions, award night, and cocktail dinner."
+    description: "Annual community tech summit gala, open-source presentations, award night, and community networking dinner."
   },
   {
     id: "demo-evt-3",

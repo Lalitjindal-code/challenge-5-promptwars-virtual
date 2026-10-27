@@ -93,10 +93,12 @@ export default function AuthActionPage() {
       {/* Top Header */}
       <header className="w-full bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 shadow-sm">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-space-sm">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-on-primary">
-              <span className="material-symbols-outlined text-[18px] text-secondary-fixed">auto_awesome</span>
-            </div>
+          <Link to="/" className="flex items-center gap-space-sm group">
+            <img
+              src="/logo.png"
+              alt="Planora AI Logo"
+              className="w-8 h-8 rounded-lg object-contain border border-outline-variant/15 shadow-xs group-hover:scale-105 transition-transform"
+            />
             <span className="font-heading font-bold text-lg tracking-tight text-primary">
               Planora <span className="text-secondary">AI</span>
             </span>

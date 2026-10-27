@@ -407,10 +407,11 @@ export default function CreateEvent() {
               <label className="block font-caption text-caption uppercase tracking-wider text-on-surface-variant mb-space-sm">
                 Selected Archetype
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-space-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-space-xs">
                 {[
                   { name: "Wedding", icon: "favorite" },
                   { name: "Birthday", icon: "cake" },
+                  { name: "Community Event", icon: "groups" },
                   { name: "Corporate", icon: "business_center" },
                   { name: "Anniversary", icon: "celebration" },
                   { name: "Engagement", icon: "diamond" },

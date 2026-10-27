@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import Lenis from "lenis";
 
 interface SmoothScrollProviderProps {
   children: React.ReactNode;
@@ -9,12 +8,13 @@ interface SmoothScrollProviderProps {
 /**
  * Lenis Smooth Scroll Provider for public pages
  * Respects prefers-reduced-motion, handles cleanup, and keeps touch native.
+ * Dynamically loads Lenis to keep critical-path bundle lean.
  */
 export const SmoothScrollProvider: React.FC<SmoothScrollProviderProps> = ({
   children,
   enabled = true,
 }) => {
-  const lenisRef = useRef<Lenis | null>(null);
+  const lenisRef = useRef<any>(null);
 
   useEffect(() => {
     // Respect user's motion preference
@@ -26,29 +26,38 @@ export const SmoothScrollProvider: React.FC<SmoothScrollProviderProps> = ({
       return;
     }
 
-    const lenis = new Lenis({
-      duration: 1.15,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: "vertical",
-      gestureOrientation: "vertical",
-      smoothWheel: true,
-      touchMultiplier: 1.2,
+    let isMounted = true;
+    let rafId: number;
+
+    import("lenis").then(({ default: Lenis }) => {
+      if (!isMounted) return;
+
+      const lenis = new Lenis({
+        duration: 1.15,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: "vertical",
+        gestureOrientation: "vertical",
+        smoothWheel: true,
+        touchMultiplier: 1.2,
+      });
+
+      lenisRef.current = lenis;
+
+      function raf(time: number) {
+        lenis.raf(time);
+        rafId = requestAnimationFrame(raf);
+      }
+
+      rafId = requestAnimationFrame(raf);
     });
 
-    lenisRef.current = lenis;
-
-    let rafId: number;
-    function raf(time: number) {
-      lenis.raf(time);
-      rafId = requestAnimationFrame(raf);
-    }
-
-    rafId = requestAnimationFrame(raf);
-
     return () => {
+      isMounted = false;
       cancelAnimationFrame(rafId);
-      lenis.destroy();
-      lenisRef.current = null;
+      if (lenisRef.current) {
+        lenisRef.current.destroy();
+        lenisRef.current = null;
+      }
     };
   }, [enabled]);
 
