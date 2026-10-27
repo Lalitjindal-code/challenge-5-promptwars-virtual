@@ -7,6 +7,17 @@ dist
 *.log
 functions/lib
 functions/node_modules
-.gemini
 
+# IDE & Agent scratch/internal folders
+.gemini
+.agent
+.agents
+.gsd
 .vercel
+adapters
+more pages
+scripts
+model_capabilities.yaml
+GSD-STYLE.md
+VERSION
+render.yaml
