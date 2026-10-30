@@ -1,5 +1,5 @@
-import { createDemoSessionToken, checkDemoRateLimit } from "../../server/aiHandler";
-import { configureCorsHeaders } from "./generate";
+import { createDemoSessionToken, checkDemoRateLimit } from "../../server/aiHandler.js";
+import { configureCorsHeaders } from "./generate.js";
 
 export default function handler(req: any, res: any) {
   configureCorsHeaders(req, res, "POST, GET, OPTIONS");

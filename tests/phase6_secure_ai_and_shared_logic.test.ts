@@ -1,6 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "crypto";
+
+process.env.DEMO_SESSION_SECRET = process.env.DEMO_SESSION_SECRET || "test-demo-session-secret-key-phase6-2026";
 import {
   AI_CANDIDATE_MODELS,
   CATEGORY_IMAGE_MAP,
@@ -289,10 +291,20 @@ describe("Phase 6.1: Handler-Level Security & Boundary Invariants", () => {
     assert.equal(configureCorsHeaders(prod.req, prod.res), true);
     assert.equal(prod.res.getHeader("access-control-allow-origin"), "https://planora-ai.vercel.app");
 
+    // 2b. Challenge 5 production domain allowed
+    const challengeProd = createMockHttp({ headers: { origin: "https://challenge-5-promptwars-virtual.vercel.app" } });
+    assert.equal(configureCorsHeaders(challengeProd.req, challengeProd.res), true);
+    assert.equal(challengeProd.res.getHeader("access-control-allow-origin"), "https://challenge-5-promptwars-virtual.vercel.app");
+
     // 3. Project-specific preview branch allowed
     const preview = createMockHttp({ headers: { origin: "https://planora-ai-git-feature-security.vercel.app" } });
     assert.equal(configureCorsHeaders(preview.req, preview.res), true);
     assert.equal(preview.res.getHeader("access-control-allow-origin"), "https://planora-ai-git-feature-security.vercel.app");
+
+    // 3b. Challenge 5 preview branch allowed
+    const challengePreview = createMockHttp({ headers: { origin: "https://challenge-5-promptwars-virtual-git-main-lalit.vercel.app" } });
+    assert.equal(configureCorsHeaders(challengePreview.req, challengePreview.res), true);
+    assert.equal(challengePreview.res.getHeader("access-control-allow-origin"), "https://challenge-5-promptwars-virtual-git-main-lalit.vercel.app");
   });
 
   it("strictly rejects unrelated Vercel domains, null origins, and malicious sites without ACAO header", () => {

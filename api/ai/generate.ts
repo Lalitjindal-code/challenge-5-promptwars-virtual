@@ -5,12 +5,26 @@ import {
   verifyDemoSessionToken,
   verifyEventOwnership,
   generateEventConceptWithGemini
-} from "../../server/aiHandler";
+} from "../../server/aiHandler.js";
 
 /**
- * Trusted production, preview, and local host patterns for Planora AI.
+ * Static trusted production hostnames for Planora AI.
+ * Includes both the canonical project name and the GitHub-derived deployment name.
  */
-const TRUSTED_PLANORA_HOST_PATTERN = /^planora-ai(-[a-z0-9-]+)?\.vercel\.app$/i;
+const STATIC_TRUSTED_HOSTS = [
+  "planora-ai.vercel.app",
+  "challenge-5-promptwars-virtual.vercel.app"
+];
+
+/**
+ * Trusted Vercel preview deployment patterns for Planora AI.
+ * Matches project-specific preview branches (e.g. planora-ai-git-main-owner.vercel.app)
+ * for both the canonical and GitHub-derived project names.
+ */
+const TRUSTED_PREVIEW_PATTERNS = [
+  /^planora-ai(-[a-z0-9-]+)?\.vercel\.app$/i,
+  /^challenge-5-promptwars-virtual(-[a-z0-9-]+)?\.vercel\.app$/i
+];
 
 function isTrustedHostname(hostname: string): boolean {
   if (!hostname || typeof hostname !== "string") return false;
@@ -21,8 +35,11 @@ function isTrustedHostname(hostname: string): boolean {
     return true;
   }
 
-  // 2. Canonical Planora production and verified project preview deployment branches
-  if (normalized === "planora-ai.vercel.app" || TRUSTED_PLANORA_HOST_PATTERN.test(normalized)) {
+  // 2. Canonical Planora production domains and verified project preview branches
+  if (STATIC_TRUSTED_HOSTS.includes(normalized)) {
+    return true;
+  }
+  if (TRUSTED_PREVIEW_PATTERNS.some(pattern => pattern.test(normalized))) {
     return true;
   }
 

@@ -1,4 +1,4 @@
-import type { ConceptItem, AiGenerationRequest } from "../types";
+import type { ConceptItem, AiGenerationRequest } from "../types/index.js";
 
 export const AI_CANDIDATE_MODELS = [
   "gemini-2.5-flash-lite",

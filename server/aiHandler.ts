@@ -1,13 +1,13 @@
 import crypto from "crypto";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { AiGenerationRequest, AiGenerationResponse } from "../src/types";
+import type { AiGenerationRequest, AiGenerationResponse } from "../src/types/index.js";
 import {
   AI_CANDIDATE_MODELS,
   getMissingInfoQuestions,
   buildEventConceptPrompt,
   cleanAndParseJsonResponse,
   normalizeConceptItem
-} from "../src/lib/aiShared";
+} from "../src/lib/aiShared.js";
 
 // In-memory sliding-window rate limiting maps: uid / sessionKey -> timestamp[]
 const userRateLimits = new Map<string, number[]>();
@@ -19,14 +19,16 @@ const USER_MAX_REQUESTS = 5;
 const DEMO_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const DEMO_MAX_REQUESTS = 5;
 
-// Secret used for HMAC demo session signing (falls back safely if not set)
+// Secret used for HMAC demo session signing — fail closed if unconfigured
 function getDemoSecret(): string {
-  return (
+  const secret =
     process.env.DEMO_SESSION_SECRET ||
     process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    "planora-ai-demo-secret-key-2026"
-  );
+    process.env.GOOGLE_API_KEY;
+  if (!secret) {
+    throw new Error("SERVER_CONFIG_ERROR: No demo session signing secret is configured. Set DEMO_SESSION_SECRET, GEMINI_API_KEY, or GOOGLE_API_KEY.");
+  }
+  return secret;
 }
 
 export interface VerificationResult {

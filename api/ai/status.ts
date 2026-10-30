@@ -1,4 +1,4 @@
-import { configureCorsHeaders } from "./generate";
+import { configureCorsHeaders } from "./generate.js";
 
 export default function handler(req: any, res: any) {
   configureCorsHeaders(req, res, "GET, OPTIONS");
