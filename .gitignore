@@ -21,3 +21,7 @@ model_capabilities.yaml
 GSD-STYLE.md
 VERSION
 render.yaml
+
+# Test artifacts
+test-results
+playwright-report

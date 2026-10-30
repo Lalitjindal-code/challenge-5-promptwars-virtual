@@ -25,8 +25,9 @@ describe("Live Deployment Smoke Tests", { timeout: 15000 }, () => {
     // If serverless is deployed and working, it returns 200 OK
     assert.equal(res.status, 200, `Expected 200 OK from /api/ai/status, got ${res.status}`);
     const data = await res.json() as any;
-    assert.equal(data.status, "ok");
-    assert.equal(data.service, "planora-ai-gateway");
+    assert.equal(data.configured, true);
+    assert.equal(data.provider, "google-gemini");
+    assert.ok(Array.isArray(data.models) && data.models.length > 0);
     assert.equal(res.headers.get("access-control-allow-origin"), BASE_URL);
     assert.equal(res.headers.get("vary"), "Origin");
   });
