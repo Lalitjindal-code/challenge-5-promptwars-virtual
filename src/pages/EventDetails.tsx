@@ -731,10 +731,10 @@ export default function EventDetails() {
                           <div className="flex items-center gap-2 mt-1">
                             <span
                               className={`px-2 py-0.5 rounded font-caption text-caption uppercase font-medium ${
-                                (task as any).tag === "Due Tomorrow" ? "bg-error-container text-on-error-container" : "bg-surface-container text-on-surface-variant"
+                                task.dueLabel === "Due Tomorrow" ? "bg-error-container text-on-error-container" : "bg-surface-container text-on-surface-variant"
                               }`}
                             >
-                              {(task as any).tag || (task.completed ? "Done" : "Scheduled")}
+                              {task.dueLabel || (task.completed ? "Done" : "Scheduled")}
                             </span>
                             <span className="text-caption font-caption text-on-surface-variant">• {task.dueDate || "No due date"}</span>
                           </div>
@@ -745,7 +745,7 @@ export default function EventDetails() {
                           {task.priority || "Normal"}
                         </span>
                         <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary font-caption text-caption flex items-center justify-center font-bold">
-                          {(task as any).assignee || "Host"}
+                          {task.assignee?.name || "Host"}
                         </div>
                       </div>
                     </div>

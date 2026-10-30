@@ -3,6 +3,9 @@ import react from "@vitejs/plugin-react";
 import {
   verifyFirebaseIdToken,
   checkRateLimit,
+  checkDemoRateLimit,
+  createDemoSessionToken,
+  verifyDemoSessionToken,
   verifyEventOwnership,
   generateEventConceptWithGemini
 } from "./server/aiHandler";
@@ -30,6 +33,32 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
         );
       });
 
+      // Secure demo session issuance endpoint
+      server.middlewares.use("/api/ai/demo-session", (req, res) => {
+        res.setHeader("Content-Type", "application/json");
+        const clientIp =
+          (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+          req.socket?.remoteAddress ||
+          "local-client";
+
+        const rateCheck = checkDemoRateLimit(`ip:${clientIp}`);
+        if (!rateCheck.allowed) {
+          res.statusCode = 429;
+          res.setHeader("Retry-After", String(rateCheck.retryAfterSeconds || 60));
+          res.end(
+            JSON.stringify({
+              error: "RATE_LIMITED",
+              message: "Too many demo session requests. Please wait a moment."
+            })
+          );
+          return;
+        }
+
+        const session = createDemoSessionToken();
+        res.statusCode = 200;
+        res.end(JSON.stringify(session));
+      });
+
       // Generation endpoint
       server.middlewares.use("/api/ai/generate", async (req, res) => {
         if (req.method !== "POST") {
@@ -47,7 +76,7 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
         req.on("end", async () => {
           res.setHeader("Content-Type", "application/json");
           try {
-            // 1. Auth check: verify Firebase ID token
+            // 1. Auth check: verify authorization token
             const authHeader = (req.headers["authorization"] as string) || "";
             const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
@@ -55,20 +84,7 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
               res.statusCode = 401;
               res.end(JSON.stringify({
                 error: "UNAUTHORIZED",
-                message: "Authentication required. Please sign in to access AI features."
-              }));
-              return;
-            }
-
-            const verification = await verifyFirebaseIdToken(
-              token,
-              envConfig.VITE_FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY
-            );
-            if (!verification.valid || !verification.uid) {
-              res.statusCode = 401;
-              res.end(JSON.stringify({
-                error: "INVALID_TOKEN",
-                message: verification.error || "Invalid authentication session. Please sign in again."
+                message: "Authentication required. Please sign in or use a valid demo session."
               }));
               return;
             }
@@ -83,7 +99,7 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
               return;
             }
 
-            const { eventId, category, userPrompt, eventContext } = parsedBody;
+            const { eventId, category, userPrompt, eventContext } = parsedBody || {};
 
             if (!eventId || !category || !eventContext) {
               res.statusCode = 400;
@@ -104,34 +120,87 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
               return;
             }
 
-            // 4. Rate limit check (max 5 requests / min per uid)
-            const rateLimit = checkRateLimit(verification.uid);
-            if (!rateLimit.allowed) {
-              res.statusCode = 429;
-              res.setHeader("Retry-After", String(rateLimit.retryAfterSeconds || 60));
-              res.end(JSON.stringify({
-                error: "RATE_LIMITED",
-                message: `Rate limit reached. Please wait ${rateLimit.retryAfterSeconds}s before generating another concept.`
-              }));
-              return;
-            }
-
-            // 5. Authorization: Verify Event Ownership
-            const projectId =
-              envConfig.VITE_FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
-            if (projectId) {
-              const isOwner = await verifyEventOwnership(projectId, verification.uid, eventId, token);
-              if (!isOwner) {
-                res.statusCode = 403;
+            // 4. Session validation and rate-limiting
+            if (token.startsWith("demo.")) {
+              const demoVerif = verifyDemoSessionToken(token);
+              if (!demoVerif.valid) {
+                res.statusCode = 401;
                 res.end(JSON.stringify({
-                  error: "FORBIDDEN",
-                  message: "Unauthorized: Event does not belong to the authenticated user."
+                  error: "INVALID_DEMO_SESSION",
+                  message: demoVerif.error || "Demo session is invalid or expired."
                 }));
                 return;
               }
+
+              if (!eventId.startsWith("demo-")) {
+                res.statusCode = 403;
+                res.end(JSON.stringify({
+                  error: "FORBIDDEN",
+                  message: "Demo session can only generate concepts for demo events."
+                }));
+                return;
+              }
+
+              const demoRate = checkDemoRateLimit(token);
+              if (!demoRate.allowed) {
+                res.statusCode = 429;
+                res.setHeader("Retry-After", String(demoRate.retryAfterSeconds || 60));
+                res.end(JSON.stringify({
+                  error: "RATE_LIMITED",
+                  message: `Demo rate limit reached. Please wait ${demoRate.retryAfterSeconds}s before generating another concept.`
+                }));
+                return;
+              }
+            } else {
+              const verification = await verifyFirebaseIdToken(
+                token,
+                envConfig.VITE_FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY
+              );
+              if (!verification.valid || !verification.uid) {
+                res.statusCode = 401;
+                res.end(JSON.stringify({
+                  error: "INVALID_TOKEN",
+                  message: verification.error || "Invalid authentication session. Please sign in again."
+                }));
+                return;
+              }
+
+              const rateLimit = checkRateLimit(verification.uid);
+              if (!rateLimit.allowed) {
+                res.statusCode = 429;
+                res.setHeader("Retry-After", String(rateLimit.retryAfterSeconds || 60));
+                res.end(JSON.stringify({
+                  error: "RATE_LIMITED",
+                  message: `Rate limit reached. Please wait ${rateLimit.retryAfterSeconds}s before generating another concept.`
+                }));
+                return;
+              }
+
+              const projectId =
+                envConfig.VITE_FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+              if (!eventId.startsWith("demo-")) {
+                if (!projectId) {
+                  res.statusCode = 500;
+                  res.end(JSON.stringify({
+                    error: "CONFIG_MISSING",
+                    message: "Firebase project configuration (VITE_FIREBASE_PROJECT_ID) is missing on the server. Cannot verify event ownership."
+                  }));
+                  return;
+                }
+
+                const isOwner = await verifyEventOwnership(projectId, verification.uid, eventId, token);
+                if (!isOwner) {
+                  res.statusCode = 403;
+                  res.end(JSON.stringify({
+                    error: "FORBIDDEN",
+                    message: "Unauthorized: Event does not belong to the authenticated user."
+                  }));
+                  return;
+                }
+              }
             }
 
-            // 6. Server-side Gemini API key check
+            // 5. Server-side Gemini API key check
             const apiKey =
               envConfig.GEMINI_API_KEY ||
               process.env.GEMINI_API_KEY ||
@@ -142,12 +211,12 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
               res.statusCode = 503;
               res.end(JSON.stringify({
                 error: "CONFIG_MISSING",
-                message: "Gemini API key is not configured on the server. Please set GEMINI_API_KEY in your server environment or configure the Firebase Cloud Function."
+                message: "Gemini API key is not configured on the server. Please set GEMINI_API_KEY in your server environment."
               }));
               return;
             }
 
-            // 7. Generate with Gemini
+            // 6. Generate with Gemini
             const aiResponse = await generateEventConceptWithGemini(
               { eventId, category, userPrompt, eventContext },
               apiKey

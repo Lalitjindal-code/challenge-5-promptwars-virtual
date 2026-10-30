@@ -33,9 +33,10 @@ Rather than simple disjointed metrics, Planora AI features a deterministic **Eve
 
 ### C. Security & Data Isolation
 - **Server-Side Token Verification:** Firebase ID tokens are validated via Google Identity Toolkit REST API; client-side fake tokens (`demo-token-*`) are strictly rejected.
+- **Signed Short-Lived Demo Sessions:** Unauthenticated demo users receive cryptographically signed HMAC demo tokens (`demo.<exp>.<nonce>.<sig>`) with a 15-minute TTL and strict rate-limiting, preventing token tampering while enabling live demo generation.
 - **Event Ownership Enforcement:** The backend verifies that the requested event document exists under `users/{uid}/events/{eventId}` before executing generation.
-- **Secret Protection:** `GEMINI_API_KEY` is kept strictly in serverless/function environments; zero provider keys are leaked to the browser.
-- **Demo Mode Isolation:** Unauthenticated demo users (`test@planora.ai` / Demo Studio) operate on self-contained in-memory datasets without emitting fake network tokens or touching real user records.
+- **Secret Protection:** `GEMINI_API_KEY` is kept strictly in serverless/function environments (`api/ai/generate.ts`); zero provider keys are leaked to the browser or bundled into client code.
+- **Demo Mode Isolation:** Unauthenticated demo users operate on self-contained in-memory datasets and scoped demo events (`demo-*`) with fallback resilience.
 
 ---
 

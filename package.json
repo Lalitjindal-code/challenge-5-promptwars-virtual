@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "npx tsx --test tests/phase1_security_and_isolation.test.ts tests/phase2_functional_controls.test.ts tests/phase3_accessibility_and_resilience.test.ts tests/phase4_regression_and_reliability.test.ts tests/phase5_promptwars_evaluation.test.ts"
+    "test": "npx tsx --test tests/phase1_security_and_isolation.test.ts tests/phase2_functional_controls.test.ts tests/phase3_accessibility_and_resilience.test.ts tests/phase4_regression_and_reliability.test.ts tests/phase5_promptwars_evaluation.test.ts tests/phase6_secure_ai_and_shared_logic.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

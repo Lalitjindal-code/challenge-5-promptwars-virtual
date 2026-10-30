@@ -1,10 +1,13 @@
-export interface EventItem {
+export interface BaseEventCore {
   id: string;
   name: string;
   type: string;
   date: string;
   location: string;
   budget: number;
+}
+
+export interface EventItem extends BaseEventCore {
   spent: number;
   guestsCount: number;
   guestCount?: number;
