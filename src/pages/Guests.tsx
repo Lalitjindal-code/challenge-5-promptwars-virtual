@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
+import { downloadCsv } from "../lib/csvExport";
 import type { DetailedGuest } from "../types";
 
 export default function Guests() {
@@ -116,26 +117,20 @@ export default function Guests() {
     }
     const headers = ["ID", "Name", "Email", "Phone", "Event", "Cohort", "Party Size", "RSVP Status", "Dietary", "Table", "VIP"];
     const rows = listToExport.map((g) => [
-      `"${g.id}"`,
-      `"${(g.name || "").replace(/"/g, '""')}"`,
-      `"${(g.email || "").replace(/"/g, '""')}"`,
-      `"${(g.phone || "").replace(/"/g, '""')}"`,
-      `"${(g.event || "").replace(/"/g, '""')}"`,
-      `"${(g.cohort || "").replace(/"/g, '""')}"`,
-      `"${g.partySize || 1}"`,
-      `"${g.status || ""}"`,
-      `"${(g.dietary || "").replace(/"/g, '""')}"`,
-      `"${(g.table || "").replace(/"/g, '""')}"`,
-      `"${g.isVip ? "Yes" : "No"}"`
+      g.id,
+      g.name || "",
+      g.email || "",
+      g.phone || "",
+      g.event || "",
+      g.cohort || "",
+      g.partySize || 1,
+      g.status || "",
+      g.dietary || "",
+      g.table || "",
+      g.isVip ? "Yes" : "No"
     ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `planora-guest-roster-${(activeEvent?.name || "all").toLowerCase().replace(/[^a-z0-9]/g, "-")}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `planora-guest-roster-${(activeEvent?.name || "all").toLowerCase().replace(/[^a-z0-9]/g, "-")}.csv`;
+    downloadCsv(filename, headers, rows);
     showToast("Guest roster exported to CSV successfully.");
   };
 

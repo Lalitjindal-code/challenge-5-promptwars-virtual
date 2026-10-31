@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import type { ConceptItem } from "./src/types/index.js";
 import {
   verifyFirebaseIdToken,
   checkRateLimit,
@@ -69,15 +70,16 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
         }
 
         let body = "";
-        req.on("data", (chunk: any) => {
-          body += chunk;
+        req.on("data", (chunk: Buffer | string) => {
+          body += chunk.toString();
         });
 
         req.on("end", async () => {
           res.setHeader("Content-Type", "application/json");
           try {
             // 1. Auth check: verify authorization token
-            const authHeader = (req.headers["authorization"] as string) || "";
+            const rawAuth = req.headers["authorization"];
+            const authHeader = typeof rawAuth === "string" ? rawAuth : "";
             const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
             if (!token) {
@@ -90,7 +92,7 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
             }
 
             // 2. Parse request payload
-            let parsedBody: any;
+            let parsedBody: Record<string, any> | undefined;
             try {
               parsedBody = JSON.parse(body);
             } catch {
@@ -99,7 +101,20 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
               return;
             }
 
-            const { eventId, category, userPrompt, eventContext } = parsedBody || {};
+            const { eventId, category, userPrompt, eventContext } = (parsedBody || {}) as {
+              eventId?: string;
+              category?: string;
+              userPrompt?: string;
+              eventContext?: {
+                name?: string;
+                type?: string;
+                date?: string;
+                location?: string;
+                budget?: number;
+                guestCount?: number;
+                description?: string;
+              };
+            };
 
             if (!eventId || !category || !eventContext) {
               res.statusCode = 400;
@@ -218,17 +233,31 @@ function aiApiPlugin(envConfig: Record<string, string>): Plugin {
 
             // 6. Generate with Gemini
             const aiResponse = await generateEventConceptWithGemini(
-              { eventId, category, userPrompt, eventContext },
+              {
+                eventId,
+                category: category as ConceptItem["category"],
+                userPrompt,
+                eventContext: {
+                  name: eventContext.name || "Event",
+                  type: eventContext.type || "Celebration",
+                  date: eventContext.date || "2026-12-01",
+                  location: eventContext.location || "Venue",
+                  budget: Number(eventContext.budget) || 200000,
+                  guestCount: Number(eventContext.guestCount) || 100,
+                  description: eventContext.description
+                }
+              },
               apiKey
             );
 
             res.statusCode = 200;
             res.end(JSON.stringify(aiResponse));
-          } catch (err: any) {
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to generate concept with AI provider.";
             res.statusCode = 500;
             res.end(JSON.stringify({
               error: "GENERATION_FAILED",
-              message: err.message || "Failed to generate concept with AI provider."
+              message
             }));
           }
         });

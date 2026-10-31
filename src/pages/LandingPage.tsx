@@ -30,7 +30,7 @@ export default function LandingPage() {
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced) return;
 
-    let ctx: any = null;
+    let ctx: { revert: () => void } | null = null;
     let isMounted = true;
 
     Promise.all([import("gsap"), import("gsap/ScrollTrigger")]).then(

@@ -1,36 +1,11 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { duplicateEvent } from "../src/lib/eventDomain.ts";
+import { parseFirestoreDoc } from "../src/lib/firestoreUtils.ts";
+import type { EventItem, DetailedTask } from "../src/types/index.ts";
 
 describe("Phase 4: Event Lifecycle & Duplication Resilience", () => {
   test("duplicating an event creates a distinct ID, Planning status, and cloned metadata", () => {
-    interface EventItem {
-      id: string;
-      name: string;
-      type: string;
-      date: string;
-      location: string;
-      budget: number;
-      spent: number;
-      guestsCount: number;
-      confirmedGuests: number;
-      totalTasks: number;
-      tasksCompleted: number;
-      status: "Planning" | "On Track" | "Attention" | "Completed";
-      description?: string;
-    }
-
-    const duplicateEvent = (original: EventItem): EventItem => {
-      return {
-        ...original,
-        id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        name: `${original.name} (Copy)`,
-        status: "Planning",
-        spent: 0,
-        confirmedGuests: 0,
-        tasksCompleted: 0,
-      };
-    };
-
     const original: EventItem = {
       id: "evt-original-1",
       name: "Udaipur Royal Gala",
@@ -199,5 +174,35 @@ describe("Phase 4: Route Guard & Session State Handling", () => {
     // Initial session resolving
     const resolving = evaluateRouteAccess(null, true, "/timeline");
     assert.strictEqual(resolving.action, "WAIT_FOR_SESSION");
+  });
+});
+
+describe("Phase 4: Firestore Document Parser & Invariant Resilience", () => {
+  test("safely binds docId and activeEventId while handling partial or malformed schema fields", () => {
+    // 1. Incomplete document payload from Firestore
+    const incompletePayload = {
+      title: "Audio Check",
+      priority: "High",
+      // missing subtitle, assignee, status, subtasks
+      customMetadata: "unrecognized-field"
+    };
+
+    const task = parseFirestoreDoc<DetailedTask>("task-999", "evt-active-123", incompletePayload);
+    assert.strictEqual(task.id, "task-999");
+    assert.strictEqual(task.eventId, "evt-active-123");
+    assert.strictEqual(task.title, "Audio Check");
+    assert.strictEqual(task.priority, "High");
+    assert.strictEqual((task as Record<string, unknown>).customMetadata, "unrecognized-field");
+
+    // 2. Overwrites forged IDs embedded in the document body with authenticated docId and eventId
+    const hostilePayload = {
+      id: "fake-unauthorized-id",
+      eventId: "foreign-user-event",
+      title: "Legitimate Task"
+    };
+
+    const securedTask = parseFirestoreDoc<DetailedTask>("doc-real-id", "evt-real-event", hostilePayload);
+    assert.strictEqual(securedTask.id, "doc-real-id", "Must override internal body ID with canonical Firestore doc ID");
+    assert.strictEqual(securedTask.eventId, "evt-real-event", "Must enforce active scoped eventId");
   });
 });

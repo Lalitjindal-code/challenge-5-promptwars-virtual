@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 import { generateEventIdea, checkAiServiceStatus, AiServiceError } from "../lib/aiService";
+import { getErrorMessage } from "../lib/errorUtils";
 import type { ConceptItem } from "../types";
 import { DEMO_CONCEPTS } from "../data/demoConcepts";
 
@@ -130,8 +131,8 @@ export default function AiIdeas() {
         await saveAiConcept(concept);
         showToast(`Saved "${concept.title}" to your idea board`);
       }
-    } catch (err: any) {
-      showToast(`Error saving idea: ${err.message || "Failed to update"}`);
+    } catch (err: unknown) {
+      showToast(`Error saving idea: ${getErrorMessage(err, "Failed to update")}`);
     }
   };
 
@@ -189,7 +190,7 @@ export default function AiIdeas() {
       }
 
       showToast(`Synthesized new concept: "${newConcept.title}"`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof AiServiceError) {
         if (err.code === "CONFIG_MISSING") {
           setConfigErrorNotice(err.message);
@@ -206,7 +207,7 @@ export default function AiIdeas() {
           showToast(err.message || "Failed to generate concept.");
         }
       } else {
-        showToast(err.message || "Generation failed.");
+        showToast(getErrorMessage(err, "Generation failed."));
       }
     } finally {
       setIsGenerating(false);
@@ -274,8 +275,8 @@ export default function AiIdeas() {
       } else {
         showToast(`Added ${tasksAddedCount} task(s) and ${budgetAddedCount} budget allocation(s) for "${concept.title}" to ${activeEvent?.name || "event plan"}!`);
       }
-    } catch (err: any) {
-      showToast(`Error adding to plan: ${err.message || "Failed to save"}`);
+    } catch (err: unknown) {
+      showToast(`Error adding to plan: ${getErrorMessage(err, "Failed to save")}`);
     }
   };
 

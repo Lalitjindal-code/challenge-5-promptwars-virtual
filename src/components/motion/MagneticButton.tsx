@@ -1,7 +1,7 @@
 import React, { useRef, useCallback } from "react";
-import { motion, useSpring } from "framer-motion";
+import { motion, useSpring, type HTMLMotionProps } from "framer-motion";
 
-interface MagneticButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface MagneticButtonProps extends HTMLMotionProps<"button"> {
   children: React.ReactNode;
   className?: string;
   strength?: number;
@@ -64,7 +64,7 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
       whileTap={{ scale: 0.97 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={`relative inline-flex items-center justify-center transition-shadow duration-200 ${className}`}
-      {...(props as any)}
+      {...props}
     >
       {children}
     </motion.button>

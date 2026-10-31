@@ -112,15 +112,35 @@ Return a JSON object conforming exactly to this structure:
 }
 
 /**
+ * Raw unvalidated structure returned by AI provider models before schema normalization.
+ */
+export interface RawParsedConcept {
+  code?: unknown;
+  title?: unknown;
+  badge?: unknown;
+  badgeType?: unknown;
+  allocation?: unknown;
+  matchScore?: unknown;
+  description?: unknown;
+  tags?: unknown;
+  palette?: unknown;
+  deliverables?: unknown;
+  breakdown?: unknown;
+  timelineSuggestions?: unknown;
+  vendorRecommendations?: unknown;
+  guestExperienceNotes?: unknown;
+}
+
+/**
  * Sanitizes markdown code blocks, trailing commas, and boundary noise to parse raw JSON.
  */
-export function cleanAndParseJsonResponse(rawText: string): any {
+export function cleanAndParseJsonResponse(rawText: string): Record<string, unknown> {
   if (!rawText || typeof rawText !== "string") {
     throw new Error("AI provider returned an empty response");
   }
 
   try {
-    return JSON.parse(rawText);
+    return JSON.parse(rawText) as Record<string, unknown>;
   } catch {
     let cleaned = rawText.trim();
     if (cleaned.startsWith("```")) {
@@ -130,7 +150,7 @@ export function cleanAndParseJsonResponse(rawText: string): any {
     const firstBrace = cleaned.indexOf("{");
     const lastBrace = cleaned.lastIndexOf("}");
     if (firstBrace !== -1 && lastBrace > firstBrace) {
-      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1)) as Record<string, unknown>;
     }
     throw new Error("Failed to parse structured JSON from AI provider response");
   }
@@ -140,7 +160,7 @@ export function cleanAndParseJsonResponse(rawText: string): any {
  * Normalizes and validates parsed AI output into a safe, strongly-typed ConceptItem.
  */
 export function normalizeConceptItem(
-  parsed: any,
+  parsed: RawParsedConcept | Record<string, unknown> | null | undefined,
   category: ConceptItem["category"],
   eventContext: AiGenerationRequest["eventContext"]
 ): ConceptItem {
@@ -155,8 +175,8 @@ export function normalizeConceptItem(
       ? parsed.title.slice(0, 50)
       : "Curated Event Synthesis",
     category,
-    badge: parsed?.badge || "AI Synthesis",
-    badgeType: (["featured", "value", "standard"].includes(parsed?.badgeType)
+    badge: typeof parsed?.badge === "string" ? parsed.badge : "AI Synthesis",
+    badgeType: (typeof parsed?.badgeType === "string" && ["featured", "value", "standard"].includes(parsed.badgeType)
       ? parsed.badgeType
       : "featured") as ConceptItem["badgeType"],
     allocation: typeof parsed?.allocation === "number" && parsed.allocation > 0
@@ -174,31 +194,40 @@ export function normalizeConceptItem(
       ? parsed.tags.slice(0, 5).map(String)
       : ["Tailored", "Harmonized", "Event Copilot"],
     palette: Array.isArray(parsed?.palette) && parsed.palette.length > 0
-      ? parsed.palette.map((p: any) => ({
-          name: String(p.name || "Tone"),
-          hex: typeof p.hex === "string" && p.hex.startsWith("#") ? p.hex : "#7c5816"
-        }))
+      ? (parsed.palette as unknown[]).map((p) => {
+          const pRec = typeof p === "object" && p !== null ? (p as Record<string, unknown>) : {};
+          return {
+            name: typeof pRec.name === "string" ? pRec.name : "Tone",
+            hex: typeof pRec.hex === "string" && pRec.hex.startsWith("#") ? pRec.hex : "#7c5816"
+          };
+        })
       : [
           { name: "Accent Gold", hex: "#efbf73" },
           { name: "Deep Navy", hex: "#17233b" },
           { name: "Ivory Mist", hex: "#f1f3ff" }
         ],
     deliverables: Array.isArray(parsed?.deliverables) && parsed.deliverables.length > 0
-      ? parsed.deliverables.map((d: any) => ({
-          icon: String(d.icon || "local_florist"),
-          name: String(d.name || "Decor Element"),
-          qty: String(d.qty || "1 Setup"),
-          checked: Boolean(d.checked)
-        }))
+      ? (parsed.deliverables as unknown[]).map((d) => {
+          const dRec = typeof d === "object" && d !== null ? (d as Record<string, unknown>) : {};
+          return {
+            icon: typeof dRec.icon === "string" ? dRec.icon : "local_florist",
+            name: typeof dRec.name === "string" ? dRec.name : "Decor Element",
+            qty: typeof dRec.qty === "string" ? dRec.qty : "1 Setup",
+            checked: Boolean(dRec.checked)
+          };
+        })
       : [
           { icon: "candle", name: "Custom Ambience Lighting", qty: "1 Set", checked: false },
           { icon: "local_florist", name: "Bespoke Floral Installation", qty: "1 Focal Point", checked: false }
         ],
     breakdown: Array.isArray(parsed?.breakdown) && parsed.breakdown.length > 0
-      ? parsed.breakdown.map((b: any) => ({
-          item: String(b.item || "Production & Setup"),
-          cost: typeof b.cost === "number" ? Math.round(b.cost) : 10000
-        }))
+      ? (parsed.breakdown as unknown[]).map((b) => {
+          const bRec = typeof b === "object" && b !== null ? (b as Record<string, unknown>) : {};
+          return {
+            item: typeof bRec.item === "string" ? bRec.item : "Production & Setup",
+            cost: typeof bRec.cost === "number" ? Math.round(bRec.cost) : 10000
+          };
+        })
       : [
           { item: "Styling & Lighting", cost: 15000 },
           { item: "Florals & Staging", cost: 15000 }

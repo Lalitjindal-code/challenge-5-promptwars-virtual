@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { verifyPasswordResetCode, confirmPasswordReset, applyActionCode } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "../../lib/firebase";
+import { getErrorMessage } from "../../lib/errorUtils";
 
 export default function AuthActionPage() {
   const [searchParams] = useSearchParams();
@@ -80,9 +81,9 @@ export default function AuthActionPage() {
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
       setIsCompleted(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Password reset confirmation error:", err);
-      setError(err?.message?.replace("Firebase: ", "") || "Failed to update password.");
+      setError(getErrorMessage(err, "Failed to update password."));
     } finally {
       setIsSubmitting(false);
     }

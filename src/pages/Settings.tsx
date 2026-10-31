@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { isFirebaseConfigured } from "../lib/firebase";
 import { db } from "../lib/firestore";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
+import { getErrorMessage } from "../lib/errorUtils";
 
 export default function Settings() {
   const { user, updateUserPassword, logOut } = useAuth();
@@ -46,7 +47,8 @@ export default function Settings() {
   // Account Plan Tier
   const [accountTier, setAccountTier] = useState<"Pro Planner" | "Enterprise Planner">(() => {
     try {
-      return (localStorage.getItem("planora_account_tier") as any) || "Pro Planner";
+      const stored = localStorage.getItem("planora_account_tier");
+      return stored === "Enterprise Planner" ? "Enterprise Planner" : "Pro Planner";
     } catch {
       return "Pro Planner";
     }
@@ -214,7 +216,9 @@ export default function Settings() {
           timezone: saved.timezone || timezone
         };
       } else {
-        const storedTheme = (localStorage.getItem("planora_theme_mode") as any) || "light";
+        const stored = localStorage.getItem("planora_theme_mode");
+        const storedTheme: "light" | "dark" | "system" =
+          stored === "dark" || stored === "system" ? stored : "light";
         applyTheme(storedTheme);
       }
     } catch (e) {
@@ -332,9 +336,9 @@ export default function Settings() {
       try {
         await setDoc(doc(db, "users", user.uid), payload, { merge: true });
         triggerToast("Profile settings saved and synced to cloud.");
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Profile save error:", err);
-        triggerToast("Error saving profile to cloud: " + (err?.message || "Unknown error"));
+        triggerToast("Error saving profile to cloud: " + getErrorMessage(err));
       }
     } else {
       triggerToast("Profile settings updated (Demo Studio Preview).");
@@ -366,7 +370,7 @@ export default function Settings() {
       try {
         await setDoc(doc(db, "users", user.uid), payload, { merge: true });
         triggerToast("Planning defaults and currency rules saved to cloud.");
-      } catch (err: any) {
+      } catch (err: unknown) {
         triggerToast("Planning defaults saved locally.");
       }
     } else {
@@ -397,7 +401,7 @@ export default function Settings() {
       try {
         await setDoc(doc(db, "users", user.uid), payload, { merge: true });
         triggerToast("Notification preferences & alert triggers saved to cloud.");
-      } catch (err: any) {
+      } catch (err: unknown) {
         triggerToast("Notification preferences saved locally.");
       }
     } else {
@@ -480,7 +484,7 @@ export default function Settings() {
       try {
         await setDoc(doc(db, "users", user.uid), fullPayload, { merge: true });
         triggerToast("All preferences & workspace settings saved to cloud!");
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Cloud save error:", err);
         triggerToast("Settings saved locally across all active views.");
       }
@@ -505,9 +509,9 @@ export default function Settings() {
         setPwdCurr("");
         setPwdNew("");
         setPwdConfirm("");
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Password update error:", err);
-        triggerToast(err?.message?.replace("Firebase: ", "") || "Failed to update password.");
+        triggerToast(getErrorMessage(err, "Failed to update password."));
       }
     } else {
       triggerToast("Password updated securely (Demo Studio Sandbox).");
@@ -543,7 +547,7 @@ export default function Settings() {
       triggerToast("Account data reset. Signing out...");
       try {
         await logOut();
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.warn("Sign out during deletion:", err);
       }
     } else {

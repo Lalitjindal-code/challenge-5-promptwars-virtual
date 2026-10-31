@@ -1,25 +1,10 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { validateEventInput, validateGuestInput } from "../src/lib/eventDomain.ts";
+import { sanitizeCsvCell, generateCsvContent } from "../src/lib/csvExport.ts";
 
 describe("Phase 3: Input Validation and Form Resilience", () => {
   test("rejects invalid or blank event names in event creation validation", () => {
-    const validateEventInput = (input: { name: string; budget: number; date: string; guestsCount: number }) => {
-      const errors: string[] = [];
-      if (!input.name || !input.name.trim()) {
-        errors.push("Event name is required and cannot be blank.");
-      }
-      if (typeof input.budget !== "number" || isNaN(input.budget) || input.budget < 0) {
-        errors.push("Budget must be a non-negative number.");
-      }
-      if (typeof input.guestsCount !== "number" || isNaN(input.guestsCount) || input.guestsCount < 0) {
-        errors.push("Guest count must be a non-negative integer.");
-      }
-      if (!input.date || isNaN(new Date(input.date).getTime())) {
-        errors.push("A valid date is required.");
-      }
-      return { isValid: errors.length === 0, errors };
-    };
-
     // Blank name
     assert.strictEqual(validateEventInput({ name: "   ", budget: 100000, date: "2026-12-15", guestsCount: 100 }).isValid, false);
     // Negative budget
@@ -35,23 +20,6 @@ describe("Phase 3: Input Validation and Form Resilience", () => {
   });
 
   test("rejects invalid guest emails and handles missing contact gracefully", () => {
-    const validateGuestInput = (guest: { firstName: string; lastName: string; email?: string; partySize: number }) => {
-      const errors: string[] = [];
-      if (!guest.firstName || !guest.firstName.trim()) {
-        errors.push("First name is required.");
-      }
-      if (guest.email && guest.email.trim()) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(guest.email.trim())) {
-          errors.push("Invalid email format.");
-        }
-      }
-      if (typeof guest.partySize !== "number" || guest.partySize < 1) {
-        errors.push("Party size must be at least 1.");
-      }
-      return { isValid: errors.length === 0, errors };
-    };
-
     assert.strictEqual(validateGuestInput({ firstName: "", lastName: "Kapoor", partySize: 1 }).isValid, false);
     assert.strictEqual(validateGuestInput({ firstName: "Rohan", lastName: "Kapoor", email: "invalid-email", partySize: 1 }).isValid, false);
     assert.strictEqual(validateGuestInput({ firstName: "Rohan", lastName: "Kapoor", partySize: 0 }).isValid, false);
@@ -64,16 +32,6 @@ describe("Phase 3: Input Validation and Form Resilience", () => {
 
 describe("Phase 3: CSV Sanitization and Export Security", () => {
   test("neutralizes formula injection characters (=, +, -, @) in CSV export cells", () => {
-    const sanitizeCsvCell = (val: string | number | boolean | null | undefined): string => {
-      if (val === null || val === undefined) return '""';
-      let str = String(val).replace(/"/g, '""');
-      // If cell begins with formula trigger chars (=, +, -, @, \t, \r), prepend a single quote to neutralize spreadsheet execution
-      if (/^[=+\-@\t\r]/.test(str)) {
-        str = `'${str}`;
-      }
-      return `"${str}"`;
-    };
-
     // Harmful DDE injection formula
     const harmfulFormula = "=cmd|' /C calc'!A0";
     const sanitizedHarmful = sanitizeCsvCell(harmfulFormula);
@@ -83,13 +41,49 @@ describe("Phase 3: CSV Sanitization and Export Security", () => {
     const minusFormula = "-2+3";
     assert.strictEqual(sanitizeCsvCell(minusFormula), "\"'-2+3\"");
 
+    // Stealth formula with leading spaces and control characters
+    const stealthFormula = "   =SUM(A1:A10)";
+    assert.strictEqual(sanitizeCsvCell(stealthFormula), "\"\'   =SUM(A1:A10)\"");
+
+    const tabFormula = "\t@SUM(B1:B5)";
+    assert.strictEqual(sanitizeCsvCell(tabFormula), "\"\'\t@SUM(B1:B5)\"");
+
+    // Pipe and percent trigger vectors
+    assert.strictEqual(sanitizeCsvCell("|calc.exe"), "\"\'|calc.exe\"");
+    assert.strictEqual(sanitizeCsvCell("   %00=1+1"), "\"\'   %00=1+1\"");
+    assert.strictEqual(sanitizeCsvCell("\r\n =cmd"), "\"\'\r\n =cmd\"");
+
+    // Legitimate negative numeric values preserved
+    assert.strictEqual(sanitizeCsvCell(-500), '"-500"');
+    assert.strictEqual(sanitizeCsvCell("-500"), '"-500"');
+    assert.strictEqual(sanitizeCsvCell("-12.50"), '"-12.50"');
+    assert.strictEqual(sanitizeCsvCell("-0.05"), '"-0.05"');
+    assert.strictEqual(sanitizeCsvCell("-9999.99"), '"-9999.99"');
+
     // Standard safe string
     const safeString = "Aarav & Priya Wedding Banquet";
     assert.strictEqual(sanitizeCsvCell(safeString), '"Aarav & Priya Wedding Banquet"');
 
-    // Quotes escaped properly
+    // Quotes and multiline content escaped properly per RFC 4180
     const stringwithQuotes = 'Grand "Royal" Suite';
     assert.strictEqual(sanitizeCsvCell(stringwithQuotes), '"Grand ""Royal"" Suite"');
+
+    const multilineCell = "First line\nSecond line";
+    assert.strictEqual(sanitizeCsvCell(multilineCell), '"First line\nSecond line"');
+
+    // Full generated CSV output validation
+    const sampleHeaders = ["Item", "Cost", "Notes"];
+    const sampleRows = [
+      ["=2+5", -1500, 'Safe, "with quotes"'],
+      ["Photography", 75000, "Royal Banquet 🎉"],
+      ["Multiline", 1200, "Notes with\r\nnewline"]
+    ];
+    const generated = generateCsvContent(sampleHeaders, sampleRows);
+    assert.ok(generated.includes('"Item","Cost","Notes"'));
+    assert.ok(generated.includes("\"\'=2+5\",\"-1500\",\"Safe, \"\"with quotes\"\"\""));
+    assert.ok(generated.includes('"Photography","75000","Royal Banquet 🎉"'));
+    assert.ok(generated.includes('"Multiline","1200","Notes with\r\nnewline"'));
+    assert.ok(generated.includes("\r\n"), "Must use RFC 4180 CRLF line terminators");
   });
 });
 

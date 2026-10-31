@@ -131,10 +131,10 @@ export async function verifyFirebaseIdToken(token: string, firebaseApiKey?: stri
     });
 
     if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
+      const errData = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
       return {
         valid: false,
-        error: (errData as any)?.error?.message || `Token validation failed (HTTP ${res.status})`
+        error: errData?.error?.message || `Token validation failed (HTTP ${res.status})`
       };
     }
 
@@ -145,8 +145,9 @@ export async function verifyFirebaseIdToken(token: string, firebaseApiKey?: stri
     }
 
     return { valid: true, uid: user.localId, email: user.email };
-  } catch (err: any) {
-    return { valid: false, error: err.message || "Network error verifying ID token" };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Network error verifying ID token";
+    return { valid: false, error: message };
   }
 }
 
@@ -237,7 +238,7 @@ export async function generateEventConceptWithGemini(
 
   try {
     let text = "";
-    let lastError: any = null;
+    let lastError: Error | null = null;
 
     for (const modelName of AI_CANDIDATE_MODELS) {
       try {
@@ -258,8 +259,8 @@ export async function generateEventConceptWithGemini(
         if (text && text.trim().length > 0) {
           break;
         }
-      } catch (err: any) {
-        lastError = err;
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err : new Error(String(err));
         continue;
       }
     }
@@ -277,9 +278,9 @@ export async function generateEventConceptWithGemini(
       concept,
       missingInfoQuestions: missingInfoQuestions.length > 0 ? missingInfoQuestions : undefined
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     clearTimeout(timeoutId);
-    if (err.name === "AbortError" || controller.signal?.aborted) {
+    if ((err instanceof Error && err.name === "AbortError") || controller.signal?.aborted) {
       throw new Error("AI provider request timed out after 30 seconds");
     }
     throw err;

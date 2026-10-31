@@ -6,145 +6,39 @@ import {
   verifyEventOwnership,
   generateEventConceptWithGemini
 } from "../../server/aiHandler.js";
+import {
+  configureCorsHeaders,
+  isTrustedHostname,
+  STATIC_TRUSTED_HOSTS,
+  TRUSTED_PREVIEW_PATTERNS
+} from "../../server/cors.js";
+import type { ApiRequest, ApiResponse } from "../../server/types.js";
+import type { ConceptItem } from "../../src/types/index.js";
 
-/**
- * Static trusted production hostnames for Planora AI.
- * Includes both the canonical project name and the GitHub-derived deployment name.
- */
-const STATIC_TRUSTED_HOSTS = [
-  "planora-ai.vercel.app",
-  "challenge-5-promptwars-virtual.vercel.app"
-];
+// Re-export CORS helpers for backwards compatibility
+export {
+  configureCorsHeaders,
+  isTrustedHostname,
+  STATIC_TRUSTED_HOSTS,
+  TRUSTED_PREVIEW_PATTERNS
+};
 
-/**
- * Trusted Vercel preview deployment patterns for Planora AI.
- * Matches project-specific preview branches (e.g. planora-ai-git-main-owner.vercel.app)
- * for both the canonical and GitHub-derived project names.
- */
-const TRUSTED_PREVIEW_PATTERNS = [
-  /^planora-ai(-[a-z0-9-]+)?\.vercel\.app$/i,
-  /^challenge-5-promptwars-virtual(-[a-z0-9-]+)?\.vercel\.app$/i
-];
-
-function isTrustedHostname(hostname: string): boolean {
-  if (!hostname || typeof hostname !== "string") return false;
-  const normalized = hostname.toLowerCase().trim();
-
-  // 1. Local development loopbacks
-  if (normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1") {
-    return true;
-  }
-
-  // 2. Canonical Planora production domains and verified project preview branches
-  if (STATIC_TRUSTED_HOSTS.includes(normalized)) {
-    return true;
-  }
-  if (TRUSTED_PREVIEW_PATTERNS.some(pattern => pattern.test(normalized))) {
-    return true;
-  }
-
-  // 3. Vercel deployment URL if set in environment
-  if (process.env.VERCEL_URL) {
-    const vercelHost = process.env.VERCEL_URL.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
-    if (normalized === vercelHost) {
-      return true;
-    }
-  }
-
-  // 4. Custom domain configured in environment
-  if (process.env.ALLOWED_ORIGIN && process.env.ALLOWED_ORIGIN !== "*") {
-    try {
-      const allowedUrl = new URL(process.env.ALLOWED_ORIGIN);
-      if (normalized === allowedUrl.hostname.toLowerCase()) {
-        return true;
-      }
-    } catch {
-      // ignore invalid URL in config
-    }
-  }
-
-  return false;
+interface GenerateRequestBody {
+  eventId?: string;
+  category?: string;
+  userPrompt?: string;
+  eventContext?: {
+    name?: string;
+    type?: string;
+    date?: string;
+    location?: string;
+    budget?: number;
+    guestCount?: number;
+    description?: string;
+  };
 }
 
-/**
- * Configures dynamic, strictly validated CORS headers.
- * - Allows local loopback and verified Planora production/preview domains.
- * - Strictly rejects unrelated *.vercel.app deployments.
- * - Opaque/null and untrusted origins receive NO Access-Control-Allow-Origin header.
- * - Validates Host header against trusted domains to block Host-header manipulation.
- * - Missing Origin preserves server-to-server/same-origin with ACAO: * while
- *   enforcing complete server-side token authentication.
- */
-export function configureCorsHeaders(req: any, res: any, allowedMethods = "POST, OPTIONS"): boolean {
-  res.setHeader("Vary", "Origin");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Methods", allowedMethods);
-
-  const origin = req.headers["origin"] as string | undefined;
-  const host = req.headers["host"] as string | undefined;
-
-  // 1. Missing Origin: Same-origin direct or server-to-server invocation
-  if (!origin) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    return true;
-  }
-
-  // 2. Reject explicit string "null" or empty origins without emitting ACAO
-  if (origin === "null" || origin.trim() === "") {
-    return false;
-  }
-
-  try {
-    const parsedOrigin = new URL(origin);
-
-    // Protocol must be http (only for localhost loopback) or https
-    const isLocal =
-      parsedOrigin.hostname === "localhost" ||
-      parsedOrigin.hostname === "127.0.0.1" ||
-      parsedOrigin.hostname === "::1";
-
-    if (parsedOrigin.protocol !== "https:" && (!isLocal || parsedOrigin.protocol !== "http:")) {
-      return false;
-    }
-
-    // A) Explicit wildcard override in env
-    if (process.env.ALLOWED_ORIGIN === "*") {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      return true;
-    }
-
-    // B) Verify origin hostname is a trusted Planora or local hostname
-    const originIsTrusted = isTrustedHostname(parsedOrigin.hostname);
-
-    // C) Validated Host Match: Host header must also be in trusted set
-    let hostIsTrustedAndMatches = false;
-    if (host) {
-      const hostWithoutPort = host.split(":")[0];
-      if (isTrustedHostname(hostWithoutPort)) {
-        hostIsTrustedAndMatches =
-          origin === `https://${host}` || (isLocal && origin === `http://${host}`);
-      }
-    }
-
-    // D) Explicit ALLOWED_ORIGIN match
-    const isExplicitAllowed = Boolean(
-      process.env.ALLOWED_ORIGIN && origin === process.env.ALLOWED_ORIGIN
-    );
-
-    if (originIsTrusted || hostIsTrustedAndMatches || isExplicitAllowed) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      return true;
-    }
-
-    // Untrusted or unrelated Vercel domain: Omit Access-Control-Allow-Origin
-    return false;
-  } catch {
-    // Malformed origin: Omit Access-Control-Allow-Origin
-    return false;
-  }
-}
-
-export default async function handler(req: any, res: any) {
+export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
   configureCorsHeaders(req, res, "POST, OPTIONS");
 
   if (req.method === "OPTIONS") {
@@ -164,7 +58,8 @@ export default async function handler(req: any, res: any) {
 
   try {
     // 1. Verify Authorization Header Presence
-    const authHeader = (req.headers["authorization"] as string) || "";
+    const rawAuth = req.headers["authorization"];
+    const authHeader = typeof rawAuth === "string" ? rawAuth : Array.isArray(rawAuth) ? rawAuth[0] : "";
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
     if (!token) {
@@ -176,18 +71,21 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    // 2. Read and parse payload
-    let body = req.body;
-    if (typeof body === "string") {
+    // 2. Read and parse payload safely
+    let parsedBody: GenerateRequestBody | null = null;
+    if (typeof req.body === "string") {
       try {
-        body = JSON.parse(body);
+        parsedBody = JSON.parse(req.body) as GenerateRequestBody;
       } catch {
         res.statusCode = 400;
         res.end(JSON.stringify({ error: "BAD_REQUEST", message: "Malformed JSON payload" }));
         return;
       }
+    } else if (typeof req.body === "object" && req.body !== null) {
+      parsedBody = req.body as GenerateRequestBody;
     }
-    const { eventId, category, userPrompt, eventContext } = body || {};
+
+    const { eventId, category, userPrompt, eventContext } = parsedBody || {};
 
     // 3. Required Fields Validation
     if (!eventId || !category || !eventContext) {
@@ -307,17 +205,31 @@ export default async function handler(req: any, res: any) {
 
     // 7. Generation
     const aiResponse = await generateEventConceptWithGemini(
-      { eventId, category, userPrompt, eventContext },
+      {
+        eventId,
+        category: category as ConceptItem["category"], // category validated downstream by generator
+        userPrompt,
+        eventContext: {
+          name: eventContext.name || "Event",
+          type: eventContext.type || "Celebration",
+          date: eventContext.date || "2026-12-01",
+          location: eventContext.location || "Venue",
+          budget: Number(eventContext.budget) || 200000,
+          guestCount: Number(eventContext.guestCount) || 100,
+          description: eventContext.description
+        }
+      },
       apiKey
     );
 
     res.statusCode = 200;
     res.end(JSON.stringify(aiResponse));
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "An unexpected error occurred during AI generation.";
     res.statusCode = 500;
     res.end(JSON.stringify({
       error: "GENERATION_FAILED",
-      message: err.message || "An unexpected error occurred during AI generation."
+      message
     }));
   }
 }

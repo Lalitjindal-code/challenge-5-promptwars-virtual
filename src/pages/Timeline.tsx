@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
+import { downloadCsv } from "../lib/csvExport";
 import type { DetailedTask } from "../types";
 
 export default function Timeline() {
@@ -146,24 +147,18 @@ export default function Timeline() {
     }
     const headers = ["ID", "Title", "Subtitle/Description", "Event", "Due Date", "Priority", "Status", "Assignee", "Category"];
     const rows = tasksToExport.map((t) => [
-      `"${t.id}"`,
-      `"${(t.title || "").replace(/"/g, '""')}"`,
-      `"${(t.description || t.subtitle || "").replace(/"/g, '""')}"`,
-      `"${(t.event || "").replace(/"/g, '""')}"`,
-      `"${(t.dueDate || "").replace(/"/g, '""')}"`,
-      `"${t.priority || ""}"`,
-      `"${t.status || ""}"`,
-      `"${(t.assignee?.name || "").replace(/"/g, '""')}"`,
-      `"${(t.category || "").replace(/"/g, '""')}"`
+      t.id,
+      t.title || "",
+      t.description || t.subtitle || "",
+      t.event || "",
+      t.dueDate || "",
+      t.priority || "",
+      t.status || "",
+      t.assignee?.name || "",
+      t.category || ""
     ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `planora-run-of-show-${(activeEvent?.name || "all").toLowerCase().replace(/[^a-z0-9]/g, "-")}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `planora-run-of-show-${(activeEvent?.name || "all").toLowerCase().replace(/[^a-z0-9]/g, "-")}.csv`;
+    downloadCsv(filename, headers, rows);
     showToast("Run-of-Show exported to CSV successfully.");
   };
 

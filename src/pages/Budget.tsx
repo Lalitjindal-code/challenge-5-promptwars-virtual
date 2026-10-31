@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
+import { downloadCsv } from "../lib/csvExport";
 import type { ExpenseTransaction } from "../types";
 
 export default function Budget() {
@@ -235,27 +236,16 @@ export default function Budget() {
     }
     const headers = ["Expense Name", "Event", "Category", "Date", `Amount (${currency})`, "Status", "Vendor"];
     const rows = expenses.map((tx) => [
-      `"${tx.name.replace(/"/g, '""')}"`,
-      `"${(tx.event || "").replace(/"/g, '""')}"`,
-      `"${tx.category}"`,
-      `"${tx.date}"`,
+      tx.name,
+      tx.event || "",
+      tx.category,
+      tx.date,
       tx.amount,
-      `"${tx.status}"`,
-      `"${(tx.vendor || "").replace(/"/g, '""')}"`
+      tx.status,
+      tx.vendor || ""
     ]);
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `budget_report_${(activeEvent?.name || "event").replace(/[^a-zA-Z0-9_-]/g, "_")}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const filename = `budget_report_${(activeEvent?.name || "event").replace(/[^a-zA-Z0-9_-]/g, "_")}.csv`;
+    downloadCsv(filename, headers, rows);
     showToast("Downloaded budget CSV export successfully.");
   };
 

@@ -1,7 +1,8 @@
 import { createDemoSessionToken, checkDemoRateLimit } from "../../server/aiHandler.js";
-import { configureCorsHeaders } from "./generate.js";
+import { configureCorsHeaders } from "../../server/cors.js";
+import type { ApiRequest, ApiResponse } from "../../server/types.js";
 
-export default function handler(req: any, res: any) {
+export default function handler(req: ApiRequest, res: ApiResponse): void {
   configureCorsHeaders(req, res, "POST, GET, OPTIONS");
 
   if (req.method === "OPTIONS") {
@@ -13,8 +14,10 @@ export default function handler(req: any, res: any) {
   res.setHeader("Content-Type", "application/json");
 
   // Determine client IP for abuse prevention
+  const xForwardedFor = req.headers["x-forwarded-for"];
+  const forwardedIp = typeof xForwardedFor === "string" ? xForwardedFor : Array.isArray(xForwardedFor) ? xForwardedFor[0] : undefined;
   const clientIp =
-    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+    forwardedIp?.split(",")[0]?.trim() ||
     req.socket?.remoteAddress ||
     "client-session";
 

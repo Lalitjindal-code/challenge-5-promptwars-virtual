@@ -3,6 +3,7 @@ import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 import type { DetailedVendor } from "../types";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
+import { downloadCsv } from "../lib/csvExport";
 
 export default function Vendors() {
   const { isDemo, events, activeEvent, vendors, addVendor, updateVendor, deleteVendor, formatCurrency, currencySymbol } = useEventContext();
@@ -103,28 +104,22 @@ export default function Vendors() {
     }
     const headers = ["ID", "Name", "Category", "Location", "Rating", "Reviews", "Event", "Cost (INR)", "Paid (INR)", "Status", "Contact Name", "Phone", "Email"];
     const rows = listToExport.map((v) => [
-      `"${v.id}"`,
-      `"${(v.name || "").replace(/"/g, '""')}"`,
-      `"${v.category || ""}"`,
-      `"${(v.location || "").replace(/"/g, '""')}"`,
-      `"${v.rating || 0}"`,
-      `"${v.reviewCount || 0}"`,
-      `"${(v.event || "").replace(/"/g, '""')}"`,
-      `"${v.cost || 0}"`,
-      `"${v.paidAmount || 0}"`,
-      `"${v.status || ""}"`,
-      `"${(v.contactName || "").replace(/"/g, '""')}"`,
-      `"${(v.contactPhone || "").replace(/"/g, '""')}"`,
-      `"${(v.contactEmail || "").replace(/"/g, '""')}"`
+      v.id,
+      v.name || "",
+      v.category || "",
+      v.location || "",
+      v.rating || 0,
+      v.reviewCount || 0,
+      v.event || "",
+      v.cost || 0,
+      v.paidAmount || 0,
+      v.status || "",
+      v.contactName || "",
+      v.contactPhone || "",
+      v.contactEmail || ""
     ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `planora-vendor-directory-${(activeEvent?.name || "all").toLowerCase().replace(/[^a-z0-9]/g, "-")}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `planora-vendor-directory-${(activeEvent?.name || "all").toLowerCase().replace(/[^a-z0-9]/g, "-")}.csv`;
+    downloadCsv(filename, headers, rows);
     showToast("Vendor directory exported to CSV successfully.");
   };
 

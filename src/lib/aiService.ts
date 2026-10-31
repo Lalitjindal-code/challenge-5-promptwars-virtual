@@ -165,20 +165,21 @@ export async function generateEventIdea(
     }
 
     return data as AiGenerationResponse;
-  } catch (err: any) {
+  } catch (err: unknown) {
     clearTimeout(timeoutId);
     if (err instanceof AiServiceError) {
       throw err;
     }
-    if (err.name === "AbortError") {
+    if (err instanceof Error && err.name === "AbortError") {
       throw new AiServiceError(
         "AI request timed out after 35 seconds. Please try again.",
         "TIMEOUT",
         408
       );
     }
+    const message = err instanceof Error ? err.message : "Failed to reach AI generation service.";
     throw new AiServiceError(
-      err.message || "Failed to reach AI generation service.",
+      message,
       "NETWORK_ERROR"
     );
   }

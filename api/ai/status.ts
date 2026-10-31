@@ -1,6 +1,7 @@
-import { configureCorsHeaders } from "./generate.js";
+import { configureCorsHeaders } from "../../server/cors.js";
+import type { ApiRequest, ApiResponse } from "../../server/types.js";
 
-export default function handler(req: any, res: any) {
+export default function handler(req: ApiRequest, res: ApiResponse): void {
   configureCorsHeaders(req, res, "GET, OPTIONS");
 
   if (req.method === "OPTIONS") {

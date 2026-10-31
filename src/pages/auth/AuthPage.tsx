@@ -1,6 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getErrorMessage } from "../../lib/errorUtils";
+
+interface LocationState {
+  from?: {
+    pathname?: string;
+  };
+}
 
 interface AuthPageProps {
   initialTab?: "signin" | "signup" | "forgot" | "dispatched" | "success";
@@ -21,7 +28,8 @@ export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const from = (location.state as any)?.from?.pathname || "/dashboard";
+  const locationState = location.state as LocationState | null;
+  const from = locationState?.from?.pathname || "/dashboard";
 
   // Redirect if already logged in
   if (user && tab !== "success" && tab !== "dispatched") {
@@ -44,9 +52,9 @@ export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
         await resetPassword(email);
         setTab("dispatched");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err?.message?.replace("Firebase: ", "") || "Authentication failed. Please check credentials.");
+      setError(getErrorMessage(err, "Authentication failed. Please check credentials."));
     } finally {
       setIsSubmitting(false);
     }
@@ -58,9 +66,9 @@ export default function AuthPage({ initialTab = "signin" }: AuthPageProps) {
     try {
       await signInWithGoogle();
       navigate(from, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err?.message?.replace("Firebase: ", "") || "Google sign-in failed.");
+      setError(getErrorMessage(err, "Google sign-in failed."));
     } finally {
       setIsSubmitting(false);
     }

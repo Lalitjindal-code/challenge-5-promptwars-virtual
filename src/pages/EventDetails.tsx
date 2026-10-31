@@ -4,6 +4,8 @@ import AppLayout from "../components/layout/AppLayout";
 import { useEventContext } from "../context/EventContext";
 import { useModalAccessibility } from "../hooks/useModalAccessibility";
 import EventReadinessCard from "../components/dashboard/EventReadinessCard";
+import { downloadCsv } from "../lib/csvExport";
+import { getErrorMessage } from "../lib/errorUtils";
 
 export default function EventDetails() {
   const navigate = useNavigate();
@@ -87,22 +89,16 @@ export default function EventDetails() {
     const evTasks = tasks.filter((t) => !t.eventId || t.eventId === currentEvent?.id || t.event === currentEvent?.name);
     const headers = ["ID", "Title", "Subtitle/Notes", "Due Date", "Priority", "Status", "Assignee"];
     const rows = evTasks.map((t) => [
-      `"${t.id}"`,
-      `"${(t.title || "").replace(/"/g, '""')}"`,
-      `"${(t.subtitle || t.description || "").replace(/"/g, '""')}"`,
-      `"${(t.dueDate || "").replace(/"/g, '""')}"`,
-      `"${t.priority || ""}"`,
-      `"${t.status || ""}"`,
-      `"${(t.assignee?.name || "").replace(/"/g, '""')}"`
+      t.id,
+      t.title || "",
+      t.subtitle || t.description || "",
+      t.dueDate || "",
+      t.priority || "",
+      t.status || "",
+      t.assignee?.name || ""
     ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${(currentEvent?.name || "event").toLowerCase().replace(/[^a-z0-9]/g, "-")}-run-of-show.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `${(currentEvent?.name || "event").toLowerCase().replace(/[^a-z0-9]/g, "-")}-run-of-show.csv`;
+    downloadCsv(filename, headers, rows);
     showToast("Event Run-of-Show exported to CSV successfully.");
   };
 
@@ -124,8 +120,8 @@ export default function EventDetails() {
       setActiveEventId(cloned.id);
       navigate(`/events/${cloned.id}`);
       showToast(`Event duplicated: "${cloned.name}"`);
-    } catch (err: any) {
-      showToast("Failed to duplicate event: " + (err?.message || "Unknown error"));
+    } catch (err: unknown) {
+      showToast("Failed to duplicate event: " + getErrorMessage(err));
     }
   };
 
@@ -159,8 +155,8 @@ export default function EventDetails() {
       await deleteEvent(currentEvent.id);
       showToast(`Event "${currentEvent.name}" deleted.`);
       navigate("/events");
-    } catch (err: any) {
-      showToast("Error deleting event: " + (err?.message || "Unknown error"));
+    } catch (err: unknown) {
+      showToast("Error deleting event: " + getErrorMessage(err));
     }
   };
 

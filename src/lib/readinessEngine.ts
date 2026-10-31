@@ -148,14 +148,14 @@ export function calculateEventReadiness(
 
   // 3. Vendor Coverage Pillar (25 points max)
   const bookedVendors = vendors.filter((v) => v.status?.toLowerCase().includes("booked")).length;
-  const criticalCategories = ["Venue", "Catering", "Decoration"];
-  const bookedCategories = new Set(
+  const criticalCategories: readonly DetailedVendor["category"][] = ["Venue", "Catering", "Decoration"];
+  const bookedCategories = new Set<DetailedVendor["category"]>(
     vendors
       .filter((v) => v.status?.toLowerCase().includes("booked"))
       .map((v) => v.category)
   );
 
-  const missingCategories = criticalCategories.filter((cat) => !bookedCategories.has(cat as any));
+  const missingCategories = criticalCategories.filter((cat) => !bookedCategories.has(cat));
 
   let vendorScore = 0;
   if (vendors.length === 0) {
